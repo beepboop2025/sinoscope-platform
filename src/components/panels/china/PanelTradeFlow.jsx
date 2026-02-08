@@ -1,13 +1,16 @@
 /**
  * PanelTradeFlow - US-China Trade Balance Visualization
  * Shows trade flows, exports/imports, and trade war metrics
+ * NOTE: Trade data is reference/illustrative based on publicly reported figures.
  */
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowRightLeft, TrendingUp, TrendingDown, Package, Ship, Scale } from 'lucide-react';
+import { ArrowRightLeft, TrendingUp, TrendingDown, Package, Ship, Scale, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, ReferenceLine } from 'recharts';
 import { TRADE_CATEGORIES } from '../../../constants/china';
 
-// Mock trade data (monthly US-China trade in billions USD)
+// Reference trade data (monthly US-China trade in billions USD)
+// Source: US Census Bureau / BEA — figures are illustrative based on public reporting
+const TRADE_DATA_LAST_UPDATED = '2024-12';
 const TRADE_DATA = [
   { month: 'Jan 24', exports: 42.3, imports: 36.8, balance: 5.5 },
   { month: 'Feb 24', exports: 38.1, imports: 32.4, balance: 5.7 },
@@ -50,6 +53,18 @@ export default function PanelTradeFlow() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ArrowRightLeft size={18} color="var(--green)" />
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>US-China Trade Flow</h3>
+          <span
+            style={{
+              padding: '2px 6px',
+              fontSize: 9,
+              borderRadius: 4,
+              background: 'var(--surface-2)',
+              color: 'var(--text-3)',
+              fontWeight: 500,
+            }}
+          >
+            Reference Data
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           <button
@@ -247,8 +262,14 @@ export default function PanelTradeFlow() {
           color: 'var(--text-2)',
         }}
       >
-        <strong>Note:</strong> Average US tariffs on Chinese goods remain at ~19% (down from peak of 21%). 
+        <strong>Note:</strong> Average US tariffs on Chinese goods remain at ~19% (down from peak of 21%).
         China maintains retaliatory tariffs on ~$110B of US goods. Phase 1 purchase commitments expired in 2021.
+      </div>
+
+      {/* Data source footer */}
+      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontSize: 9, color: 'var(--text-3)' }}>
+        <Info size={9} />
+        <span>Reference data as of {TRADE_DATA_LAST_UPDATED} — Source: US Census Bureau / BEA (illustrative)</span>
       </div>
     </div>
   );

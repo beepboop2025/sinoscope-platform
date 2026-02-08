@@ -1,11 +1,19 @@
-import { memo } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { correlationColor } from '../../constants/colors';
 
-const HeatmapGrid = memo(({ matrix = {}, symbols = [], cellSize = 36, showValues = true, colorFn = correlationColor }) => {
+const HeatmapGrid = memo(({ matrix = {}, symbols = [], cellSize = 36, showValues = true, colorFn = correlationColor, onCellClick }) => {
+  const [selectedCell, setSelectedCell] = useState(null);
+
+  const handleCellClick = useCallback((row, col, val) => {
+    const key = `${row}_${col}`;
+    setSelectedCell(prev => prev === key ? null : key);
+    if (onCellClick) onCellClick({ row, col, value: val });
+  }, [onCellClick]);
+
   if (symbols.length === 0) return null;
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div style={{ overflowX: 'auto', position: 'relative' }}>
       <div
         className="heatmap-grid"
         style={{ gridTemplateColumns: `40px repeat(${symbols.length}, ${cellSize}px)`, gap: 1 }}
@@ -23,14 +31,27 @@ const HeatmapGrid = memo(({ matrix = {}, symbols = [], cellSize = 36, showValues
             </div>
             {symbols.map(col => {
               const val = matrix[row]?.[col] ?? 0;
+              const cellKey = `${row}_${col}`;
+              const isSelected = selectedCell === cellKey;
               return (
                 <div
-                  key={`${row}_${col}`}
+                  key={cellKey}
                   className="heatmap-cell"
-                  style={{ background: colorFn(val), color: Math.abs(val) > 0.4 ? '#fff' : 'var(--text-2)', width: cellSize, height: cellSize }}
+                  style={{
+                    background: colorFn(val),
+                    color: Math.abs(val) > 0.4 ? '#fff' : 'var(--text-2)',
+                    width: cellSize,
+                    height: cellSize,
+                    cursor: 'pointer',
+                    outline: isSelected ? '2px solid var(--cyan)' : 'none',
+                    outlineOffset: -1,
+                    position: 'relative',
+                    zIndex: isSelected ? 2 : 1,
+                  }}
                   title={`${row} vs ${col}: ${val.toFixed(3)}`}
+                  onClick={() => handleCellClick(row, col, val)}
                 >
-                  {showValues ? val.toFixed(1) : ''}
+                  {isSelected ? val.toFixed(3) : (showValues ? val.toFixed(1) : '')}
                 </div>
               );
             })}

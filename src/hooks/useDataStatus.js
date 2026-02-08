@@ -41,7 +41,38 @@ export function useDataStatus(marketData, wsStatus) {
     for (const { key, label, data } of checks) {
       const hasData = data && Object.keys(data).length > 0;
       if (hasData && notifiedRef.current[`empty_${key}`]) {
+        // Data recovered — clear the empty flag
         notifiedRef.current[`empty_${key}`] = false;
+        addToast(`${label} recovered`, 'success', 3000);
+      }
+      if (!hasData && notifiedRef.current[`had_${key}`] && !notifiedRef.current[`empty_${key}`]) {
+        // Had data before but now empty — warn user
+        notifiedRef.current[`empty_${key}`] = true;
+        addToast(`${label} is currently unavailable`, 'warning', 5000);
+      }
+      // Track whether we've ever had data for this source
+      if (hasData) {
+        notifiedRef.current[`had_${key}`] = true;
+      }
+    }
+
+    // Surface engine-level errors if present
+    if (marketData.errors) {
+      for (const [source, errInfo] of Object.entries(marketData.errors)) {
+        const errKey = `err_${source}`;
+        if (!notifiedRef.current[errKey]) {
+          notifiedRef.current[errKey] = true;
+          addToast(`${source} feed error: ${errInfo.error}`, 'error', 5000);
+        }
+      }
+      // Clear error notifications when errors resolve
+      for (const key of Object.keys(notifiedRef.current)) {
+        if (key.startsWith('err_')) {
+          const source = key.slice(4);
+          if (!marketData.errors[source]) {
+            notifiedRef.current[key] = false;
+          }
+        }
       }
     }
   }, [marketData, wsStatus, addToast]);

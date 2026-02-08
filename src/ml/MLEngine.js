@@ -41,6 +41,38 @@ export class MLEngine {
     // Try loading saved models
     this.pricePredictor.load();
     this.marketRegime.load();
+    this.anomalyDetector.load();
+
+    // Validate loaded models with a test forward pass
+    this._validateLoadedModels();
+  }
+
+  _validateLoadedModels() {
+    const dummyInput = new Array(20).fill(0);
+    try {
+      if (this.pricePredictor.trained) {
+        const out = this.pricePredictor.net.predict(dummyInput);
+        if (!out.every(v => Number.isFinite(v))) {
+          console.warn('MLEngine: PricePredictor loaded weights are corrupted, reinitializing');
+          this.pricePredictor = new PricePredictor();
+        }
+      }
+    } catch (err) {
+      console.warn('MLEngine: PricePredictor validation failed, reinitializing:', err);
+      this.pricePredictor = new PricePredictor();
+    }
+    try {
+      if (this.marketRegime.trained) {
+        const out = this.marketRegime.net.predict(dummyInput);
+        if (!out.every(v => Number.isFinite(v))) {
+          console.warn('MLEngine: MarketRegime loaded weights are corrupted, reinitializing');
+          this.marketRegime = new MarketRegime();
+        }
+      }
+    } catch (err) {
+      console.warn('MLEngine: MarketRegime validation failed, reinitializing:', err);
+      this.marketRegime = new MarketRegime();
+    }
   }
 
   // Subscribe to updates
@@ -122,7 +154,35 @@ export class MLEngine {
         return;
       }
 
-      const { train, test } = trainTestSplit(dataset, 0.2);
+      // Validate feature vectors: check for NaN values
+      const cleanDataset = dataset.filter(d => {
+        const hasNaN = d.input.some(v => !Number.isFinite(v));
+        if (hasNaN) console.warn('MLEngine: dropping sample with NaN/Infinity in features for', d.symbol);
+        return !hasNaN;
+      });
+
+      if (cleanDataset.length < 10) {
+        console.warn('MLEngine: not enough clean samples after NaN filtering');
+        this.trainingStatus.isTraining = false;
+        this.notify();
+        return;
+      }
+
+      const { train, test } = trainTestSplit(cleanDataset, 0.2);
+
+      // Validate train/test split produced non-empty arrays
+      if (train.length === 0 || test.length === 0) {
+        console.warn('MLEngine: train/test split produced empty set, using full dataset for both');
+        train.length === 0 && train.push(...cleanDataset);
+        test.length === 0 && test.push(...cleanDataset.slice(-Math.max(1, Math.floor(cleanDataset.length * 0.2))));
+      }
+
+      // Check for class imbalance
+      const positiveCount = train.filter(d => d.target[0] >= 0.5).length;
+      const positiveRatio = positiveCount / train.length;
+      if (positiveRatio > 0.8 || positiveRatio < 0.2) {
+        console.warn(`MLEngine: class imbalance detected — ${(positiveRatio * 100).toFixed(1)}% positive samples`);
+      }
 
       // Train price predictor
       const priceMetrics = this.pricePredictor.train(train, 20);
@@ -133,16 +193,34 @@ export class MLEngine {
       // Evaluate on test set
       const testAccuracy = test.length > 0 ? this.pricePredictor.net.accuracy(test) : priceMetrics.accuracy;
 
+      // Compute precision, recall, F1 on test set
+      let tp = 0, fp = 0, fn = 0, tn = 0;
+      for (const { input, target } of test) {
+        const pred = this.pricePredictor.net.predict(input);
+        const predClass = pred[0] >= 0.5 ? 1 : 0;
+        const trueClass = target[0] >= 0.5 ? 1 : 0;
+        if (predClass === 1 && trueClass === 1) tp++;
+        else if (predClass === 1 && trueClass === 0) fp++;
+        else if (predClass === 0 && trueClass === 1) fn++;
+        else tn++;
+      }
+      const precision = (tp + fp) > 0 ? tp / (tp + fp) : 0;
+      const recall = (tp + fn) > 0 ? tp / (tp + fn) : 0;
+      const f1 = (precision + recall) > 0 ? 2 * precision * recall / (precision + recall) : 0;
+
       this.trainingStatus = {
         isTraining: false,
         lastTrained: Date.now(),
         epochs: this.trainingStatus.epochs + 20,
-        dataPoints: dataset.length,
+        dataPoints: cleanDataset.length,
         priceAccuracy: testAccuracy,
         regimeAccuracy: regimeMetrics.accuracy,
         priceLoss: priceMetrics.loss,
         trainSize: train.length,
         testSize: test.length,
+        precision,
+        recall,
+        f1,
       };
 
       this.lastTrainTime = Date.now();
@@ -224,6 +302,7 @@ export class MLEngine {
     try {
       localStorage.removeItem('dragonscope_ml_price_predictor');
       localStorage.removeItem('dragonscope_ml_regime');
+      localStorage.removeItem('dragonscope_ml_anomaly_detector');
     } catch { /* ignore */ }
     this.notify();
   }

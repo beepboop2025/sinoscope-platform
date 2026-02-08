@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from 'react';
-import { Activity, Wifi, WifiOff, Command } from 'lucide-react';
+import { Activity, Wifi, WifiOff, Command, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../shared/ThemeProvider';
 import { TIMEZONES, getTimeInZone } from '../../utils/time';
 
 const ClockDisplay = memo(({ label, tz, abbr }) => {
@@ -19,35 +20,47 @@ ClockDisplay.displayName = "ClockDisplay";
 
 export default function Header({ wsStatus, onOpenCommandBar }) {
   const isConnected = wsStatus === 'connected';
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="app-header">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Activity size={18} color="var(--cyan)" />
+        <Activity size={18} color="var(--cyan)" aria-hidden="true" />
         <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.02em' }}>
           <span style={{ color: 'var(--cyan)' }}>Dragon</span>
           <span style={{ color: 'var(--text-1)' }}>Scope</span>
         </span>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginLeft: 24 }}>
+      <nav role="navigation" aria-label="Timezone clocks" style={{ display: 'flex', gap: 16, marginLeft: 24 }}>
         {Object.values(TIMEZONES).map(z => (
           <ClockDisplay key={z.tz} label={z.abbr} tz={z.tz} />
         ))}
-      </div>
+      </nav>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
           className="btn-ghost"
           onClick={onOpenCommandBar}
           style={{ padding: '4px 10px', fontSize: 11 }}
+          aria-label="Open command bar (Ctrl+K)"
         >
-          <Command size={12} /> <span className="mono">Ctrl+K</span>
+          <Command size={12} aria-hidden="true" /> <span className="mono">Ctrl+K</span>
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {isConnected ? <Wifi size={14} color="var(--green)" /> : <WifiOff size={14} color="var(--text-4)" />}
-          <div className={`status-dot ${isConnected ? 'live' : 'error'}`} />
+        <button
+          className="btn-ghost"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{ padding: '4px 8px' }}
+        >
+          {theme === 'dark' ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} role="status" aria-live="polite" aria-label={isConnected ? 'WebSocket connected' : 'WebSocket disconnected'}>
+          {isConnected ? <Wifi size={14} color="var(--green)" aria-hidden="true" /> : <WifiOff size={14} color="var(--text-4)" aria-hidden="true" />}
+          <div className={`status-dot ${isConnected ? 'live' : 'error'}`} aria-hidden="true" />
           <span style={{ fontSize: 10, color: isConnected ? 'var(--green)' : 'var(--text-4)' }}>
             {isConnected ? 'LIVE' : 'OFFLINE'}
           </span>

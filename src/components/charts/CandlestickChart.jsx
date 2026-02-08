@@ -1,5 +1,14 @@
 import { memo } from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
+import { CHART_COLORS } from '../../constants/colors';
+
+const OVERLAY_DEFAULTS = [
+  { color: '#f59e0b', width: 1.2, dash: '0' },
+  { color: '#a78bfa', width: 1.2, dash: '0' },
+  { color: '#3b82f6', width: 1, dash: '4 2' },
+  { color: '#ec4899', width: 1, dash: '4 2' },
+  { color: '#14b8a6', width: 1, dash: '6 3' },
+];
 
 const CandlestickChart = memo(({ data = [], height = 300, overlays = [] }) => {
   if (!data.length) return null;
@@ -11,6 +20,8 @@ const CandlestickChart = memo(({ data = [], height = 300, overlays = [] }) => {
     isUp: d.close >= d.open,
   }));
 
+  const hasOverlays = overlays.length > 0;
+
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={processedData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
@@ -20,24 +31,42 @@ const CandlestickChart = memo(({ data = [], height = 300, overlays = [] }) => {
         <Tooltip
           contentStyle={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-1)' }}
           labelStyle={{ color: 'var(--text-3)', fontSize: 10 }}
-          formatter={(v, name) => [typeof v === 'number' ? v.toFixed(4) : v, name]}
+          formatter={(v, name) => {
+            if (name === 'bodyHeight' || name === 'bodyLow') return null;
+            return [typeof v === 'number' ? v.toFixed(4) : v, name];
+          }}
         />
+        {hasOverlays && <Legend wrapperStyle={{ fontSize: 10, color: 'var(--text-3)' }} />}
         {/* Wicks as thin bars */}
-        <Bar dataKey="high" stackId="wick" fill="none" barSize={1}>
+        <Bar dataKey="high" stackId="wick" fill="none" barSize={1} legendType="none">
           {processedData.map((d, i) => (
             <Cell key={i} fill={d.isUp ? 'var(--green)' : 'var(--red)'} />
           ))}
         </Bar>
         {/* Candle bodies */}
-        <Bar dataKey="bodyHeight" stackId="body" barSize={6}>
+        <Bar dataKey="bodyHeight" stackId="body" barSize={6} legendType="none">
           {processedData.map((d, i) => (
             <Cell key={i} fill={d.isUp ? 'var(--green)' : 'var(--red)'} />
           ))}
         </Bar>
-        {/* Overlay lines (SMA, EMA, Bollinger) */}
-        {overlays.map(o => (
-          <Line key={o.key} type="monotone" dataKey={o.key} stroke={o.color} strokeWidth={1} dot={false} name={o.name || o.key} />
-        ))}
+        {/* Overlay lines (SMA, EMA, Bollinger, etc.) */}
+        {overlays.map((o, i) => {
+          const defaults = OVERLAY_DEFAULTS[i % OVERLAY_DEFAULTS.length];
+          return (
+            <Line
+              key={o.key}
+              type="monotone"
+              dataKey={o.key}
+              stroke={o.color || defaults.color}
+              strokeWidth={o.width || defaults.width}
+              strokeDasharray={o.dash || defaults.dash}
+              dot={false}
+              name={o.name || o.key}
+              connectNulls
+              isAnimationActive={false}
+            />
+          );
+        })}
       </ComposedChart>
     </ResponsiveContainer>
   );

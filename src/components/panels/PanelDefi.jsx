@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-import { Layers, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
+import { Layers, RefreshCw, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
 import { fetchDefiProtocols, fetchChainTVL, getMockDefiData } from '../../services/api/defiLlamaApi';
 
@@ -15,19 +15,28 @@ const PanelDefi = memo(() => {
   const [chains, setChains] = useState([]);
   const [tab, setTab] = useState('protocols');
   const [loading, setLoading] = useState(true);
+  const [partialError, setPartialError] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    try {
-      const [p, c] = await Promise.all([fetchDefiProtocols(), fetchChainTVL()]);
-      const mock = getMockDefiData();
-      setProtocols(p || mock.protocols);
-      setChains(c || mock.chains);
-    } catch {
-      const mock = getMockDefiData();
-      setProtocols(mock.protocols);
-      setChains(mock.chains);
+    setPartialError(null);
+    const mock = getMockDefiData();
+    const [pResult, cResult] = await Promise.allSettled([fetchDefiProtocols(), fetchChainTVL()]);
+
+    const pOk = pResult.status === 'fulfilled' && pResult.value;
+    const cOk = cResult.status === 'fulfilled' && cResult.value;
+
+    setProtocols(pOk ? pResult.value : mock.protocols);
+    setChains(cOk ? cResult.value : mock.chains);
+
+    if (!pOk && !cOk) {
+      setPartialError('Both protocol and chain data failed to load — showing mock data');
+    } else if (!pOk) {
+      setPartialError('Protocol data unavailable — showing mock protocols');
+    } else if (!cOk) {
+      setPartialError('Chain data unavailable — showing mock chains');
     }
+
     setLoading(false);
   }, []);
 
@@ -43,6 +52,13 @@ const PanelDefi = memo(() => {
             <RefreshCw size={9} /> Refresh
           </button>
         </div>
+
+        {partialError && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 4, fontSize: 9, color: 'var(--amber)' }}>
+            <AlertTriangle size={10} />
+            <span>{partialError}</span>
+          </div>
+        )}
 
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           {tab === 'protocols' && protocols.map((p, i) => (

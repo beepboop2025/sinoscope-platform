@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-import { Brain, Download, Heart, RefreshCw, Tag, ExternalLink } from 'lucide-react';
+import { Brain, Download, Heart, RefreshCw, Tag, ExternalLink, AlertTriangle, WifiOff, ShieldAlert } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
 import { fetchFinanceModels, getMockHuggingFaceModels } from '../../services/api/huggingfaceApi';
 
@@ -20,18 +20,41 @@ function formatDownloads(n) {
   return String(n);
 }
 
+function classifyError(err) {
+  const msg = (err?.message || '').toLowerCase();
+  if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('net::')) {
+    return { type: 'network', label: 'Network error', detail: 'Unable to reach HuggingFace API. Check your connection.', icon: WifiOff, color: 'var(--red)' };
+  }
+  if (msg.includes('429') || msg.includes('rate limit') || msg.includes('too many')) {
+    return { type: 'rateLimit', label: 'Rate limited', detail: 'HuggingFace API rate limit exceeded. Try again later.', icon: ShieldAlert, color: 'var(--amber)' };
+  }
+  return { type: 'unknown', label: 'Load failed', detail: err?.message || 'An unexpected error occurred.', icon: AlertTriangle, color: 'var(--text-3)' };
+}
+
 const PanelHuggingFace = memo(() => {
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pipelineFilter, setPipelineFilter] = useState('all');
+  const [errorInfo, setErrorInfo] = useState(null);
+  const [usingMock, setUsingMock] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setErrorInfo(null);
+    setUsingMock(false);
     try {
       const data = await fetchFinanceModels();
-      setModels(data || getMockHuggingFaceModels());
-    } catch {
+      if (data) {
+        setModels(data);
+      } else {
+        setModels(getMockHuggingFaceModels());
+        setUsingMock(true);
+      }
+    } catch (err) {
+      const info = classifyError(err);
+      setErrorInfo(info);
       setModels(getMockHuggingFaceModels());
+      setUsingMock(true);
     }
     setLoading(false);
   }, []);
@@ -68,6 +91,15 @@ const PanelHuggingFace = memo(() => {
             <RefreshCw size={9} className={loading ? 'spin' : ''} /> Refresh
           </button>
         </div>
+
+        {/* Error banner */}
+        {errorInfo && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 4, fontSize: 9, color: errorInfo.color }}>
+            <errorInfo.icon size={11} />
+            <span style={{ flex: 1 }}>{errorInfo.label}: {errorInfo.detail}</span>
+            {usingMock && <span style={{ color: 'var(--text-4)' }}>(showing mock data)</span>}
+          </div>
+        )}
 
         {/* Model list */}
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>

@@ -1,42 +1,44 @@
 /**
  * PanelChinaCalendar - China Economic Data Release Calendar
  * Shows upcoming and recent economic indicators from NBS China
+ * NOTE: Calendar events are illustrative sample data, not live feeds.
  */
 import { useState, useMemo } from 'react';
-import { Calendar, Clock, AlertCircle, TrendingUp, TrendingDown, Minus, Bell } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, TrendingUp, TrendingDown, Minus, Bell, Info } from 'lucide-react';
 import { CHINA_CALENDAR } from '../../../constants/china';
 
-// Generate mock calendar events for the next 30 days
+// Generate illustrative calendar events using fixed offsets from today
+// These use realistic indicator names and typical values but are NOT sourced from a live feed.
 const generateCalendarEvents = () => {
   const events = [];
   const today = new Date();
-  
-  // Add some past and future events
+
+  // Fixed day-of-month offsets for deterministic scheduling (no Math.random for dates)
   const eventTemplates = [
-    { indicator: 'PMI Manufacturing', type: 'pmi', importance: 'High', forecast: 49.8, previous: 49.0 },
-    { indicator: 'Trade Balance', type: 'trade', importance: 'High', forecast: 75.2, previous: 70.8 },
-    { indicator: 'CPI', type: 'inflation', importance: 'High', forecast: 0.3, previous: 0.2 },
-    { indicator: 'PPI', type: 'inflation', importance: 'Medium', forecast: -2.5, previous: -2.7 },
-    { indicator: 'New Yuan Loans', type: 'credit', importance: 'High', forecast: 1200, previous: 1100 },
-    { indicator: 'FX Reserves', type: 'reserves', importance: 'Medium', forecast: 32300, previous: 32258 },
-    { indicator: 'Industrial Production', type: 'production', importance: 'High', forecast: 5.2, previous: 5.0 },
-    { indicator: 'Retail Sales', type: 'consumption', importance: 'Medium', forecast: 7.5, previous: 7.2 },
-    { indicator: 'GDP', type: 'growth', importance: 'High', forecast: 5.2, previous: 5.3 },
-    { indicator: 'LPR', type: 'rates', importance: 'High', forecast: 3.45, previous: 3.45 },
+    { indicator: 'PMI Manufacturing', type: 'pmi', importance: 'High', forecast: 49.8, previous: 49.0, dayOffset: -10 },
+    { indicator: 'Trade Balance', type: 'trade', importance: 'High', forecast: 75.2, previous: 70.8, dayOffset: -7 },
+    { indicator: 'CPI', type: 'inflation', importance: 'High', forecast: 0.3, previous: 0.2, dayOffset: -4 },
+    { indicator: 'PPI', type: 'inflation', importance: 'Medium', forecast: -2.5, previous: -2.7, dayOffset: -1 },
+    { indicator: 'New Yuan Loans', type: 'credit', importance: 'High', forecast: 1200, previous: 1100, dayOffset: 2 },
+    { indicator: 'FX Reserves', type: 'reserves', importance: 'Medium', forecast: 32300, previous: 32258, dayOffset: 5 },
+    { indicator: 'Industrial Production', type: 'production', importance: 'High', forecast: 5.2, previous: 5.0, dayOffset: 8 },
+    { indicator: 'Retail Sales', type: 'consumption', importance: 'Medium', forecast: 7.5, previous: 7.2, dayOffset: 11 },
+    { indicator: 'GDP', type: 'growth', importance: 'High', forecast: 5.2, previous: 5.3, dayOffset: 17 },
+    { indicator: 'LPR', type: 'rates', importance: 'High', forecast: 3.45, previous: 3.45, dayOffset: 20 },
   ];
 
-  // Distribute events across dates
-  eventTemplates.forEach((template, idx) => {
+  // Distribute events across dates using fixed offsets
+  eventTemplates.forEach((template) => {
     const date = new Date(today);
-    date.setDate(today.getDate() + (idx * 3) - 10); // Mix of past and future
-    
+    date.setDate(today.getDate() + template.dayOffset);
+
     // Determine status
     let status = 'upcoming';
     let actual = null;
     if (date < today) {
       status = 'released';
-      // Generate actual value near forecast
-      actual = template.forecast + (Math.random() - 0.5) * 0.5;
+      // Use a deterministic "actual" near forecast (based on previous value direction)
+      actual = template.forecast + (template.forecast - template.previous) * 0.3;
     } else if (date.toDateString() === today.toDateString()) {
       status = 'today';
     }
@@ -102,6 +104,18 @@ export default function PanelChinaCalendar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Calendar size={18} color="var(--magenta)" />
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>China Calendar</h3>
+          <span
+            style={{
+              padding: '2px 6px',
+              fontSize: 9,
+              borderRadius: 4,
+              background: 'var(--amber-alpha)',
+              color: 'var(--amber)',
+              fontWeight: 500,
+            }}
+          >
+            Sample Data
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {['all', 'upcoming', 'high'].map((f) => (
@@ -196,7 +210,7 @@ export default function PanelChinaCalendar() {
                 <span style={{ color: 'var(--text-3)' }}>Forecast: </span>
                 <span style={{ fontWeight: 500 }}>{event.forecast}</span>
               </div>
-              
+
               {event.status === 'released' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 10 }}>
@@ -244,7 +258,13 @@ export default function PanelChinaCalendar() {
 
       {/* NBS Source */}
       <div style={{ marginTop: 12, fontSize: 9, color: 'var(--text-3)', textAlign: 'center' }}>
-        Source: National Bureau of Statistics of China (NBS) • All times Beijing (CST)
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+          <Info size={9} />
+          <span>Illustrative schedule — dates and values are sample data, not a live feed</span>
+        </div>
+        <div style={{ marginTop: 4 }}>
+          Source: National Bureau of Statistics of China (NBS) release calendar reference
+        </div>
       </div>
     </div>
   );

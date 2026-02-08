@@ -7,6 +7,7 @@ import { ArrowLeftRight, TrendingUp, TrendingDown, AlertCircle } from 'lucide-re
 import { ChinaAPI } from '../../../services/api/chinaApi';
 import { CNY_MARKET } from '../../../constants/china';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
+import PanelChrome from '../../shared/PanelChrome';
 
 export default function PanelCNYTracker() {
   const [fxData, setFxData] = useState(null);
@@ -67,19 +68,15 @@ export default function PanelCNYTracker() {
 
   if (loading && !fxData) {
     return (
-      <div className="panel-content" style={{ padding: 20 }}>
+      <PanelChrome title="CNY/CNH Tracker" icon={ArrowLeftRight} iconColor="var(--cyan)">
         <div style={{ color: 'var(--text-2)' }}>Loading FX data...</div>
-      </div>
+      </PanelChrome>
     );
   }
 
   return (
-    <div className="panel-content" style={{ padding: 16 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <ArrowLeftRight size={18} color="var(--cyan)" />
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>CNY/CNH Tracker</h3>
-      </div>
+    <PanelChrome title="CNY/CNH Tracker" icon={ArrowLeftRight} iconColor="var(--cyan)">
+      <div style={{ padding: 4 }}>
 
       {/* Rates Display */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
@@ -187,6 +184,7 @@ export default function PanelCNYTracker() {
         <br />
         Normal range: {CNY_MARKET.spread.normalRange}
       </div>
-    </div>
+      </div>
+    </PanelChrome>
   );
 }

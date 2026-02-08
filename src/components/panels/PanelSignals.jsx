@@ -33,8 +33,10 @@ const PanelSignals = memo(function PanelSignals({ mlState }) {
     }
     if (sortBy === 'symbol') {
       list = [...list].sort((a, b) => a.symbol.localeCompare(b.symbol));
+    } else {
+      // Default sort by absolute score (strongest signals first)
+      list = [...list].sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
     }
-    // Default sort by absolute score (strongest signals first)
     return list;
   }, [signals, filter, sortBy]);
 

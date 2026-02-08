@@ -106,9 +106,34 @@ export class AnomalyDetector {
       };
       this.anomalies.unshift(anomaly);
       if (this.anomalies.length > this.maxAnomalies) this.anomalies.pop();
+      this.save();
       return anomaly;
     }
     return null;
+  }
+
+  save() {
+    try {
+      localStorage.setItem(STORAGE_PREFIX + 'anomaly_detector', JSON.stringify({
+        history: this.history,
+        threshold: this.threshold,
+        anomalies: this.anomalies.slice(0, 20), // persist recent anomalies
+      }));
+    } catch { /* quota exceeded */ }
+  }
+
+  load() {
+    try {
+      const json = localStorage.getItem(STORAGE_PREFIX + 'anomaly_detector');
+      if (json) {
+        const data = JSON.parse(json);
+        this.history = data.history || {};
+        this.threshold = data.threshold || 2.5;
+        this.anomalies = data.anomalies || [];
+        return true;
+      }
+    } catch { /* ignore */ }
+    return false;
   }
 
   getRecentAnomalies(limit = 10) {

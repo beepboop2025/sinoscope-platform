@@ -51,6 +51,9 @@ import { useCommandBar } from './hooks/useCommandBar';
 import { useCorrelation } from './hooks/useCorrelation';
 import { useMLEngine } from './hooks/useMLEngine';
 import { useDataStatus } from './hooks/useDataStatus';
+import { usePatternEngine } from './hooks/usePatternEngine';
+import { useTechnicals } from './hooks/useTechnicals';
+import { createTimelineEngine } from './engine/TimelineEngine';
 
 // Mock data generators
 import { generateMockForex } from './generators/mockForex';
@@ -65,6 +68,7 @@ function App() {
   const [useMock, setUseMock] = useState(false);
   const [events, setEvents] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [corrWindow, setCorrWindow] = useState(30);
 
   // Initialize engine once
   if (!engineRef.current) {
@@ -83,13 +87,25 @@ function App() {
   const { activeWorkspace, updateLayout, activeId, addPanelToWorkspace, switchWorkspace } = workspace;
 
   // Correlation
-  const { matrix: corrMatrix, pairs: corrPairs } = useCorrelation(marketData, CORRELATION_SYMBOLS);
+  const { matrix: corrMatrix, pairs: corrPairs } = useCorrelation(marketData, CORRELATION_SYMBOLS, corrWindow);
 
   // ML Engine
   const mlEngine = useMLEngine(marketData);
 
   // Data status notifications
   useDataStatus(marketData, useMock ? 'mock' : 'live');
+
+  // Pattern detection engine
+  const patternEngine = usePatternEngine(marketData);
+
+  // Technical indicators engine
+  const technicals = useTechnicals(marketData);
+
+  // Timeline engine
+  const timelineRef = useRef(null);
+  if (!timelineRef.current) {
+    timelineRef.current = createTimelineEngine();
+  }
 
   // Network data for PanelNetwork
   const networkSymbols = CORRELATION_SYMBOLS.slice(0, 6);
@@ -121,12 +137,13 @@ function App() {
     return () => clearTimeout(timer);
   }, [engine, marketData]);
 
-  // Generate events from market data
+  // Generate events from market data using TimelineEngine
   const prevMarketRef = useRef({});
   useEffect(() => {
     if (!marketData) return;
-    const newEvents = [];
+    const timeline = timelineRef.current;
     const prev = prevMarketRef.current;
+    let added = false;
 
     // Check stocks for significant moves
     const stocks = marketData.stocks || {};
@@ -137,13 +154,17 @@ function App() {
         const key = `stock_${sym}_${new Date().toDateString()}`;
         if (!prev[key]) {
           prev[key] = true;
-          newEvents.push({
+          timeline.addEvent({
             id: key,
-            type: 'price_alert',
-            symbol: sym,
-            message: `${sym} ${data.changePct > 0 ? 'surged' : 'dropped'} ${pct.toFixed(1)}% to $${(Number(data.price) || 0).toFixed(2)}`,
+            type: 'earnings',
+            title: `${sym} ${data.changePct > 0 ? 'surged' : 'dropped'} ${pct.toFixed(1)}%`,
             timestamp: Date.now(),
+            symbols: [sym],
+            impact: pct >= 5 ? 'high' : 'medium',
+            source: 'market_data',
           });
+          timeline.capturePriceAtEvent(sym, Date.now(), Number(data.price) || 0);
+          added = true;
         }
       }
     }
@@ -157,63 +178,78 @@ function App() {
         const key = `crypto_${sym}_${new Date().toDateString()}`;
         if (!prev[key]) {
           prev[key] = true;
-          newEvents.push({
+          const cleanSym = sym.replace('USDT', '');
+          timeline.addEvent({
             id: key,
-            type: 'price_alert',
-            symbol: sym,
-            message: `${sym} ${data.changePct > 0 ? 'rallied' : 'fell'} ${pct.toFixed(1)}% to $${(Number(data.price) || 0).toFixed(2)}`,
+            type: 'economic',
+            title: `${cleanSym} ${data.changePct > 0 ? 'rallied' : 'fell'} ${pct.toFixed(1)}%`,
             timestamp: Date.now(),
+            symbols: [cleanSym],
+            impact: pct >= 10 ? 'high' : 'medium',
+            source: 'market_data',
           });
+          timeline.capturePriceAtEvent(cleanSym, Date.now(), Number(data.price) || 0);
+          added = true;
         }
       }
     }
 
     // Generate initial events on first data load
     if (Object.keys(prev).length === 0) {
-      // Add some baseline market events
-      const starters = [];
       if (Object.keys(stocks).length > 0) {
-        starters.push({
-          id: 'init_stocks',
-          type: 'economic',
-          message: `Market data loaded: tracking ${Object.keys(stocks).length} stocks`,
-          timestamp: Date.now() - 2000,
+        timeline.addEvent({
+          id: 'init_stocks', type: 'economic',
+          title: `Market data loaded: tracking ${Object.keys(stocks).length} stocks`,
+          timestamp: Date.now() - 2000, symbols: [], impact: 'low', source: 'system',
         });
+        added = true;
       }
       if (Object.keys(crypto).length > 0) {
         const btc = crypto.BTC || crypto.BTCUSDT;
         if (btc?.price) {
-          starters.push({
-            id: 'init_btc',
-            type: 'price_alert',
-            symbol: 'BTC',
-            message: `Bitcoin trading at $${(Number(btc.price) || 0).toLocaleString()}`,
-            timestamp: Date.now() - 1000,
+          timeline.addEvent({
+            id: 'init_btc', type: 'economic',
+            title: `Bitcoin trading at $${(Number(btc.price) || 0).toLocaleString()}`,
+            timestamp: Date.now() - 1000, symbols: ['BTC'], impact: 'low', source: 'system',
           });
+          added = true;
         }
       }
       if (marketData.forex && Object.keys(marketData.forex).length > 0) {
-        starters.push({
-          id: 'init_forex',
-          type: 'economic',
-          message: `Forex feed active: ${Object.keys(marketData.forex).length} currency pairs`,
-          timestamp: Date.now() - 3000,
+        timeline.addEvent({
+          id: 'init_forex', type: 'economic',
+          title: `Forex feed active: ${Object.keys(marketData.forex).length} currency pairs`,
+          timestamp: Date.now() - 3000, symbols: [], impact: 'low', source: 'system',
         });
+        added = true;
       }
       if (marketData.bonds) {
-        starters.push({
-          id: 'init_bonds',
-          type: 'economic',
-          message: 'Treasury yield data connected via FRED API',
-          timestamp: Date.now() - 4000,
+        timeline.addEvent({
+          id: 'init_bonds', type: 'economic',
+          title: 'Treasury yield data connected via FRED API',
+          timestamp: Date.now() - 4000, symbols: [], impact: 'low', source: 'system',
         });
+        added = true;
       }
-      newEvents.push(...starters);
       prev._initialized = true;
     }
 
-    if (newEvents.length > 0) {
-      setEvents(prev2 => [...newEvents, ...prev2].slice(0, 50));
+    // Build timeline and convert to event format for PanelTimeline
+    if (added) {
+      const regime = timeline.getMarketRegime(24);
+      const timelineEvents = timeline.createTimeline(
+        Date.now() - 24 * 60 * 60 * 1000, Date.now()
+      );
+      const formatted = timelineEvents.map(e => ({
+        id: e.id,
+        type: e.type === 'earnings' ? 'price_alert' : e.type,
+        symbol: e.symbols?.[0],
+        message: e.title,
+        timestamp: e.timestamp,
+        impact: e.impact,
+        regime: regime.regime,
+      }));
+      setEvents(formatted.reverse().slice(0, 50));
     }
     prevMarketRef.current = prev;
   }, [marketData]);
@@ -240,7 +276,7 @@ function App() {
       case 'forex':
         return <PanelForex data={marketData?.forex} />;
       case 'stocks':
-        return <PanelStocks data={marketData?.stocks} />;
+        return <PanelStocks data={marketData?.stocks} signals={technicals.signals} />;
       case 'crypto':
         return <PanelCrypto data={marketData?.crypto} />;
       case 'bonds':
@@ -254,7 +290,7 @@ function App() {
       case 'chart':
         return <PanelChart symbol="BTC" />;
       case 'correlation':
-        return <PanelCorrelation matrix={corrMatrix} symbols={CORRELATION_SYMBOLS} />;
+        return <PanelCorrelation matrix={corrMatrix} symbols={CORRELATION_SYMBOLS} window={corrWindow} onWindowChange={setCorrWindow} />;
       case 'network':
         return <PanelNetwork pairs={networkPairs} symbols={networkSymbols} />;
       case 'timeline':
@@ -262,7 +298,7 @@ function App() {
       case 'company':
         return <PanelCompany />;
       case 'alerts':
-        return <PanelAlerts alerts={alerts} marketData={marketData} mlState={mlEngine} />;
+        return <PanelAlerts alerts={alerts} marketData={marketData} mlState={mlEngine} patternEvents={patternEngine.events} technicalSignals={technicals.signals} />;
       case 'chinaMarkets':
         return <PanelChinaMarkets />;
       case 'cnyTracker':
@@ -304,7 +340,7 @@ function App() {
       default:
         return <div style={{ padding: 16, color: 'var(--text-3)', fontSize: 12 }}>Unknown panel: {panelId}</div>;
     }
-  }, [marketData, corrMatrix, corrPairs, networkPairs, networkSymbols, events, alerts]);
+  }, [marketData, corrMatrix, corrPairs, networkPairs, networkSymbols, events, alerts, patternEngine.events, technicals.signals]);
 
   const layout = activeWorkspace?.layout || [];
   const panels = activeWorkspace?.panels || [];

@@ -17,9 +17,19 @@ export function createMarketEngine() {
     economic: {},
     indices: {},
     lastUpdate: {},
+    errors: {},
+    lastFetchTime: {},
     listeners: new Set(),
     intervals: [],
   };
+
+  function recordError(source, err) {
+    state.errors[source] = { source, error: err.message, timestamp: Date.now() };
+  }
+
+  function clearError(source) {
+    delete state.errors[source];
+  }
 
   function notify() {
     for (const fn of state.listeners) {
@@ -40,10 +50,14 @@ export function createMarketEngine() {
           state.forex[`USD/${currency}`] = normalizeForex(`USD/${currency}`, rate);
         }
         state.lastUpdate.forex = Date.now();
+        state.lastFetchTime.forex = Date.now();
+        clearError('forex');
         notify();
       }
     } catch (err) {
       console.warn('[MarketEngine] forex error', err);
+      recordError('forex', err);
+      notify();
     }
   }
 
@@ -55,10 +69,14 @@ export function createMarketEngine() {
           state.stocks[quote.symbol] = normalizeTick(quote, 'stock');
         }
         state.lastUpdate.stocks = Date.now();
+        state.lastFetchTime.stocks = Date.now();
+        clearError('stocks');
         notify();
       }
     } catch (err) {
       console.warn('[MarketEngine] stocks error', err);
+      recordError('stocks', err);
+      notify();
     }
   }
 
@@ -70,10 +88,14 @@ export function createMarketEngine() {
           state.crypto[coin.symbol.toUpperCase()] = normalizeCrypto(coin);
         }
         state.lastUpdate.crypto = Date.now();
+        state.lastFetchTime.crypto = Date.now();
+        clearError('crypto');
         notify();
       }
     } catch (err) {
       console.warn('[MarketEngine] crypto error', err);
+      recordError('crypto', err);
+      notify();
     }
   }
 
@@ -83,10 +105,14 @@ export function createMarketEngine() {
       if (data) {
         state.bonds = data;
         state.lastUpdate.bonds = Date.now();
+        state.lastFetchTime.bonds = Date.now();
+        clearError('bonds');
         notify();
       }
     } catch (err) {
       console.warn('[MarketEngine] bonds error', err);
+      recordError('bonds', err);
+      notify();
     }
   }
 
@@ -96,10 +122,14 @@ export function createMarketEngine() {
       if (data) {
         state.commodities = data;
         state.lastUpdate.commodities = Date.now();
+        state.lastFetchTime.commodities = Date.now();
+        clearError('commodities');
         notify();
       }
     } catch (err) {
       console.warn('[MarketEngine] commodities error', err);
+      recordError('commodities', err);
+      notify();
     }
   }
 
@@ -109,9 +139,13 @@ export function createMarketEngine() {
       const data = generateMockEconomic();
       state.economic = data;
       state.lastUpdate.economic = Date.now();
+      state.lastFetchTime.economic = Date.now();
+      clearError('economic');
       notify();
     } catch (err) {
       console.warn('[MarketEngine] economic error', err);
+      recordError('economic', err);
+      notify();
     }
   }
 
@@ -132,9 +166,13 @@ export function createMarketEngine() {
       }
       state.indices = globalIndices;
       state.lastUpdate.indices = Date.now();
+      state.lastFetchTime.indices = Date.now();
+      clearError('indices');
       notify();
     } catch (err) {
       console.warn('[MarketEngine] indices error', err);
+      recordError('indices', err);
+      notify();
     }
   }
 
@@ -158,6 +196,8 @@ export function createMarketEngine() {
       economic: { ...state.economic },
       indices: { ...state.indices },
       lastUpdate: { ...state.lastUpdate },
+      errors: { ...state.errors },
+      lastFetchTime: { ...state.lastFetchTime },
     };
   }
 

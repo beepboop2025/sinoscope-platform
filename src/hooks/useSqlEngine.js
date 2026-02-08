@@ -134,7 +134,15 @@ export function useSqlEngine(marketData) {
     loadResearchData();
   }, []);
 
-  // Sync market data into SQL tables (throttled)
+  // Helper: upsert rows by key — delete only matching key, then insert
+  const upsertTable = useCallback((db, table, keyCol, rows) => {
+    for (const row of rows) {
+      db.exec(`DELETE FROM ${table} WHERE ${keyCol} = ?`, [row[0]]);
+      db.exec(`INSERT INTO ${table} VALUES (${row.map(() => '?').join(',')})`, row);
+    }
+  }, []);
+
+  // Sync market data into SQL tables (throttled, incremental upserts)
   useEffect(() => {
     if (!marketData) return;
     const now = Date.now();
@@ -144,101 +152,103 @@ export function useSqlEngine(marketData) {
     const db = dbRef.current;
     const info = {};
 
-    // Clear tables
-    db.exec('DELETE FROM stocks');
-    db.exec('DELETE FROM crypto');
-    db.exec('DELETE FROM forex');
-    db.exec('DELETE FROM bonds');
-    db.exec('DELETE FROM commodities');
-    db.exec('DELETE FROM indices');
-    db.exec('DELETE FROM economic');
-    db.exec('DELETE FROM all_assets');
-
-    // Stocks
+    // Stocks — upsert by symbol
     const stocks = marketData.stocks || {};
-    for (const [sym, d] of Object.entries(stocks)) {
-      db.exec('INSERT INTO stocks VALUES (?,?,?,?,?,?,?)', [
-        sym, safeNum(d.price), safeNum(d.changePct), safeNum(d.volume),
-        safeNum(d.high), safeNum(d.low), 'stock'
-      ]);
-      db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [
-        sym, 'stock', safeNum(d.price), safeNum(d.changePct), safeNum(d.volume)
-      ]);
-    }
-    info.stocks = Object.keys(stocks).length;
+    const stockRows = Object.entries(stocks).map(([sym, d]) => [
+      sym, safeNum(d.price), safeNum(d.changePct), safeNum(d.volume),
+      safeNum(d.high), safeNum(d.low), 'stock'
+    ]);
+    upsertTable(db, 'stocks', 'symbol', stockRows);
+    info.stocks = stockRows.length;
 
-    // Crypto
+    // Crypto — upsert by symbol
     const crypto = marketData.crypto || {};
-    for (const [sym, d] of Object.entries(crypto)) {
-      db.exec('INSERT INTO crypto VALUES (?,?,?,?,?,?)', [
-        sym, safeNum(d.price), safeNum(d.changePct), safeNum(d.volume),
-        safeNum(d.marketCap || d.market_cap), 'crypto'
-      ]);
-      db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [
-        sym, 'crypto', safeNum(d.price), safeNum(d.changePct), safeNum(d.volume)
-      ]);
-    }
-    info.crypto = Object.keys(crypto).length;
+    const cryptoRows = Object.entries(crypto).map(([sym, d]) => [
+      sym, safeNum(d.price), safeNum(d.changePct), safeNum(d.volume),
+      safeNum(d.marketCap || d.market_cap), 'crypto'
+    ]);
+    upsertTable(db, 'crypto', 'symbol', cryptoRows);
+    info.crypto = cryptoRows.length;
 
-    // Forex
+    // Forex — upsert by pair
     const forex = marketData.forex || {};
-    for (const [pair, d] of Object.entries(forex)) {
+    const forexRows = Object.entries(forex).map(([pair, d]) => {
       const rate = typeof d === 'number' ? d : safeNum(d.rate || d.price);
       const chg = typeof d === 'number' ? 0 : safeNum(d.changePct);
       const bid = typeof d === 'number' ? d : safeNum(d.bid || d.rate || d.price);
       const ask = typeof d === 'number' ? d : safeNum(d.ask || d.rate || d.price);
-      db.exec('INSERT INTO forex VALUES (?,?,?,?,?,?)', [pair, rate, chg, bid, ask, 'forex']);
-      db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [pair, 'forex', rate, chg, 0]);
-    }
-    info.forex = Object.keys(forex).length;
+      return [pair, rate, chg, bid, ask, 'forex'];
+    });
+    upsertTable(db, 'forex', 'pair', forexRows);
+    info.forex = forexRows.length;
 
-    // Bonds
+    // Bonds — upsert by maturity
     const bonds = marketData.bonds || [];
     const bondArr = Array.isArray(bonds) ? bonds : Object.entries(bonds).map(([k, v]) => ({ maturity: k, ...(typeof v === 'number' ? { yield: v } : v) }));
-    for (const b of bondArr) {
-      db.exec('INSERT INTO bonds VALUES (?,?,?)', [
-        b.maturity || b.term || '', safeNum(b.yield || b.rate), safeNum(b.change)
-      ]);
-    }
-    info.bonds = bondArr.length;
+    const bondRows = bondArr.map(b => [
+      b.maturity || b.term || '', safeNum(b.yield || b.rate), safeNum(b.change)
+    ]);
+    upsertTable(db, 'bonds', 'maturity', bondRows);
+    info.bonds = bondRows.length;
 
-    // Commodities
+    // Commodities — upsert by name
     const commodities = marketData.commodities || {};
-    for (const [name, d] of Object.entries(commodities)) {
+    const commodityRows = Object.entries(commodities).map(([name, d]) => {
       const price = typeof d === 'number' ? d : safeNum(d.price);
       const chg = typeof d === 'number' ? 0 : safeNum(d.changePct);
       const unit = typeof d === 'object' ? (d.unit || '') : '';
-      db.exec('INSERT INTO commodities VALUES (?,?,?,?,?)', [name, price, chg, unit, 'commodity']);
+      return [name, price, chg, unit, 'commodity'];
+    });
+    upsertTable(db, 'commodities', 'name', commodityRows);
+    info.commodities = commodityRows.length;
+
+    // Indices — upsert by symbol
+    const indices = marketData.indices || {};
+    const indexRows = Object.entries(indices).map(([sym, d]) => [
+      d.symbol || sym, d.name || sym, safeNum(d.price), safeNum(d.changePct)
+    ]);
+    upsertTable(db, 'indices', 'symbol', indexRows);
+    info.indices = indexRows.length;
+
+    // Economic indicators — upsert by indicator
+    const economic = marketData.economic || {};
+    const econRows = Object.entries(economic)
+      .filter(([, d]) => d && typeof d === 'object')
+      .map(([key, d]) => [key, safeNum(d.value), d.unit || '', d.date || '']);
+    upsertTable(db, 'economic', 'indicator', econRows);
+    info.economic = econRows.length;
+
+    // Rebuild all_assets (union table)
+    db.exec('DELETE FROM all_assets');
+    for (const [sym, d] of Object.entries(stocks)) {
+      db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [
+        sym, 'stock', safeNum(d.price), safeNum(d.changePct), safeNum(d.volume)
+      ]);
+    }
+    for (const [sym, d] of Object.entries(crypto)) {
+      db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [
+        sym, 'crypto', safeNum(d.price), safeNum(d.changePct), safeNum(d.volume)
+      ]);
+    }
+    for (const [pair, d] of Object.entries(forex)) {
+      const rate = typeof d === 'number' ? d : safeNum(d.rate || d.price);
+      const chg = typeof d === 'number' ? 0 : safeNum(d.changePct);
+      db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [pair, 'forex', rate, chg, 0]);
+    }
+    for (const [name, d] of Object.entries(commodities)) {
+      const price = typeof d === 'number' ? d : safeNum(d.price);
+      const chg = typeof d === 'number' ? 0 : safeNum(d.changePct);
       db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [name, 'commodity', price, chg, 0]);
     }
-    info.commodities = Object.keys(commodities).length;
-
-    // Indices
-    const indices = marketData.indices || {};
     for (const [sym, d] of Object.entries(indices)) {
-      db.exec('INSERT INTO indices VALUES (?,?,?,?)', [
-        d.symbol || sym, d.name || sym, safeNum(d.price), safeNum(d.changePct)
-      ]);
       db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [
         d.symbol || sym, 'index', safeNum(d.price), safeNum(d.changePct), 0
       ]);
     }
-    info.indices = Object.keys(indices).length;
-
-    // Economic indicators
-    const economic = marketData.economic || {};
-    for (const [key, d] of Object.entries(economic)) {
-      if (d && typeof d === 'object') {
-        db.exec('INSERT INTO economic VALUES (?,?,?,?)', [
-          key, safeNum(d.value), d.unit || '', d.date || ''
-        ]);
-      }
-    }
-    info.economic = Object.keys(economic).length;
 
     setTableInfo(info);
     setIsReady(true);
-  }, [marketData]);
+  }, [marketData, upsertTable]);
 
   // Execute a SQL query
   const executeQuery = useCallback((sql) => {

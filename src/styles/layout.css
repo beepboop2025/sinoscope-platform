@@ -94,3 +94,41 @@
 ::-webkit-scrollbar-track { background: var(--bg-0); }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
+
+/* ── Responsive: md (<=1200px) ── */
+@media (max-width: 1200px) {
+  .app-header { padding: 0 12px; gap: 12px; }
+  .app-footer { padding: 0 12px; gap: 12px; }
+  .ticker-scroll { gap: 24px; }
+  .dense-table td,
+  .dense-table th { padding: 5px 8px; }
+}
+
+/* ── Responsive: sm (<=996px) ── */
+@media (max-width: 996px) {
+  .app-header { height: 44px; padding: 0 10px; gap: 10px; }
+  .app-footer { font-size: 9px; height: 24px; }
+  .ticker-scroll { gap: 20px; padding: 0 10px; }
+  .ticker-item { font-size: 10px; }
+  .dense-table { font-size: 11px; }
+  .dense-table td { font-size: 10px; }
+}
+
+/* ── Responsive: xs / tablet (<=768px) ── */
+@media (max-width: 768px) {
+  .app-header { height: 42px; padding: 0 8px; gap: 8px; }
+  .ticker-bar { display: none; }
+  .app-footer { height: 22px; padding: 0 8px; font-size: 9px; }
+  .app-body { padding: 0; }
+  .dense-table th { font-size: 9px; padding: 4px 6px; }
+  .dense-table td { font-size: 10px; padding: 4px 6px; }
+  .dense-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* ── Responsive: mobile (<=480px) ── */
+@media (max-width: 480px) {
+  .app-header { height: 40px; padding: 0 6px; gap: 6px; }
+  .app-footer { display: none; }
+  .dense-table th { padding: 3px 4px; }
+  .dense-table td { padding: 3px 4px; font-size: 9px; }
+}

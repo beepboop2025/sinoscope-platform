@@ -1,9 +1,9 @@
 import { memo, useState, useEffect, useRef } from 'react';
-import { Bell, AlertTriangle, TrendingUp, TrendingDown, Volume2, Activity, Trash2 } from 'lucide-react';
+import { Bell, AlertTriangle, TrendingUp, TrendingDown, Volume2, Activity, Trash2, Zap, BarChart3 } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
 
 const SEVERITY_COLORS = { critical: 'var(--red)', high: 'var(--orange)', medium: 'var(--amber)', low: 'var(--text-3)' };
-const TYPE_ICONS = { price_spike: TrendingUp, price_drop: TrendingDown, volume_spike: Volume2, anomaly: AlertTriangle, ml_signal: Activity, default: Bell };
+const TYPE_ICONS = { price_spike: TrendingUp, price_drop: TrendingDown, volume_spike: Volume2, anomaly: AlertTriangle, ml_signal: Activity, pattern: Zap, technical: BarChart3, breakout: TrendingUp, breakdown: TrendingDown, bearish_divergence: TrendingDown, bullish_divergence: TrendingUp, default: Bell };
 
 const STORAGE_KEY = 'dragonscope_alerts';
 
@@ -28,7 +28,7 @@ function timeAgo(ts) {
   return `${Math.round(mins / 1440)}d ago`;
 }
 
-const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState }) => {
+const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState, patternEvents = [], technicalSignals = {} }) => {
   const [alerts, setAlerts] = useState(loadAlerts);
   const [filter, setFilter] = useState('all');
   const prevRef = useRef({});
@@ -140,6 +140,69 @@ const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState }) 
       });
     }
   }, [mlState?.anomalies, mlState?.signalSummary]);
+
+  // Generate alerts from PatternEngine events
+  useEffect(() => {
+    if (!patternEvents || patternEvents.length === 0) return;
+    const prev = prevRef.current;
+    const newAlerts = [];
+
+    for (const pe of patternEvents.slice(0, 10)) {
+      const key = `pattern_${pe.type}_${pe.symbol}_${Math.floor(pe.timestamp / 300000)}`;
+      if (prev[key]) continue;
+      prev[key] = true;
+
+      newAlerts.push({
+        id: key,
+        type: pe.type,
+        severity: pe.severity || 'medium',
+        symbol: pe.symbol,
+        message: pe.message,
+        timestamp: pe.timestamp,
+      });
+    }
+
+    if (newAlerts.length > 0) {
+      setAlerts(prev2 => {
+        const next = [...newAlerts, ...prev2].slice(0, 100);
+        saveAlerts(next);
+        return next;
+      });
+    }
+  }, [patternEvents]);
+
+  // Generate alerts from TechnicalEngine signals
+  useEffect(() => {
+    if (!technicalSignals || Object.keys(technicalSignals).length === 0) return;
+    const prev = prevRef.current;
+    const newAlerts = [];
+
+    for (const [sym, sigList] of Object.entries(technicalSignals)) {
+      for (const sig of sigList) {
+        const key = `tech_${sym}_${sig.type}_${Math.floor(Date.now() / 600000)}`;
+        if (prev[key]) continue;
+        prev[key] = true;
+
+        const severity = sig.strength === 'high' ? 'high' : sig.strength === 'medium' ? 'medium' : 'low';
+        newAlerts.push({
+          id: key,
+          type: 'technical',
+          severity,
+          symbol: sym,
+          message: `${sym} ${sig.indicator}: ${sig.type.replace(/_/g, ' ')}`,
+          timestamp: Date.now(),
+        });
+      }
+    }
+
+    if (newAlerts.length > 0) {
+      setAlerts(prev2 => {
+        const next = [...newAlerts, ...prev2].slice(0, 100);
+        saveAlerts(next);
+        return next;
+      });
+    }
+  }, [technicalSignals]);
 
   // Merge external alerts
   useEffect(() => {

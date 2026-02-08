@@ -14,12 +14,15 @@ const WorkspaceTabs = memo(({ workspaces, activeId, onSwitch, onCreate, onDelete
   };
 
   return (
-    <div className="workspace-tabs">
+    <div className="workspace-tabs" role="tablist" aria-label="Workspaces">
       {Object.values(workspaces).map(ws => (
         <button
           key={ws.id}
           className={`workspace-tab ${activeId === ws.id ? 'active' : ''}`}
           onClick={() => onSwitch(ws.id)}
+          role="tab"
+          aria-selected={activeId === ws.id}
+          tabIndex={activeId === ws.id ? 0 : -1}
         >
           {ws.name}
           {ws.id !== 'overview' && activeId === ws.id && (
@@ -27,6 +30,7 @@ const WorkspaceTabs = memo(({ workspaces, activeId, onSwitch, onCreate, onDelete
               size={10}
               style={{ marginLeft: 4, opacity: 0.5 }}
               onClick={(e) => { e.stopPropagation(); onDelete(ws.id); }}
+              aria-label={`Close ${ws.name} workspace`}
             />
           )}
         </button>
@@ -40,13 +44,14 @@ const WorkspaceTabs = memo(({ workspaces, activeId, onSwitch, onCreate, onDelete
             onKeyDown={e => e.key === 'Enter' && handleCreate()}
             placeholder="Name..."
             style={{ width: 100, padding: '2px 6px', fontSize: 11 }}
+            aria-label="New workspace name"
             autoFocus
           />
-          <button className="btn-ghost" onClick={handleCreate} style={{ padding: '2px 6px' }}>OK</button>
+          <button className="btn-ghost" onClick={handleCreate} style={{ padding: '2px 6px' }} aria-label="Create workspace">OK</button>
         </div>
       ) : (
-        <button className="workspace-tab" onClick={() => setShowNew(true)}>
-          <Plus size={12} />
+        <button className="workspace-tab" onClick={() => setShowNew(true)} aria-label="Add new workspace">
+          <Plus size={12} aria-hidden="true" />
         </button>
       )}
     </div>

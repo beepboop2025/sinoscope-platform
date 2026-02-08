@@ -29,3 +29,35 @@
   --pink: #ec4899;
   --teal: #14b8a6;
 }
+
+[data-theme="light"] {
+  --bg-0: #f8f9fb;
+  --bg-1: #ffffff;
+  --bg-2: #f1f3f7;
+  --bg-3: #e4e7ee;
+  --bg-4: #d5d9e3;
+  --bg-hover: #e9ecf2;
+  --border-1: #d8dce6;
+  --border-2: #c4cad6;
+  --border-3: #adb5c4;
+  --text-0: #0f172a;
+  --text-1: #1e293b;
+  --text-2: #475569;
+  --text-3: #64748b;
+  --text-4: #94a3b8;
+  --cyan: #0891b2;
+  --cyan-dim: #06b6d4;
+  --purple: #7c3aed;
+  --purple-dim: #a78bfa;
+  --green: #059669;
+  --green-dim: #10b981;
+  --amber: #d97706;
+  --amber-dim: #f59e0b;
+  --red: #dc2626;
+  --red-dim: #ef4444;
+  --blue: #2563eb;
+  --blue-dim: #3b82f6;
+  --orange: #ea580c;
+  --pink: #db2777;
+  --teal: #0d9488;
+}

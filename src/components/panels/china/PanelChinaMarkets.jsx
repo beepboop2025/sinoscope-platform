@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Activity, Globe } from 'lucide-react';
 import { ChinaAPI } from '../../../services/api/chinaApi';
 import { CHINA_INDICES, CHINA_BLUE_CHIPS } from '../../../constants/china';
+import PanelChrome from '../../shared/PanelChrome';
 
 export default function PanelChinaMarkets({ apiKey }) {
   const [indices, setIndices] = useState([]);
@@ -47,25 +48,23 @@ export default function PanelChinaMarkets({ apiKey }) {
 
   if (loading) {
     return (
-      <div className="panel-content" style={{ padding: 20 }}>
+      <PanelChrome title="China Markets" icon={Globe} iconColor="var(--magenta)">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-2)' }}>
           <Activity size={16} className="spinner" />
           <span>Loading China markets...</span>
         </div>
-      </div>
+      </PanelChrome>
     );
   }
 
   return (
-    <div className="panel-content" style={{ padding: 16 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <Globe size={18} color="var(--magenta)" />
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>China Markets</h3>
-        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-3)' }}>
-          Updated: {lastUpdate}
-        </span>
-      </div>
+    <PanelChrome title="China Markets" icon={Globe} iconColor="var(--magenta)">
+      <div style={{ padding: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+            Updated: {lastUpdate}
+          </span>
+        </div>
 
       {/* Major Indices */}
       <div style={{ marginBottom: 20 }}>
@@ -134,6 +133,7 @@ export default function PanelChinaMarkets({ apiKey }) {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </PanelChrome>
   );
 }

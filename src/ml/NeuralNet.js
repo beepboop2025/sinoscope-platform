@@ -126,14 +126,30 @@ export class NeuralNet {
       deltas[l] = delta;
     }
 
+    // Gradient clipping: cap deltas to [-5, 5]
+    for (let l = 0; l < numLayers; l++) {
+      for (let j = 0; j < deltas[l].length; j++) {
+        deltas[l][j] = Math.max(-5, Math.min(5, deltas[l][j]));
+      }
+    }
+
     // Update weights and biases
     for (let l = 0; l < numLayers; l++) {
       const a = acts[l];
       for (let j = 0; j < this.weights[l].length; j++) {
         for (let k = 0; k < this.weights[l][j].length; k++) {
           this.weights[l][j][k] -= this.lr * (deltas[l][j] * a[k] + this.l2 * this.weights[l][j][k]);
+          // Reset corrupted weights
+          if (!Number.isFinite(this.weights[l][j][k])) {
+            console.warn(`NeuralNet: weight[${l}][${j}][${k}] became ${this.weights[l][j][k]}, resetting to 0`);
+            this.weights[l][j][k] = 0;
+          }
         }
         this.biases[l][j] -= this.lr * deltas[l][j];
+        if (!Number.isFinite(this.biases[l][j])) {
+          console.warn(`NeuralNet: bias[${l}][${j}] became ${this.biases[l][j]}, resetting to 0`);
+          this.biases[l][j] = 0;
+        }
       }
     }
 

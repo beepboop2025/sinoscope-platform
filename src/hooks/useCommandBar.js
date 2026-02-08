@@ -25,10 +25,20 @@ export function useCommandBar({ onCommand }) {
       if (e.key === 'Escape') {
         setIsOpen(false);
       }
+      // Number keys 1-9 switch workspaces (only when not typing in an input)
+      if (!isOpen && !e.metaKey && !e.ctrlKey && !e.altKey && e.key >= '1' && e.key <= '9') {
+        const tag = e.target?.tagName?.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
+        const cmd = COMMANDS.find(c => c.shortcut === e.key && c.action === 'workspace');
+        if (cmd) {
+          e.preventDefault();
+          onCommand?.(cmd);
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [isOpen, onCommand]);
 
   const execute = useCallback((cmd) => {
     setIsOpen(false);

@@ -1,19 +1,20 @@
 import { memo } from 'react';
-import { BarChart as RBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
+import { BarChart as RBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, Brush } from 'recharts';
 import { CHART_COLORS } from '../../constants/colors';
 
-const BarChartComponent = memo(({ data = [], bars = [], height = 250, showGrid = true, showLegend = false, xKey = 'name', colorByValue = false, formatY }) => {
+const BarChartComponent = memo(({ data = [], bars = [], height = 250, showGrid = true, showLegend = false, xKey = 'name', colorByValue = false, formatY, showBrush = false }) => {
   if (!data.length) return null;
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <RBarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+      <RBarChart data={data} margin={{ top: 4, right: 8, bottom: showBrush ? 2 : 4, left: 0 }}>
         {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-1)" />}
         <XAxis dataKey={xKey} tick={{ fontSize: 9, fill: 'var(--text-4)' }} tickLine={false} axisLine={{ stroke: 'var(--border-1)' }} />
         <YAxis tick={{ fontSize: 9, fill: 'var(--text-4)' }} tickLine={false} axisLine={false} tickFormatter={formatY} width={50} />
         <Tooltip
           contentStyle={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-1)' }}
           labelStyle={{ color: 'var(--text-3)', fontSize: 10 }}
+          cursor={{ fill: 'var(--bg-3)', opacity: 0.3 }}
         />
         {showLegend && <Legend wrapperStyle={{ fontSize: 10, color: 'var(--text-3)' }} />}
         {bars.map((b, i) => (
@@ -23,6 +24,16 @@ const BarChartComponent = memo(({ data = [], bars = [], height = 250, showGrid =
             ))}
           </Bar>
         ))}
+        {showBrush && data.length > 10 && (
+          <Brush
+            dataKey={xKey}
+            height={18}
+            stroke="var(--border-2)"
+            fill="var(--bg-2)"
+            travellerWidth={8}
+            tickFormatter={() => ''}
+          />
+        )}
       </RBarChart>
     </ResponsiveContainer>
   );

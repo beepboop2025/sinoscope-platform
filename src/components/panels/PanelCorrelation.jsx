@@ -4,8 +4,13 @@ import PanelChrome from '../shared/PanelChrome';
 import { correlationColor } from '../../constants/colors';
 import { PanelSkeleton } from '../shared/LoadingSkeleton';
 
-const PanelCorrelation = memo(({ matrix, symbols = [] }) => {
-  const [window, setWindow] = useState(30);
+const PanelCorrelation = memo(({ matrix, symbols = [], window: windowProp = 30, onWindowChange }) => {
+  const [window, setWindow] = useState(windowProp);
+
+  const handleWindowChange = (w) => {
+    setWindow(w);
+    onWindowChange?.(w);
+  };
 
   if (!matrix || symbols.length === 0) {
     return (
@@ -21,7 +26,7 @@ const PanelCorrelation = memo(({ matrix, symbols = [] }) => {
     <PanelChrome title="Cross-Market Correlation" icon={Grid3X3} iconColor="var(--teal)">
       <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
         {[7, 30, 90].map(w => (
-          <button key={w} className={`tab-btn ${window === w ? 'active' : ''}`} onClick={() => setWindow(w)} style={{ padding: '2px 8px', fontSize: 10 }}>
+          <button key={w} className={`tab-btn ${window === w ? 'active' : ''}`} onClick={() => handleWindowChange(w)} style={{ padding: '2px 8px', fontSize: 10 }}>
             {w}D
           </button>
         ))}

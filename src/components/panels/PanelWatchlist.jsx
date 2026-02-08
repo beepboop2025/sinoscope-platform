@@ -1,6 +1,7 @@
-import { memo, useState, useCallback, useEffect } from 'react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { Eye, Plus, X, TrendingUp, TrendingDown } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
+import { debounce } from '../../utils/helpers';
 
 const STORAGE_KEY = 'dragonscope_watchlist';
 const DEFAULT_WATCHLIST = ['AAPL', 'BTC', 'ETH', 'NVDA', 'MSFT', 'SOL', 'USD/JPY', 'GOLD'];
@@ -29,7 +30,9 @@ const PanelWatchlist = memo(({ data }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [addInput, setAddInput] = useState('');
 
-  useEffect(() => { saveWatchlist(watchlist); }, [watchlist]);
+  // Debounced localStorage save (300ms)
+  const debouncedSaveRef = useRef(debounce(saveWatchlist, 300));
+  useEffect(() => { debouncedSaveRef.current(watchlist); }, [watchlist]);
 
   const addSymbol = useCallback((sym) => {
     const s = sym.trim().toUpperCase();
@@ -153,7 +156,7 @@ const PanelWatchlist = memo(({ data }) => {
                 )}
 
                 <span style={{ marginLeft: 'auto', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-1)' }}>
-                  {d ? (price >= 1 ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(4)) : '—'}
+                  {d ? (price >= 1 ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(4)) : '\u2014'}
                 </span>
 
                 <span style={{

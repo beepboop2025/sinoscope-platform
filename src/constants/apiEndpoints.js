@@ -25,7 +25,6 @@ export const API = {
   },
   WORLD_BANK: {
     indicator: (country, ind) => `https://api.worldbank.org/v2/country/${country}/indicator/${ind}?format=json&per_page=50`,
-    commodity: 'https://api.worldbank.org/v2/country/WLD/indicator/',
   },
   GNEWS: {
     search: (q, key) => `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&token=${key}&lang=en&max=10`,

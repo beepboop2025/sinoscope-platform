@@ -1,0 +1,20 @@
+{
+  "name": "dragonscope-collector",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "24/7 data gathering service for DragonScope",
+  "main": "collector.js",
+  "scripts": {
+    "start": "node collector.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop dragonscope-collector",
+    "pm2:restart": "pm2 restart dragonscope-collector",
+    "pm2:logs": "pm2 logs dragonscope-collector",
+    "pm2:status": "pm2 status"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3",
+    "ws": "^8.18.0",
+    "dotenv": "^16.4.7"
+  }
+}

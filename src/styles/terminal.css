@@ -73,7 +73,8 @@
   font-weight: 500;
   border-radius: 3px;
   min-height: 32px;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, outline 0.1s;
+  cursor: pointer;
 }
 .heatmap-cell:hover { opacity: 0.85; outline: 1px solid var(--text-2); }
 
@@ -84,3 +85,34 @@
 
 @keyframes flash-bg-green { 0% { background: rgba(16,185,129,0.3); } 100% { background: transparent; } }
 @keyframes flash-bg-red { 0% { background: rgba(239,68,68,0.3); } 100% { background: transparent; } }
+
+/* ── Responsive: command bar for tablet (<=768px) ── */
+@media (max-width: 768px) {
+  .command-dialog {
+    width: calc(100vw - 32px);
+    max-height: 60vh;
+    border-radius: 10px;
+  }
+  .command-overlay { padding-top: 12vh; }
+  .command-input { font-size: 14px; }
+  .command-input-wrapper { padding: 10px 12px; }
+  .command-item { padding: 10px 12px; min-height: 44px; }
+  .command-item-label { font-size: 14px; }
+  .command-item-desc { font-size: 10px; }
+  .command-item-shortcut { display: none; }
+  .command-results { padding: 4px; }
+  .heatmap-cell { min-height: 28px; font-size: 9px; }
+}
+
+/* ── Responsive: command bar for mobile (<=480px) ── */
+@media (max-width: 480px) {
+  .command-dialog {
+    width: calc(100vw - 16px);
+    max-height: 70vh;
+    border-radius: 8px;
+  }
+  .command-overlay { padding-top: 8vh; }
+  .command-input { font-size: 16px; }
+  .command-item { padding: 12px 10px; }
+  .heatmap-cell { min-height: 24px; font-size: 8px; }
+}

@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-import { LineChart as LineChartIcon, RefreshCw } from 'lucide-react';
+import { LineChart as LineChartIcon, RefreshCw, AlertTriangle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Area, AreaChart } from 'recharts';
 import PanelChrome from '../shared/PanelChrome';
 import { PanelSkeleton } from '../shared/LoadingSkeleton';
@@ -31,7 +31,7 @@ async function fetchChartData(symbol, days) {
   try {
     const url = `https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=usd&days=${days}`;
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const data = await res.json();
 
     const prices = (data.prices || []).map(([ts, price]) => ({
@@ -51,7 +51,7 @@ async function fetchChartData(symbol, days) {
     return sampled;
   } catch (err) {
     console.warn('[PanelChart]', err.message);
-    return null;
+    throw err;
   }
 }
 
@@ -63,16 +63,22 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }) 
   const [loading, setLoading] = useState(true);
   const [currentPrice, setCurrentPrice] = useState(null);
   const [priceChange, setPriceChange] = useState(null);
+  const [error, setError] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const data = await fetchChartData(symbol, range.days);
-    if (data && data.length > 0) {
-      setChartData(data);
-      const first = data[0].close;
-      const last = data[data.length - 1].close;
-      setCurrentPrice(last);
-      setPriceChange(first > 0 ? ((last - first) / first) * 100 : 0);
+    setError(null);
+    try {
+      const data = await fetchChartData(symbol, range.days);
+      if (data && data.length > 0) {
+        setChartData(data);
+        const first = data[0].close;
+        const last = data[data.length - 1].close;
+        setCurrentPrice(last);
+        setPriceChange(first > 0 ? ((last - first) / first) * 100 : 0);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to load chart data');
     }
     setLoading(false);
   }, [symbol, range]);
@@ -131,7 +137,15 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }) 
 
         {/* Chart */}
         <div style={{ flex: 1, minHeight: 120 }}>
-          {loading && chartData.length === 0 ? <PanelSkeleton /> : (
+          {error && chartData.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: 'var(--text-3)' }}>
+              <AlertTriangle size={20} color="var(--amber)" />
+              <span style={{ fontSize: 11, textAlign: 'center', maxWidth: 200 }}>{error}</span>
+              <button className="btn-ghost" onClick={loadData} style={{ fontSize: 10, padding: '3px 10px', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <RefreshCw size={10} /> Retry
+              </button>
+            </div>
+          ) : loading && chartData.length === 0 ? <PanelSkeleton /> : (
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'area' ? (
                 <AreaChart data={chartData}>

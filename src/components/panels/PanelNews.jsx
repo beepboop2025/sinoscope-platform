@@ -1,5 +1,5 @@
-import { useState, useEffect, memo } from 'react';
-import { Newspaper, ExternalLink, Clock } from 'lucide-react';
+import { useState, useEffect, useCallback, memo } from 'react';
+import { Newspaper, ExternalLink, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
 import { fetchFinnhubNews } from '../../services/api/newsApi';
 import { PanelSkeleton } from '../shared/LoadingSkeleton';
@@ -7,21 +7,26 @@ import { PanelSkeleton } from '../shared/LoadingSkeleton';
 const PanelNews = memo(() => {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchFinnhubNews('general');
+      if (data) setArticles(data);
+    } catch (err) {
+      console.warn('[PanelNews]', err);
+      setError(err.message || 'Failed to load news');
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const data = await fetchFinnhubNews('general');
-        if (data) setArticles(data);
-      } catch (err) {
-        console.warn('[PanelNews]', err);
-      }
-      setLoading(false);
-    }
     load();
     const id = setInterval(load, 120000);
     return () => clearInterval(id);
-  }, []);
+  }, [load]);
 
   if (loading && articles.length === 0) {
     return <PanelChrome title="News Feed" icon={Newspaper} iconColor="var(--cyan)"><PanelSkeleton /></PanelChrome>;
@@ -37,7 +42,15 @@ const PanelNews = memo(() => {
   return (
     <PanelChrome title="News Feed" icon={Newspaper} iconColor="var(--cyan)">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {articles.length === 0 && (
+        {error && articles.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8, color: 'var(--text-3)' }}>
+            <AlertTriangle size={20} color="var(--amber)" />
+            <span style={{ fontSize: 11, textAlign: 'center' }}>{error}</span>
+            <button className="btn-ghost" onClick={load} style={{ fontSize: 10, padding: '3px 10px', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <RefreshCw size={10} /> Retry
+            </button>
+          </div>
+        ) : articles.length === 0 && !loading && (
           <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-3)', fontSize: 11, lineHeight: 1.6 }}>
             No news available. Set any of these env vars for live news:<br/>
             VITE_FINNHUB_API_KEY, VITE_NEWSDATA_API_KEY,<br/>

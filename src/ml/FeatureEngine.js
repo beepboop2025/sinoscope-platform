@@ -143,6 +143,13 @@ export function extractAssetFeatures(priceHistory, volumeHistory = []) {
     trendStrength(prices.slice(-20)),
   ];
 
+  // Sanitize: replace NaN/Infinity with 0
+  for (let i = 0; i < features.length; i++) {
+    if (!Number.isFinite(features[i])) {
+      features[i] = 0;
+    }
+  }
+
   return features;
 }
 
@@ -233,6 +240,13 @@ export function extractCrossMarketFeatures(marketData) {
     features.push(Math.min(1, dispersion / 10));
   } else {
     features.push(0);
+  }
+
+  // Sanitize: replace NaN/Infinity with 0
+  for (let i = 0; i < features.length; i++) {
+    if (!Number.isFinite(features[i])) {
+      features[i] = 0;
+    }
   }
 
   return features;
