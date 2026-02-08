@@ -1,5 +1,6 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 // Reddit public JSON has informal rate limits
 createRateLimiter('reddit', 10, 60000);
@@ -47,6 +48,10 @@ export async function fetchSubredditHot(subreddit, limit = 15) {
 }
 
 export async function fetchAllFinanceSubs() {
+  // Collector-first: pre-fetched reddit posts
+  const collected = await getCollectorData('reddit_posts');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'reddit_finance_all';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

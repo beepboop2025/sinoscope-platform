@@ -1,5 +1,6 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 // arXiv API is free but has 3 sec delay requirement between requests
 createRateLimiter('arxiv', 10, 60000);
@@ -63,6 +64,10 @@ export async function fetchFinancePapers(query = 'quantitative finance', maxResu
 
 // Specific finance sub-categories
 export async function fetchAllFinanceResearch() {
+  // Collector-first: pre-fetched arxiv papers
+  const collected = await getCollectorData('arxiv_papers');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'arxiv_finance_all';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

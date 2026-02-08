@@ -1,5 +1,6 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 createRateLimiter('huggingface', 30, 60000);
 
@@ -47,6 +48,10 @@ export async function fetchHuggingFaceModels(search = 'finance') {
 }
 
 export async function fetchFinanceModels() {
+  // Collector-first: pre-fetched HuggingFace models
+  const collected = await getCollectorData('huggingface_models');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'hf_finance_all';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

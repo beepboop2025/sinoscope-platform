@@ -1,12 +1,21 @@
 import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 const FMP_KEY = () => import.meta.env.VITE_FMP_API_KEY || '';
 const AV_KEY = () => import.meta.env.VITE_ALPHA_VANTAGE_API_KEY || '';
 const FINNHUB_KEY = () => import.meta.env.VITE_FINNHUB_API_KEY || '';
 
 export async function fetchStockQuotes(symbols = ['AAPL', 'MSFT', 'GOOGL']) {
+  // Collector-first: pre-fetched stock quotes
+  const collected = await getCollectorData('stocks');
+  if (collected) {
+    const symSet = new Set(symbols.map(s => s.toUpperCase()));
+    const filtered = collected.filter(q => symSet.has(q.symbol?.toUpperCase()));
+    if (filtered.length > 0) return filtered;
+  }
+
   const symStr = symbols.join(',');
   const cacheKey = `stock_quotes_${symStr}`;
   const cached = cacheGet(cacheKey);
@@ -140,6 +149,68 @@ export async function fetchMarketMovers(type = 'gainers') {
     if (!res.ok) return null;
     return await res.json();
   } catch {
+    return null;
+  }
+}
+
+export async function fetchHistoricalPrices(symbol) {
+  const key = FMP_KEY();
+  if (!key) return null;
+  const cacheKey = `historical_prices_${symbol}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
+  if (!canRequest('fmp')) return null;
+  consumeToken('fmp');
+
+  try {
+    const res = await fetch(API.FMP.historical(symbol, key));
+    if (!res.ok) throw new Error(`FMP historical: ${res.status}`);
+    const data = await res.json();
+    const historical = (data.historical || []).map(d => ({
+      date: d.date,
+      open: d.open,
+      high: d.high,
+      low: d.low,
+      close: d.close,
+      volume: d.volume,
+    }));
+    cacheSet(cacheKey, historical, 300000);
+    return historical;
+  } catch (err) {
+    console.warn('[StockAPI historical]', err.message);
+    return null;
+  }
+}
+
+export async function fetchFinnhubCandles(symbol, resolution = 'D', from, to) {
+  const key = FINNHUB_KEY();
+  if (!key) return null;
+  const cacheKey = `finnhub_candles_${symbol}_${resolution}_${from}_${to}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
+  if (!canRequest('finnhub')) return null;
+  consumeToken('finnhub');
+
+  try {
+    const res = await fetch(API.FINNHUB.candles(symbol, resolution, from, to, key));
+    if (!res.ok) throw new Error(`Finnhub candles: ${res.status}`);
+    const data = await res.json();
+    if (data.s !== 'ok' || !data.t) return null;
+
+    const candles = data.t.map((timestamp, i) => ({
+      date: new Date(timestamp * 1000).toISOString().split('T')[0],
+      open: data.o[i],
+      high: data.h[i],
+      low: data.l[i],
+      close: data.c[i],
+      volume: data.v[i],
+    }));
+    cacheSet(cacheKey, candles, 60000);
+    return candles;
+  } catch (err) {
+    console.warn('[StockAPI finnhub candles]', err.message);
     return null;
   }
 }

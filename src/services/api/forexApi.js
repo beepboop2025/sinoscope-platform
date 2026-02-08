@@ -1,8 +1,15 @@
 import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 export async function fetchForexRates(base = 'USD') {
+  // Collector-first: pre-fetched forex data
+  if (base === 'USD') {
+    const collected = await getCollectorData('forex');
+    if (collected) return collected;
+  }
+
   const cacheKey = `forex_${base}`;
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

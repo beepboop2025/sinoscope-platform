@@ -1,10 +1,15 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 // Uses existing coingecko rate limiter
 
 // Global market data
 export async function fetchCryptoGlobal() {
+  // Collector-first: pre-fetched global crypto data
+  const collected = await getCollectorData('crypto_global');
+  if (collected) return collected;
+
   const cacheKey = 'coingecko_global';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
@@ -39,6 +44,10 @@ export async function fetchCryptoGlobal() {
 
 // Trending coins
 export async function fetchTrendingCoins() {
+  // Collector-first: pre-fetched trending coins
+  const collected = await getCollectorData('crypto_trending');
+  if (collected) return collected;
+
   const cacheKey = 'coingecko_trending';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
@@ -71,6 +80,24 @@ export async function fetchTrendingCoins() {
 
 // Top gainers/losers from markets
 export async function fetchTopMovers() {
+  // Collector-first: derive movers from pre-fetched crypto markets
+  const collected = await getCollectorData('crypto_markets');
+  if (collected && collected.length > 0) {
+    const sorted = [...collected].sort((a, b) =>
+      Math.abs(b.price_change_percentage_24h || 0) - Math.abs(a.price_change_percentage_24h || 0)
+    );
+    return sorted.slice(0, 20).map(c => ({
+      id: c.id,
+      symbol: c.symbol?.toUpperCase(),
+      name: c.name,
+      price: c.current_price,
+      change24h: c.price_change_percentage_24h,
+      marketCap: c.market_cap,
+      volume: c.total_volume,
+      rank: c.market_cap_rank,
+    }));
+  }
+
   const cacheKey = 'coingecko_movers';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

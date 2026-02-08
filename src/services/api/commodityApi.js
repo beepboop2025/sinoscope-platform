@@ -1,6 +1,7 @@
 import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 const COMMODITY_INDICATORS = {
   GASOLINE: 'GASREGW',
@@ -42,6 +43,10 @@ export async function fetchCommodityPrice(commodity) {
 }
 
 export async function fetchAllCommodities() {
+  // Collector-first: pre-fetched commodities
+  const collected = await getCollectorData('commodities');
+  if (collected) return collected;
+
   const results = {};
   for (const [name, _] of Object.entries(COMMODITY_INDICATORS)) {
     const data = await fetchCommodityPrice(name);

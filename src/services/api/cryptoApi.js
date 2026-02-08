@@ -1,8 +1,15 @@
 import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 export async function fetchCryptoMarkets(vs = 'usd', perPage = 20) {
+  // Collector-first: pre-fetched crypto markets (top 50)
+  if (vs === 'usd') {
+    const collected = await getCollectorData('crypto_markets');
+    if (collected) return collected.slice(0, perPage);
+  }
+
   const cacheKey = `crypto_markets_${vs}_${perPage}`;
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
@@ -40,6 +47,41 @@ export async function fetchCryptoPrices(ids = 'bitcoin,ethereum,binancecoin,sola
     return data;
   } catch (err) {
     console.warn('[CryptoAPI prices]', err.message);
+    return null;
+  }
+}
+
+export async function fetchCoinDetail(coinId) {
+  const cacheKey = `coin_detail_${coinId}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
+  if (!canRequest('coingecko')) return null;
+  consumeToken('coingecko');
+
+  try {
+    const res = await fetch(API.COINGECKO.coin(coinId));
+    if (!res.ok) throw new Error(`CoinGecko coin: ${res.status}`);
+    const data = await res.json();
+
+    const result = {
+      name: data.name,
+      symbol: data.symbol,
+      market_cap: data.market_data?.market_cap?.usd || 0,
+      total_supply: data.market_data?.total_supply || 0,
+      description: (data.description?.en || '').slice(0, 500),
+      links: {
+        homepage: data.links?.homepage?.[0] || '',
+        blockchain_site: data.links?.blockchain_site?.[0] || '',
+        subreddit: data.links?.subreddit_url || '',
+        github: data.links?.repos_url?.github?.[0] || '',
+      },
+    };
+
+    cacheSet(cacheKey, result, 120000);
+    return result;
+  } catch (err) {
+    console.warn('[CryptoAPI coin detail]', err.message);
     return null;
   }
 }

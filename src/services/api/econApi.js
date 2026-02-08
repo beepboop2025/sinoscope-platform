@@ -1,6 +1,7 @@
 import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 const FRED_KEY = () => import.meta.env.VITE_FRED_API_KEY || '';
 
@@ -16,6 +17,10 @@ const ECON_SERIES = {
 };
 
 export async function fetchEconIndicator(indicator) {
+  // Collector-first: pre-fetched economic data keyed by indicator
+  const collected = await getCollectorData('economic');
+  if (collected && collected[indicator]) return collected[indicator];
+
   const key = FRED_KEY();
   const seriesId = ECON_SERIES[indicator];
   if (!key || !seriesId) return null;

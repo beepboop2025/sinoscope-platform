@@ -1,8 +1,13 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 // Fear & Greed Index from alternative.me (free, no key needed)
 export async function fetchFearGreedIndex() {
+  // Collector-first: pre-fetched fear & greed data
+  const collected = await getCollectorData('fear_greed');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'fear_greed_index';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
@@ -90,16 +95,21 @@ export async function fetchSectorPerformance() {
   }
 }
 
-// Mock fallback with seeded but stable values (not random every call)
+// Mock fallback — regenerates every 5 minutes so data does not go permanently stale
+const MOCK_SECTOR_TTL = 5 * 60 * 1000; // 5 minutes
 let _mockSectorSeed = null;
+let _mockSectorTimestamp = 0;
+
 export function getSectorPerformance() {
-  if (!_mockSectorSeed) {
+  const now = Date.now();
+  if (!_mockSectorSeed || (now - _mockSectorTimestamp) > MOCK_SECTOR_TTL) {
     _mockSectorSeed = SECTOR_ETFS.map(s => ({
       ...s,
       changePct: +((Math.random() - 0.45) * 4).toFixed(2),
       weekPct: +((Math.random() - 0.45) * 6).toFixed(2),
       monthPct: +((Math.random() - 0.4) * 12).toFixed(2),
     }));
+    _mockSectorTimestamp = now;
   }
-  return _mockSectorSeed;
+  return { data: _mockSectorSeed, lastUpdated: _mockSectorTimestamp, source: 'mock' };
 }

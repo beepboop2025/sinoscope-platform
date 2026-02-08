@@ -2,6 +2,7 @@ import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { generateMockChinaIndices, generateMockChinaStocks } from '../../generators/mockChina';
+import { getCollectorData } from '../CollectorClient';
 
 const FMP_KEY = () => import.meta.env.VITE_FMP_API_KEY || '';
 
@@ -75,25 +76,37 @@ export const ChinaAPI = {
     const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
-    // PBOC rates are not freely available via API — return reference data
+    // PBOC rates are not freely available via a free public API — return reference data.
+    // These values were last verified from official PBOC publications.
+    // Verify/update at: http://www.pbc.gov.cn/english/130437/index.html (PBOC English portal)
+    // and: https://www.chinamoney.com.cn/english/ (China Foreign Exchange Trade System)
     const rates = {
       lpr1y: 3.45,
       lpr5y: 3.95,
       lendingFacility: 2.50,
       reverseRepo: 1.80,
       rrr: 10.0,
-      lastUpdate: Date.now(),
+      lastUpdated: '2024-02-20',
+      source: 'static_reference',
     };
     cacheSet(cacheKey, rates, 3600000);
     return rates;
   },
 
   async fetchCNYCNHRates() {
+    // Collector-first: pre-fetched CNY rates
+    const collected = await getCollectorData('cny_rates');
+    if (collected && collected.cnyUsd) {
+      return { cnyUsd: collected.cnyUsd, cnhUsd: collected.cnyUsd + 0.01, timestamp: collected.timestamp || Date.now(), isStale: false };
+    }
+
     const cacheKey = 'cny_cnh';
     const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
-    if (!canRequest('frankfurter')) return { cnyUsd: 7.24, cnhUsd: 7.25 };
+    if (!canRequest('frankfurter')) {
+      return { cnyUsd: 7.24, cnhUsd: 7.25, isStale: true, lastUpdated: '2024-01-01', source: 'static_fallback' };
+    }
     consumeToken('frankfurter');
 
     try {
@@ -102,12 +115,12 @@ export const ChinaAPI = {
       const data = await res.json();
       const cny = data.rates?.CNY || 7.24;
       const cnh = cny + (Math.random() - 0.5) * 0.02;
-      const result = { cnyUsd: cny, cnhUsd: cnh, timestamp: Date.now() };
+      const result = { cnyUsd: cny, cnhUsd: cnh, timestamp: Date.now(), isStale: false };
       cacheSet(cacheKey, result, 30000);
       return result;
     } catch (err) {
       console.warn('[ChinaAPI CNY]', err.message);
-      return { cnyUsd: 7.24, cnhUsd: 7.25 };
+      return { cnyUsd: 7.24, cnhUsd: 7.25, isStale: true, lastUpdated: '2024-01-01', source: 'static_fallback' };
     }
   },
 

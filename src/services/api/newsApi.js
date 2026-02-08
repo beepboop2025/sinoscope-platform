@@ -1,6 +1,7 @@
 import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 const FINNHUB_KEY = () => import.meta.env.VITE_FINNHUB_API_KEY || '';
 const GNEWS_KEY = () => import.meta.env.VITE_GNEWS_API_KEY || '';
@@ -18,6 +19,10 @@ const NEWS_RSS_FEEDS = [
  * Finnhub -> NewsData.io -> NewsAPI.org -> WorldNewsAPI -> GNews -> RSS
  */
 export async function fetchFinnhubNews(category = 'general') {
+  // Collector-first: pre-fetched news
+  const collected = await getCollectorData('news');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = `news_cascade_${category}`;
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

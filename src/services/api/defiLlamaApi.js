@@ -1,5 +1,6 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 // DeFi Llama is free, no API key needed, generous limits
 createRateLimiter('defillama', 20, 60000);
@@ -10,6 +11,10 @@ const STABLECOINS = 'https://stablecoins.llama.fi';
 
 // Top DeFi protocols by TVL
 export async function fetchDefiProtocols() {
+  // Collector-first: pre-fetched DeFi protocols
+  const collected = await getCollectorData('defi_protocols');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'defi_protocols';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
@@ -70,6 +75,10 @@ export async function fetchDefiTVL() {
 
 // Chain TVL breakdown
 export async function fetchChainTVL() {
+  // Collector-first: pre-fetched chain TVLs
+  const collected = await getCollectorData('defi_chains');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'defi_chain_tvl';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
@@ -99,6 +108,10 @@ export async function fetchChainTVL() {
 
 // Top DeFi yields
 export async function fetchDefiYields() {
+  // Collector-first: pre-fetched DeFi yields
+  const collected = await getCollectorData('defi_yields');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'defi_yields';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
@@ -138,6 +151,10 @@ export async function fetchDefiYields() {
 
 // Stablecoin market caps
 export async function fetchStablecoins() {
+  // Collector-first: pre-fetched stablecoin data
+  const collected = await getCollectorData('defi_stablecoins');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'defi_stablecoins';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

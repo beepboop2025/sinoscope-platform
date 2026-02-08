@@ -1,5 +1,6 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 // SEC EDGAR: 10 requests/second, we'll be conservative
 createRateLimiter('sec', 10, 60000);
@@ -9,6 +10,10 @@ const EDGAR_FULL_TEXT = 'https://efts.sec.gov/LATEST/search';
 
 // Fetch recent SEC filings
 export async function fetchRecentFilings(query = '', forms = ['10-K', '10-Q', '8-K'], limit = 20) {
+  // Collector-first: pre-fetched SEC filings
+  const collected = await getCollectorData('sec_filings');
+  if (collected && collected.length > 0) return collected.slice(0, limit);
+
   const cacheKey = `sec_filings_${query}_${forms.join('')}`;
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

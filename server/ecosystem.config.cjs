@@ -1,0 +1,35 @@
+module.exports = {
+  apps: [{
+    name: 'dragonscope-collector',
+    script: 'collector.js',
+    cwd: __dirname,
+    watch: false,
+    autorestart: true,
+    max_restarts: 50,
+    restart_delay: 5000,
+    max_memory_restart: '500M',
+    env: {
+      NODE_ENV: 'production',
+    },
+    log_date_format: 'YYYY-MM-DD HH:mm:ss',
+    error_file: './logs/error.log',
+    out_file: './logs/output.log',
+    merge_logs: true,
+  }, {
+    name: 'dragonscope-dataserver',
+    script: 'dataServer.js',
+    cwd: __dirname,
+    watch: false,
+    autorestart: true,
+    max_restarts: 50,
+    restart_delay: 3000,
+    max_memory_restart: '100M',
+    env: {
+      NODE_ENV: 'production',
+    },
+    log_date_format: 'YYYY-MM-DD HH:mm:ss',
+    error_file: './logs/dataserver-error.log',
+    out_file: './logs/dataserver-output.log',
+    merge_logs: true,
+  }],
+};

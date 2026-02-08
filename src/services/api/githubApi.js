@@ -1,5 +1,6 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 // GitHub API has 60 req/hour unauthenticated
 createRateLimiter('github', 30, 3600000);
@@ -52,6 +53,10 @@ export async function fetchGithubTrending(query = 'finance trading stock market 
 }
 
 export async function fetchGithubFinanceRepos() {
+  // Collector-first: pre-fetched github repos
+  const collected = await getCollectorData('github_repos');
+  if (collected && collected.length > 0) return collected;
+
   const cacheKey = 'github_finance_all';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;

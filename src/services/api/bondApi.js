@@ -1,6 +1,7 @@
 import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
+import { getCollectorData } from '../CollectorClient';
 
 const FRED_KEY = () => import.meta.env.VITE_FRED_API_KEY || '';
 
@@ -41,6 +42,10 @@ export async function fetchTreasuryYield(maturity = '10Y') {
 }
 
 export async function fetchYieldCurve() {
+  // Collector-first: pre-fetched yield curve
+  const collected = await getCollectorData('yield_curve');
+  if (collected) return collected;
+
   const key = FRED_KEY();
   if (!key) return null;
 
