@@ -1,0 +1,39 @@
+const buckets = {};
+
+export function createRateLimiter(provider, maxRequests, windowMs) {
+  buckets[provider] = { tokens: maxRequests, max: maxRequests, windowMs, lastRefill: Date.now() };
+}
+
+export function canRequest(provider) {
+  const b = buckets[provider];
+  if (!b) return true;
+  const now = Date.now();
+  const elapsed = now - b.lastRefill;
+  if (elapsed >= b.windowMs) {
+    b.tokens = b.max;
+    b.lastRefill = now;
+  }
+  return b.tokens > 0;
+}
+
+export function consumeToken(provider) {
+  const b = buckets[provider];
+  if (!b) return;
+  b.tokens = Math.max(0, b.tokens - 1);
+}
+
+export function getTokens(provider) {
+  const b = buckets[provider];
+  if (!b) return Infinity;
+  return b.tokens;
+}
+
+// Initialize default rate limits
+createRateLimiter('frankfurter', 30, 60000);
+createRateLimiter('coingecko', 25, 60000);
+createRateLimiter('fmp', 240, 86400000);
+createRateLimiter('fred', 100, 60000);
+createRateLimiter('finnhub', 55, 60000);
+createRateLimiter('gnews', 90, 86400000);
+createRateLimiter('yahoo', 50, 60000);
+createRateLimiter('alphavantage', 24, 86400000);

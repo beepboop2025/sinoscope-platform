@@ -1,0 +1,15 @@
+export const COMMANDS = [
+  { id: 'overview', label: 'Overview', desc: 'Default workspace', shortcut: '1', action: 'workspace', target: 'overview' },
+  { id: 'china', label: 'China Focus', desc: 'China markets workspace', shortcut: '2', action: 'workspace', target: 'china' },
+  { id: 'correlation', label: 'Cross-Market Analysis', desc: 'Correlation workspace', shortcut: '3', action: 'workspace', target: 'correlation' },
+  { id: 'forex_ws', label: 'Forex', desc: 'Forex workspace', shortcut: '4', action: 'workspace', target: 'forex' },
+  { id: 'fi', label: 'Fixed Income', desc: 'Bonds workspace', shortcut: '5', action: 'workspace', target: 'fixedIncome' },
+  { id: 'add_forex', label: 'Add Forex Panel', desc: 'Add forex rates panel', action: 'addPanel', target: 'forex' },
+  { id: 'add_stocks', label: 'Add Stocks Panel', desc: 'Add stock watchlist', action: 'addPanel', target: 'stocks' },
+  { id: 'add_crypto', label: 'Add Crypto Panel', desc: 'Add crypto panel', action: 'addPanel', target: 'crypto' },
+  { id: 'add_bonds', label: 'Add Bonds Panel', desc: 'Add bond yields', action: 'addPanel', target: 'bonds' },
+  { id: 'add_news', label: 'Add News Panel', desc: 'Add news feed', action: 'addPanel', target: 'news' },
+  { id: 'add_correlation', label: 'Add Correlation', desc: 'Add correlation matrix', action: 'addPanel', target: 'correlation' },
+  { id: 'add_china', label: 'Add China Markets', desc: 'Add China panel', action: 'addPanel', target: 'chinaMarkets' },
+  { id: 'export', label: 'Export Data', desc: 'Export current data as JSON', action: 'export' },
+];

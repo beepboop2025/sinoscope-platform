@@ -1,0 +1,89 @@
+.react-grid-layout { position: relative; }
+.react-grid-item { transition: all 200ms ease; transition-property: left, top, width, height; }
+.react-grid-item.react-draggable-dragging { transition: none; z-index: 100; opacity: 0.9; }
+.react-grid-item.resizing { transition: none; z-index: 100; }
+.react-grid-item > div { height: 100%; }
+.react-grid-placeholder { background: var(--cyan) !important; opacity: 0.1 !important; border-radius: 8px !important; }
+
+.panel {
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.panel:hover { border-color: var(--border-2); }
+
+.panel-titlebar {
+  height: 26px;
+  background: var(--bg-3);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 6px;
+  cursor: grab;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-1);
+  user-select: none;
+}
+.panel-titlebar:active { cursor: grabbing; }
+
+.panel-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  color: var(--text-4);
+  transition: all 0.15s;
+}
+.panel-btn:hover { background: var(--bg-hover); color: var(--text-2); }
+
+.panel-body { flex: 1; overflow: auto; padding: 12px; }
+
+.workspace-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  height: 34px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border-1);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.workspace-tab {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.workspace-tab.active { background: var(--bg-3); border-color: var(--border-2); color: var(--cyan); }
+.workspace-tab:hover:not(.active) { color: var(--text-2); background: var(--bg-2); }
