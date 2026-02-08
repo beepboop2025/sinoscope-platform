@@ -14,6 +14,10 @@ dist-ssr
 .env
 .env.*
 
+# Collector runtime data
+server/data/
+server/logs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
