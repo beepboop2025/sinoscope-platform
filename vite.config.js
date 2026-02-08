@@ -24,7 +24,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/rss/, ''),
       },
       '/api/collector': {
-        target: 'http://localhost:3456',
+        target: 'http://127.0.0.1:3456',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/collector/, ''),
       },
