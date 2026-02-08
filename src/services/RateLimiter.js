@@ -37,3 +37,6 @@ createRateLimiter('finnhub', 55, 60000);
 createRateLimiter('gnews', 90, 86400000);
 createRateLimiter('yahoo', 50, 60000);
 createRateLimiter('alphavantage', 24, 86400000);
+createRateLimiter('newsdata', 15, 86400000);       // ~500/month ≈ 15/day
+createRateLimiter('newsapiorg', 90, 86400000);      // 100 calls/day
+createRateLimiter('worldnews', 50, 86400000);       // free tier

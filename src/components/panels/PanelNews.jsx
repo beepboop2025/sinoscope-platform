@@ -38,8 +38,10 @@ const PanelNews = memo(() => {
     <PanelChrome title="News Feed" icon={Newspaper} iconColor="var(--cyan)">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {articles.length === 0 && (
-          <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-3)', fontSize: 12 }}>
-            No news available. Set VITE_FINNHUB_API_KEY for live news.
+          <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-3)', fontSize: 11, lineHeight: 1.6 }}>
+            No news available. Set any of these env vars for live news:<br/>
+            VITE_FINNHUB_API_KEY, VITE_NEWSDATA_API_KEY,<br/>
+            VITE_NEWSAPI_API_KEY, VITE_WORLD_NEWS_API_KEY
           </div>
         )}
         {articles.map(a => (

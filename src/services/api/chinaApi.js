@@ -110,4 +110,70 @@ export const ChinaAPI = {
       return { cnyUsd: 7.24, cnhUsd: 7.25 };
     }
   },
+
+  // Fetch China GDP and trade data from World Bank (free, no key)
+  async fetchChinaEconomic() {
+    const cacheKey = 'china_economic';
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    const indicators = [
+      { id: 'NY.GDP.MKTP.CD', label: 'GDP (USD)' },
+      { id: 'NE.TRD.GNFS.ZS', label: 'Trade (% GDP)' },
+      { id: 'FP.CPI.TOTL.ZG', label: 'CPI Inflation' },
+      { id: 'BN.CAB.XOKA.CD', label: 'Current Account' },
+    ];
+
+    const results = [];
+    for (const ind of indicators) {
+      try {
+        const url = `${API.WORLD_BANK.indicator('CHN', ind.id)}&per_page=5&date=2020:2025`;
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.json();
+        const entries = data?.[1] || [];
+        const latest = entries.find(e => e.value != null);
+        if (latest) {
+          results.push({
+            indicator: ind.label,
+            value: latest.value,
+            year: latest.date,
+            id: ind.id,
+          });
+        }
+      } catch { /* skip */ }
+    }
+
+    if (results.length > 0) {
+      cacheSet(cacheKey, results, 3600000); // 1 hour cache
+    }
+    return results.length > 0 ? results : null;
+  },
+
+  // CNY historical rates for charting
+  async fetchCNYHistory(days = 30) {
+    const cacheKey = `cny_history_${days}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    if (!canRequest('frankfurter')) return null;
+    consumeToken('frankfurter');
+
+    try {
+      const to = new Date().toISOString().split('T')[0];
+      const from = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+      const res = await fetch(`${API.FRANKFURTER.timeseries(from, to)}?base=USD&symbols=CNY`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const rates = Object.entries(data.rates || {}).map(([date, r]) => ({
+        date,
+        rate: r.CNY,
+      })).sort((a, b) => a.date.localeCompare(b.date));
+      cacheSet(cacheKey, rates, 600000);
+      return rates;
+    } catch (err) {
+      console.warn('[ChinaAPI history]', err.message);
+      return null;
+    }
+  },
 };

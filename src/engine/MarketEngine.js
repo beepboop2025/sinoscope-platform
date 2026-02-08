@@ -4,6 +4,8 @@ import { fetchStockQuotes } from '../services/api/stockApi';
 import { fetchYieldCurve } from '../services/api/bondApi';
 import { fetchAllCommodities } from '../services/api/commodityApi';
 import { normalizeTick, normalizeForex, normalizeCrypto } from '../services/DataNormalizer';
+import { generateMockEconomic } from '../generators/mockEconomic';
+import { generateMockChinaIndices } from '../generators/mockChina';
 
 export function createMarketEngine() {
   const state = {
@@ -13,6 +15,7 @@ export function createMarketEngine() {
     bonds: [],
     commodities: {},
     economic: {},
+    indices: {},
     lastUpdate: {},
     listeners: new Set(),
     intervals: [],
@@ -100,6 +103,41 @@ export function createMarketEngine() {
     }
   }
 
+  async function fetchEconomic() {
+    try {
+      // Use mock data as baseline; real FRED data layered on top via econApi if keys present
+      const data = generateMockEconomic();
+      state.economic = data;
+      state.lastUpdate.economic = Date.now();
+      notify();
+    } catch (err) {
+      console.warn('[MarketEngine] economic error', err);
+    }
+  }
+
+  async function fetchIndices() {
+    try {
+      const data = generateMockChinaIndices();
+      // Merge global index mock data
+      const globalIndices = {
+        SPX: { symbol: 'SPX', name: 'S&P 500', price: 5250 + (Math.random() - 0.5) * 60, changePct: (Math.random() - 0.5) * 2 },
+        DJI: { symbol: 'DJI', name: 'Dow Jones', price: 39200 + (Math.random() - 0.5) * 400, changePct: (Math.random() - 0.5) * 1.5 },
+        IXIC: { symbol: 'IXIC', name: 'NASDAQ', price: 16500 + (Math.random() - 0.5) * 200, changePct: (Math.random() - 0.5) * 2.5 },
+        FTSE: { symbol: 'FTSE', name: 'FTSE 100', price: 7950 + (Math.random() - 0.5) * 80, changePct: (Math.random() - 0.5) * 1.2 },
+        DAX: { symbol: 'DAX', name: 'DAX 40', price: 18100 + (Math.random() - 0.5) * 180, changePct: (Math.random() - 0.5) * 1.5 },
+        N225: { symbol: 'N225', name: 'Nikkei 225', price: 38500 + (Math.random() - 0.5) * 400, changePct: (Math.random() - 0.5) * 2 },
+      };
+      for (const idx of data) {
+        globalIndices[idx.symbol] = { symbol: idx.symbol, name: idx.name, price: idx.price, changePct: idx.changesPercentage || 0 };
+      }
+      state.indices = globalIndices;
+      state.lastUpdate.indices = Date.now();
+      notify();
+    } catch (err) {
+      console.warn('[MarketEngine] indices error', err);
+    }
+  }
+
   function updateFromWS(tick) {
     const sym = tick.symbol;
     if (sym.endsWith('USDT')) {
@@ -118,6 +156,7 @@ export function createMarketEngine() {
       bonds: [...state.bonds],
       commodities: { ...state.commodities },
       economic: { ...state.economic },
+      indices: { ...state.indices },
       lastUpdate: { ...state.lastUpdate },
     };
   }
@@ -128,6 +167,8 @@ export function createMarketEngine() {
     fetchStocks();
     fetchBonds();
     fetchCommodities();
+    fetchEconomic();
+    fetchIndices();
 
     state.intervals.push(
       setInterval(fetchForex, 60000),
@@ -135,6 +176,8 @@ export function createMarketEngine() {
       setInterval(fetchStocks, 1800000), // 30min — Alpha Vantage free tier is 25 req/day
       setInterval(fetchBonds, 600000),
       setInterval(fetchCommodities, 600000),
+      setInterval(fetchEconomic, 300000),  // 5 min
+      setInterval(fetchIndices, 60000),    // 1 min
     );
   }
 
@@ -143,5 +186,5 @@ export function createMarketEngine() {
     state.intervals = [];
   }
 
-  return { start, stop, subscribe, getSnapshot, updateFromWS, fetchForex, fetchStocks, fetchCrypto, fetchBonds, fetchCommodities };
+  return { start, stop, subscribe, getSnapshot, updateFromWS, fetchForex, fetchStocks, fetchCrypto, fetchBonds, fetchCommodities, fetchEconomic, fetchIndices };
 }

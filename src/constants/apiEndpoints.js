@@ -39,6 +39,18 @@ export const API = {
   RSS2JSON: {
     convert: (rssUrl) => `/api/rss/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`,
   },
+  NEWSDATA: {
+    latest: (key, q) => `https://newsdata.io/api/1/latest?apikey=${key}&q=${encodeURIComponent(q)}&language=en&category=business`,
+    headlines: (key) => `https://newsdata.io/api/1/latest?apikey=${key}&language=en&category=business`,
+  },
+  NEWSAPI_ORG: {
+    headlines: (key) => `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=20&apiKey=${key}`,
+    search: (key, q) => `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${key}`,
+  },
+  WORLD_NEWS_API: {
+    search: (key, q) => `https://api.worldnewsapi.com/search-news?text=${encodeURIComponent(q)}&language=en&number=20&api-key=${key}`,
+    headlines: (key) => `https://api.worldnewsapi.com/top-news?source-country=us&language=en&api-key=${key}`,
+  },
   BINANCE_WS: 'wss://stream.binance.com:9443/ws',
   FINNHUB_WS: (key) => `wss://ws.finnhub.io?token=${key}`,
 };

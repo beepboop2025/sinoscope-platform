@@ -20,6 +20,19 @@ import PanelNetwork from './components/panels/PanelNetwork';
 import PanelTimeline from './components/panels/PanelTimeline';
 import PanelCompany from './components/panels/PanelCompany';
 import PanelAlerts from './components/panels/PanelAlerts';
+import PanelSqlQuery from './components/panels/PanelSqlQuery';
+import PanelGithubTrending from './components/panels/PanelGithubTrending';
+import PanelHuggingFace from './components/panels/PanelHuggingFace';
+import PanelSentiment from './components/panels/PanelSentiment';
+import PanelSectors from './components/panels/PanelSectors';
+import PanelWatchlist from './components/panels/PanelWatchlist';
+import PanelDefi from './components/panels/PanelDefi';
+import PanelCryptoGlobal from './components/panels/PanelCryptoGlobal';
+import PanelRedditSentiment from './components/panels/PanelRedditSentiment';
+import PanelSECFilings from './components/panels/PanelSECFilings';
+import PanelResearchPapers from './components/panels/PanelResearchPapers';
+import PanelML from './components/panels/PanelML';
+import PanelSignals from './components/panels/PanelSignals';
 
 // China panels
 import PanelChinaMarkets from './components/panels/china/PanelChinaMarkets';
@@ -36,6 +49,8 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useWorkspace } from './hooks/useWorkspace';
 import { useCommandBar } from './hooks/useCommandBar';
 import { useCorrelation } from './hooks/useCorrelation';
+import { useMLEngine } from './hooks/useMLEngine';
+import { useDataStatus } from './hooks/useDataStatus';
 
 // Mock data generators
 import { generateMockForex } from './generators/mockForex';
@@ -69,6 +84,12 @@ function App() {
 
   // Correlation
   const { matrix: corrMatrix, pairs: corrPairs } = useCorrelation(marketData, CORRELATION_SYMBOLS);
+
+  // ML Engine
+  const mlEngine = useMLEngine(marketData);
+
+  // Data status notifications
+  useDataStatus(marketData, useMock ? 'mock' : 'live');
 
   // Network data for PanelNetwork
   const networkSymbols = CORRELATION_SYMBOLS.slice(0, 6);
@@ -231,7 +252,7 @@ function App() {
       case 'news':
         return <PanelNews />;
       case 'chart':
-        return <PanelChart symbol="BTC" data={[]} />;
+        return <PanelChart symbol="BTC" />;
       case 'correlation':
         return <PanelCorrelation matrix={corrMatrix} symbols={CORRELATION_SYMBOLS} />;
       case 'network':
@@ -239,9 +260,9 @@ function App() {
       case 'timeline':
         return <PanelTimeline events={events} />;
       case 'company':
-        return <PanelCompany symbol="AAPL" />;
+        return <PanelCompany />;
       case 'alerts':
-        return <PanelAlerts alerts={alerts} />;
+        return <PanelAlerts alerts={alerts} marketData={marketData} mlState={mlEngine} />;
       case 'chinaMarkets':
         return <PanelChinaMarkets />;
       case 'cnyTracker':
@@ -254,6 +275,32 @@ function App() {
         return <PanelBeltRoad />;
       case 'chinaCalendar':
         return <PanelChinaCalendar />;
+      case 'sqlQuery':
+        return <PanelSqlQuery data={marketData} />;
+      case 'githubTrending':
+        return <PanelGithubTrending />;
+      case 'huggingFace':
+        return <PanelHuggingFace />;
+      case 'sentiment':
+        return <PanelSentiment />;
+      case 'sectors':
+        return <PanelSectors />;
+      case 'watchlist':
+        return <PanelWatchlist data={marketData} />;
+      case 'defi':
+        return <PanelDefi />;
+      case 'cryptoGlobal':
+        return <PanelCryptoGlobal />;
+      case 'redditSentiment':
+        return <PanelRedditSentiment />;
+      case 'secFilings':
+        return <PanelSECFilings />;
+      case 'researchPapers':
+        return <PanelResearchPapers />;
+      case 'mlDashboard':
+        return <PanelML mlState={mlEngine} onRetrain={mlEngine.forceRetrain} onReset={mlEngine.reset} />;
+      case 'signals':
+        return <PanelSignals mlState={mlEngine} />;
       default:
         return <div style={{ padding: 16, color: 'var(--text-3)', fontSize: 12 }}>Unknown panel: {panelId}</div>;
     }
