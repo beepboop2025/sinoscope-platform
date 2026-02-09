@@ -1,35 +1,84 @@
 import { useState, useEffect, useCallback } from 'react';
 import { storageRead, storageWrite } from '../utils/storage';
+import { api } from '../services/apiClient';
 
 const STORAGE_KEY = 'dragonscope_alert_configs';
 
 export function useAlertConfig() {
   const [configs, setConfigs] = useState(() => storageRead(STORAGE_KEY, []));
 
+  // On mount: try loading from API
+  useEffect(() => {
+    let cancelled = false;
+    api.getAlerts().then(data => {
+      if (cancelled) return;
+      if (data && data.length >= 0) {
+        const normalized = data.map(a => ({
+          id: a.id,
+          symbol: a.symbol,
+          condition: a.condition,
+          threshold: a.threshold,
+          isActive: a.isActive,
+          createdAt: new Date(a.createdAt).getTime(),
+        }));
+        setConfigs(normalized);
+        storageWrite(STORAGE_KEY, normalized);
+      }
+    }).catch(() => {
+      // API unavailable — keep localStorage data
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Write-through to localStorage
   useEffect(() => {
     storageWrite(STORAGE_KEY, configs);
   }, [configs]);
 
-  const addConfig = useCallback((config) => {
+  const addConfig = useCallback(async (config) => {
     const threshold = Number(config.threshold);
     if (!Number.isFinite(threshold)) return;
-    setConfigs(prev => [...prev, {
-      id: 'ac_' + Date.now().toString(36),
+    const alertData = {
       symbol: (config.symbol || '').toUpperCase(),
-      condition: config.condition, // 'price_above', 'price_below', 'pct_change_above', 'pct_change_below'
+      condition: config.condition,
       threshold,
-      isActive: true,
-      createdAt: Date.now(),
-    }]);
+    };
+
+    try {
+      const created = await api.createAlert(alertData);
+      setConfigs(prev => [...prev, {
+        id: created.id,
+        ...alertData,
+        isActive: true,
+        createdAt: new Date(created.createdAt).getTime(),
+      }]);
+    } catch {
+      // Local-only fallback
+      setConfigs(prev => [...prev, {
+        id: 'ac_' + Date.now().toString(36),
+        ...alertData,
+        isActive: true,
+        createdAt: Date.now(),
+      }]);
+    }
   }, []);
 
-  const removeConfig = useCallback((id) => {
+  const removeConfig = useCallback(async (id) => {
+    try {
+      await api.deleteAlert(id);
+    } catch { /* local-only fallback */ }
     setConfigs(prev => prev.filter(c => c.id !== id));
   }, []);
 
-  const toggleConfig = useCallback((id) => {
-    setConfigs(prev => prev.map(c => c.id === id ? { ...c, isActive: !c.isActive } : c));
-  }, []);
+  const toggleConfig = useCallback(async (id) => {
+    const config = configs.find(c => c.id === id);
+    if (!config) return;
+    const newActive = !config.isActive;
+    try {
+      await api.updateAlert(id, { isActive: newActive });
+    } catch { /* local-only fallback */ }
+    setConfigs(prev => prev.map(c => c.id === id ? { ...c, isActive: newActive } : c));
+  }, [configs]);
 
   const evaluateAlerts = useCallback((marketData) => {
     if (!marketData) return [];

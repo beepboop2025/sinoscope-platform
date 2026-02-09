@@ -1,9 +1,13 @@
 import { StrictMode, Component } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ClerkProvider } from '@clerk/clerk-react';
 import { ToastProvider } from './components/shared/Toast';
 import { ThemeProvider } from './components/shared/ThemeProvider';
+import ClerkSessionBridge from './components/auth/ClerkSessionBridge';
 import App from './App.jsx';
 import './styles/index.css';
+
+const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 class RootErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -38,14 +42,26 @@ class RootErrorBoundary extends Component {
   }
 }
 
+const AppTree = (
+  <ThemeProvider>
+    <ToastProvider>
+      <App />
+    </ToastProvider>
+  </ThemeProvider>
+);
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <RootErrorBoundary>
-      <ThemeProvider>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
-      </ThemeProvider>
+      {CLERK_KEY ? (
+        <ClerkProvider publishableKey={CLERK_KEY}>
+          <ClerkSessionBridge>
+            {AppTree}
+          </ClerkSessionBridge>
+        </ClerkProvider>
+      ) : (
+        AppTree
+      )}
     </RootErrorBoundary>
   </StrictMode>,
 );

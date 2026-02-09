@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@clerk/express": "^1.7.69",
-    "@prisma/client": "^7.3.0",
+    "@prisma/client": "^5.22.0",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dotenv": "^16.4.7",
@@ -29,6 +29,6 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "prisma": "^7.3.0"
+    "prisma": "^5.22.0"
   }
 }

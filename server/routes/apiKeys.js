@@ -8,7 +8,7 @@ router.use(requireAuth);
 
 router.get('/', async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({ where: { clerkId: req.userId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: req.clerkId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
     const keys = await prisma.apiKey.findMany({
       where: { userId: user.id },
@@ -22,7 +22,7 @@ router.post('/', async (req, res, next) => {
   try {
     const { provider, key, label } = req.body;
     if (!provider || !key) return res.status(400).json({ error: 'provider and key required' });
-    const user = await prisma.user.findUnique({ where: { clerkId: req.userId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: req.clerkId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
     const apiKey = await prisma.apiKey.upsert({
       where: { userId_provider: { userId: user.id, provider } },

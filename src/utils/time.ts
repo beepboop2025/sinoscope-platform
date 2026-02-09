@@ -1,11 +1,17 @@
-export const TIMEZONES = {
+interface TimezoneEntry {
+  label: string;
+  tz: string;
+  abbr: string;
+}
+
+export const TIMEZONES: Record<string, TimezoneEntry> = {
   beijing: { label: 'Beijing', tz: 'Asia/Shanghai', abbr: 'CST' },
   nyc: { label: 'New York', tz: 'America/New_York', abbr: 'ET' },
   london: { label: 'London', tz: 'Europe/London', abbr: 'GMT' },
   mumbai: { label: 'Mumbai', tz: 'Asia/Kolkata', abbr: 'IST' },
 };
 
-export const getTimeInZone = (tz) => {
+export const getTimeInZone = (tz: string): string => {
   return new Date().toLocaleTimeString('en-US', {
     timeZone: tz,
     hour: '2-digit',
@@ -15,9 +21,15 @@ export const getTimeInZone = (tz) => {
   });
 };
 
-export const isMarketOpen = (exchange) => {
+interface ExchangeConfig {
+  tz: string;
+  open: number;
+  close: number;
+}
+
+export const isMarketOpen = (exchange: string): boolean => {
   const now = new Date();
-  const configs = {
+  const configs: Record<string, ExchangeConfig> = {
     NYSE: { tz: 'America/New_York', open: 9.5, close: 16 },
     SSE: { tz: 'Asia/Shanghai', open: 9.5, close: 15 },
     LSE: { tz: 'Europe/London', open: 8, close: 16.5 },

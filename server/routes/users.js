@@ -8,7 +8,7 @@ router.use(requireAuth);
 router.get('/me', async (req, res, next) => {
   try {
     let user = await prisma.user.findUnique({
-      where: { clerkId: req.userId },
+      where: { clerkId: req.clerkId },
       include: { preferences: true },
     });
     if (!user) {
@@ -22,9 +22,9 @@ router.post('/sync', async (req, res, next) => {
   try {
     const { email, displayName, avatarUrl } = req.body;
     const user = await prisma.user.upsert({
-      where: { clerkId: req.userId },
+      where: { clerkId: req.clerkId },
       create: {
-        clerkId: req.userId,
+        clerkId: req.clerkId,
         email: email || req.userEmail,
         displayName,
         avatarUrl,
@@ -44,7 +44,7 @@ router.post('/sync', async (req, res, next) => {
 router.patch('/preferences', async (req, res, next) => {
   try {
     const { defaultWorkspace, theme, refreshInterval, notifications } = req.body;
-    const user = await prisma.user.findUnique({ where: { clerkId: req.userId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: req.clerkId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const prefs = await prisma.userPreference.upsert({

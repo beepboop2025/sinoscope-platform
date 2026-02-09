@@ -1,9 +1,24 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   base: process.env.ELECTRON_BUILD ? './' : '/',
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@components': path.resolve(__dirname, './src/components'),
+      '@services': path.resolve(__dirname, './src/services'),
+      '@utils': path.resolve(__dirname, './src/utils'),
+      '@hooks': path.resolve(__dirname, './src/hooks'),
+      '@constants': path.resolve(__dirname, './src/constants'),
+      '@engine': path.resolve(__dirname, './src/engine'),
+      '@ml': path.resolve(__dirname, './src/ml'),
+      '@generators': path.resolve(__dirname, './src/generators'),
+      '@types': path.resolve(__dirname, './src/types'),
+    },
+  },
   build: {
     rollupOptions: {
       output: {
@@ -19,10 +34,10 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.js'],
-    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
     pool: 'threads',
     testTimeout: 10000,
-    coverage: { provider: 'v8', include: ['src/**/*.{js,jsx}'] },
+    coverage: { provider: 'v8', include: ['src/**/*.{js,jsx,ts,tsx}'] },
   },
   server: {
     port: 5174,
