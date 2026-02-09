@@ -6,16 +6,98 @@
  * - SignalGenerator: composite buy/sell/hold signals
  */
 
-import { NeuralNet, LinearRegression, zScore } from './NeuralNet.js';
-import { extractAssetFeatures, extractCrossMarketFeatures, computeMarketScore } from './FeatureEngine.js';
-import { storageWrite, storageRead } from '../utils/storage.js';
+import { NeuralNet, LinearRegression, zScore } from './NeuralNet';
+import { extractAssetFeatures, extractCrossMarketFeatures, computeMarketScore } from './FeatureEngine';
+import { storageWrite, storageRead } from '../utils/storage';
+import type { TrainingDataPoint } from '../types/ml';
 
 const STORAGE_PREFIX = 'dragonscope_ml_';
+
+interface PricePredictorMetrics {
+  accuracy: number;
+  loss: number;
+  epochs: number;
+  samples: number;
+}
+
+interface PricePrediction {
+  direction: string;
+  confidence: number;
+  probability?: number;
+}
+
+interface DetectedAnomaly {
+  symbol: string;
+  changePct: number;
+  zScore: number;
+  severity: string;
+  direction: string;
+  timestamp: number;
+}
+
+interface AnomalyDetectorSavedData {
+  history: Record<string, number[]>;
+  threshold: number;
+  anomalies: DetectedAnomaly[];
+}
+
+interface AnomalyStats {
+  trackedSymbols: number;
+  totalAnomalies: number;
+  threshold: number;
+}
+
+interface RegimeMetrics {
+  accuracy: number;
+  epochs: number;
+}
+
+interface RegimeHistoryEntry {
+  regime: string;
+  timestamp: number;
+}
+
+interface RegimePrediction {
+  regime: string;
+  confidence: number;
+  probabilities?: { bear: number; sideways: number; bull: number };
+}
+
+interface TrainingDataPointWithMagnitude extends TrainingDataPoint {
+  magnitude: number;
+}
+
+interface GeneratedSignal {
+  symbol: string;
+  action: string;
+  strength: string;
+  score: number;
+  techScore: number;
+  pricePrediction: PricePrediction;
+  regime: string;
+  regimeConfidence: number;
+  anomaly: string | null;
+  timestamp: number;
+}
+
+interface SignalSummary {
+  total: number;
+  buys: number;
+  sells: number;
+  holds: number;
+  avgScore: number;
+  strongBuys: string[];
+  strongSells: string[];
+}
 
 /**
  * Predicts price direction (up/down) using a neural network.
  */
 export class PricePredictor {
+  net: NeuralNet;
+  trained: boolean;
+  metrics: PricePredictorMetrics;
+
   constructor() {
     // 12 asset features + 8 cross-market features = 20 inputs
     this.net = new NeuralNet([20, 32, 16, 1], {
@@ -28,7 +110,7 @@ export class PricePredictor {
     this.metrics = { accuracy: 0, loss: 1, epochs: 0, samples: 0 };
   }
 
-  train(dataset, epochs = 30) {
+  train(dataset: TrainingDataPoint[], epochs: number = 30): PricePredictorMetrics {
     if (dataset.length < 10) return this.metrics;
 
     const losses = this.net.train(dataset, epochs);
@@ -41,7 +123,7 @@ export class PricePredictor {
     return this.metrics;
   }
 
-  predict(assetFeatures, crossFeatures) {
+  predict(assetFeatures: number[], crossFeatures: number[]): PricePrediction {
     if (!this.trained) return { direction: 'neutral', confidence: 0.5 };
     const input = [...assetFeatures, ...crossFeatures];
     const [prob] = this.net.predict(input);
@@ -50,20 +132,20 @@ export class PricePredictor {
     return { direction, confidence, probability: prob };
   }
 
-  save() {
+  save(): void {
     storageWrite(STORAGE_PREFIX + 'price_predictor', this.net.serialize());
   }
 
-  load() {
+  load(): boolean {
     try {
-      const json = storageRead(STORAGE_PREFIX + 'price_predictor');
+      const json = storageRead<string>(STORAGE_PREFIX + 'price_predictor');
       if (json) {
         this.net = NeuralNet.deserialize(json);
         this.trained = true;
         return true;
       }
-    } catch (err) {
-      console.warn('[PricePredictor] load failed:', err.message);
+    } catch (err: unknown) {
+      console.warn('[PricePredictor] load failed:', (err as Error).message);
     }
     return false;
   }
@@ -73,6 +155,12 @@ export class PricePredictor {
  * Detects anomalous price movements using z-scores and a learned threshold.
  */
 export class AnomalyDetector {
+  history: Record<string, number[]>;
+  maxHistory: number;
+  threshold: number;
+  anomalies: DetectedAnomaly[];
+  maxAnomalies: number;
+
   constructor() {
     this.history = {}; // symbol -> recent changes[]
     this.maxHistory = 200;
@@ -81,7 +169,7 @@ export class AnomalyDetector {
     this.maxAnomalies = 50;
   }
 
-  update(symbol, changePct) {
+  update(symbol: string, changePct: number): void {
     if (!this.history[symbol]) this.history[symbol] = [];
     this.history[symbol].push(changePct);
     if (this.history[symbol].length > this.maxHistory) {
@@ -89,7 +177,7 @@ export class AnomalyDetector {
     }
   }
 
-  detect(symbol, changePct) {
+  detect(symbol: string, changePct: number): DetectedAnomaly | null {
     const hist = this.history[symbol] || [];
     if (hist.length < 10) return null;
 
@@ -97,7 +185,7 @@ export class AnomalyDetector {
     const isAnomaly = Math.abs(z) > this.threshold;
 
     if (isAnomaly) {
-      const anomaly = {
+      const anomaly: DetectedAnomaly = {
         symbol,
         changePct,
         zScore: z,
@@ -113,7 +201,7 @@ export class AnomalyDetector {
     return null;
   }
 
-  save() {
+  save(): void {
     storageWrite(STORAGE_PREFIX + 'anomaly_detector', {
       history: this.history,
       threshold: this.threshold,
@@ -121,26 +209,26 @@ export class AnomalyDetector {
     });
   }
 
-  load() {
+  load(): boolean {
     try {
-      const data = storageRead(STORAGE_PREFIX + 'anomaly_detector');
+      const data = storageRead<AnomalyDetectorSavedData>(STORAGE_PREFIX + 'anomaly_detector');
       if (data) {
         this.history = data.history || {};
         this.threshold = data.threshold || 2.5;
         this.anomalies = data.anomalies || [];
         return true;
       }
-    } catch (err) {
-      console.warn('[AnomalyDetector] load failed:', err.message);
+    } catch (err: unknown) {
+      console.warn('[AnomalyDetector] load failed:', (err as Error).message);
     }
     return false;
   }
 
-  getRecentAnomalies(limit = 10) {
+  getRecentAnomalies(limit: number = 10): DetectedAnomaly[] {
     return this.anomalies.slice(0, limit);
   }
 
-  getStats() {
+  getStats(): AnomalyStats {
     return {
       trackedSymbols: Object.keys(this.history).length,
       totalAnomalies: this.anomalies.length,
@@ -154,6 +242,13 @@ export class AnomalyDetector {
  * Uses a neural network with 3-class output.
  */
 export class MarketRegime {
+  net: NeuralNet;
+  trained: boolean;
+  regimeLabels: string[];
+  metrics: RegimeMetrics;
+  currentRegime: string;
+  regimeHistory: RegimeHistoryEntry[];
+
   constructor() {
     this.net = new NeuralNet([20, 24, 12, 3], {
       activation: 'relu',
@@ -169,7 +264,7 @@ export class MarketRegime {
   }
 
   // Generate training labels from price data
-  static labelRegime(prices, lookback = 20) {
+  static labelRegime(prices: number[], lookback: number = 20): number[] {
     if (prices.length < lookback) return [0, 1, 0]; // sideways default
     const returns = (prices[prices.length - 1] - prices[prices.length - lookback]) / (prices[prices.length - lookback] || 1);
     if (returns > 0.05) return [0, 0, 1];    // bull: >5% gain
@@ -177,10 +272,10 @@ export class MarketRegime {
     return [0, 1, 0];                         // sideways
   }
 
-  train(dataset, epochs = 30) {
+  train(dataset: TrainingDataPointWithMagnitude[], epochs: number = 30): RegimeMetrics {
     if (dataset.length < 10) return this.metrics;
     // Convert direction targets to regime targets
-    const regimeData = dataset.map(d => ({
+    const regimeData: TrainingDataPoint[] = dataset.map(d => ({
       input: d.input,
       target: d.magnitude > 0.3 ? [0, 0, 1] : d.magnitude < -0.3 ? [1, 0, 0] : [0, 1, 0],
     }));
@@ -192,7 +287,7 @@ export class MarketRegime {
     return this.metrics;
   }
 
-  predict(assetFeatures, crossFeatures) {
+  predict(assetFeatures: number[], crossFeatures: number[]): RegimePrediction {
     if (!this.trained) {
       // Fallback: use simple momentum-based regime detection
       const momentum = assetFeatures[3]; // 5-period momentum
@@ -215,20 +310,20 @@ export class MarketRegime {
     return { regime, confidence, probabilities: { bear: probs[0], sideways: probs[1], bull: probs[2] } };
   }
 
-  save() {
+  save(): void {
     storageWrite(STORAGE_PREFIX + 'regime', this.net.serialize());
   }
 
-  load() {
+  load(): boolean {
     try {
-      const json = storageRead(STORAGE_PREFIX + 'regime');
+      const json = storageRead<string>(STORAGE_PREFIX + 'regime');
       if (json) {
         this.net = NeuralNet.deserialize(json);
         this.trained = true;
         return true;
       }
-    } catch (err) {
-      console.warn('[MarketRegime] load failed:', err.message);
+    } catch (err: unknown) {
+      console.warn('[MarketRegime] load failed:', (err as Error).message);
     }
     return false;
   }
@@ -238,14 +333,19 @@ export class MarketRegime {
  * Generates composite trading signals by combining all models.
  */
 export class SignalGenerator {
-  constructor(pricePredictor, anomalyDetector, marketRegime) {
+  pricePredictor: PricePredictor;
+  anomalyDetector: AnomalyDetector;
+  marketRegime: MarketRegime;
+  signals: Record<string, GeneratedSignal>;
+
+  constructor(pricePredictor: PricePredictor, anomalyDetector: AnomalyDetector, marketRegime: MarketRegime) {
     this.pricePredictor = pricePredictor;
     this.anomalyDetector = anomalyDetector;
     this.marketRegime = marketRegime;
     this.signals = {}; // symbol -> latest signal
   }
 
-  generate(symbol, assetFeatures, crossFeatures, changePct) {
+  generate(symbol: string, assetFeatures: number[], crossFeatures: number[], changePct: number): GeneratedSignal {
     // 1. Price direction prediction
     const pricePred = this.pricePredictor.predict(assetFeatures, crossFeatures);
 
@@ -282,7 +382,7 @@ export class SignalGenerator {
     signalScore = Math.max(-100, Math.min(100, signalScore));
 
     // Generate action
-    let action, strength;
+    let action: string, strength: string;
     if (signalScore > 25) {
       action = 'buy';
       strength = signalScore > 60 ? 'strong' : 'moderate';
@@ -294,7 +394,7 @@ export class SignalGenerator {
       strength = 'neutral';
     }
 
-    const signal = {
+    const signal: GeneratedSignal = {
       symbol,
       action,
       strength,
@@ -311,15 +411,15 @@ export class SignalGenerator {
     return signal;
   }
 
-  getSignals() {
+  getSignals(): GeneratedSignal[] {
     return Object.values(this.signals).sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
   }
 
-  getSignal(symbol) {
+  getSignal(symbol: string): GeneratedSignal | null {
     return this.signals[symbol] || null;
   }
 
-  getSummary() {
+  getSummary(): SignalSummary {
     const signals = this.getSignals();
     const buys = signals.filter(s => s.action === 'buy');
     const sells = signals.filter(s => s.action === 'sell');

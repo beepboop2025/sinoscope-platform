@@ -1,6 +1,28 @@
 import { rand } from '../utils/math';
 
-export function generateMockChinaIndices() {
+interface ChinaIndexTick {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changesPercentage: number;
+}
+
+interface ChinaStockTick {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changesPercentage: number;
+}
+
+interface CNYRates {
+  cnyUsd: number;
+  cnhUsd: number;
+  timestamp: number;
+}
+
+export function generateMockChinaIndices(): ChinaIndexTick[] {
   return [
     { symbol: '^SSEC', name: 'Shanghai Composite', price: +(3088 + rand(-30, 30)).toFixed(2), change: +rand(-20, 20).toFixed(2), changesPercentage: +rand(-1, 1).toFixed(2) },
     { symbol: '000300.SS', name: 'CSI 300', price: +(3580 + rand(-40, 40)).toFixed(2), change: +rand(-25, 25).toFixed(2), changesPercentage: +rand(-1.2, 1.2).toFixed(2) },
@@ -11,7 +33,7 @@ export function generateMockChinaIndices() {
   ];
 }
 
-export function generateMockChinaStocks() {
+export function generateMockChinaStocks(): ChinaStockTick[] {
   return [
     { symbol: '601398.SS', name: 'ICBC', price: +(5.12 + rand(-0.08, 0.08)).toFixed(2), change: +rand(-0.06, 0.06).toFixed(2), changesPercentage: +rand(-1.2, 1.2).toFixed(2) },
     { symbol: '002594.SZ', name: 'BYD', price: +(268 + rand(-5, 5)).toFixed(2), change: +rand(-4, 4).toFixed(2), changesPercentage: +rand(-1.5, 1.5).toFixed(2) },
@@ -22,7 +44,7 @@ export function generateMockChinaStocks() {
   ];
 }
 
-export function generateMockCNYRates() {
+export function generateMockCNYRates(): CNYRates {
   const cny = +(7.24 + rand(-0.03, 0.03)).toFixed(4);
   const cnh = +(cny + rand(-0.01, 0.02)).toFixed(4);
   return { cnyUsd: cny, cnhUsd: cnh, timestamp: Date.now() };

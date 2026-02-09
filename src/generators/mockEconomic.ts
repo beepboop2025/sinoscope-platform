@@ -1,6 +1,17 @@
 import { rand } from '../utils/math';
 
-export function generateMockEconomic() {
+interface EconomicValue {
+  value: number;
+  unit: string;
+  date: string;
+}
+
+interface YieldPoint {
+  maturity: string;
+  yield: number;
+}
+
+export function generateMockEconomic(): Record<string, EconomicValue> {
   return {
     GDP: { value: +(2.1 + rand(-0.5, 0.5)).toFixed(1), unit: '%', date: '2024-Q3' },
     CPI: { value: +(3.2 + rand(-0.3, 0.3)).toFixed(1), unit: '%', date: '2024-01' },
@@ -12,7 +23,7 @@ export function generateMockEconomic() {
   };
 }
 
-export function generateMockYieldCurve() {
+export function generateMockYieldCurve(): YieldPoint[] {
   return [
     { maturity: '1M', yield: +(5.53 + rand(-0.05, 0.05)).toFixed(2) },
     { maturity: '3M', yield: +(5.48 + rand(-0.05, 0.05)).toFixed(2) },

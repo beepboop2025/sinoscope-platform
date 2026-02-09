@@ -3,16 +3,37 @@
  * Extracts numerical features from raw market snapshots for ML models.
  */
 
-import { normalize, movingAverage, rsi, zScore, fisherYatesShuffle } from './NeuralNet.js';
+import { normalize, movingAverage, rsi, zScore, fisherYatesShuffle } from './NeuralNet';
+import type { MarketSnapshot, MarketTick, BondYield, CommodityData } from '../types/market';
+import type { TrainingDataPoint } from '../types/ml';
+
+interface MACDResult {
+  macd: number;
+  signal: number;
+  histogram: number;
+}
+
+interface TrainingDataPointExtended extends TrainingDataPoint {
+  magnitude: number;
+  symbol: string;
+}
+
+interface TrainTestResult {
+  train: TrainingDataPointExtended[];
+  test: TrainingDataPointExtended[];
+}
 
 // Rolling window buffer for time-series features
 export class RollingBuffer {
-  constructor(maxLen = 100) {
+  maxLen: number;
+  data: Record<string, number[]>;
+
+  constructor(maxLen: number = 100) {
     this.maxLen = maxLen;
     this.data = {};
   }
 
-  push(key, value) {
+  push(key: string, value: number): void {
     if (!this.data[key]) this.data[key] = [];
     this.data[key].push(value);
     if (this.data[key].length > this.maxLen) {
@@ -20,26 +41,26 @@ export class RollingBuffer {
     }
   }
 
-  get(key) {
+  get(key: string): number[] {
     return this.data[key] || [];
   }
 
-  len(key) {
+  len(key: string): number {
     return (this.data[key] || []).length;
   }
 
-  last(key, n = 1) {
+  last(key: string, n: number = 1): number[] {
     const arr = this.data[key] || [];
     return arr.slice(-n);
   }
 
-  clear() {
+  clear(): void {
     this.data = {};
   }
 }
 
 // Compute MACD (Moving Average Convergence Divergence)
-function macd(prices, fast = 12, slow = 26, signal = 9) {
+function macd(prices: number[], fast: number = 12, slow: number = 26, signal: number = 9): MACDResult {
   if (prices.length < slow + signal) return { macd: 0, signal: 0, histogram: 0 };
   const emaFast = ema(prices, fast);
   const emaSlow = ema(prices, slow);
@@ -49,7 +70,7 @@ function macd(prices, fast = 12, slow = 26, signal = 9) {
 }
 
 // Exponential moving average (last value)
-function ema(data, period) {
+function ema(data: number[], period: number): number {
   if (data.length === 0) return 0;
   const k = 2 / (period + 1);
   let val = data[0];
@@ -60,7 +81,7 @@ function ema(data, period) {
 }
 
 // Bollinger band position (where is price relative to bands)
-function bollingerPosition(prices, period = 20) {
+function bollingerPosition(prices: number[], period: number = 20): number {
   if (prices.length < period) return 0.5;
   const recent = prices.slice(-period);
   const mean = recent.reduce((a, b) => a + b, 0) / period;
@@ -73,7 +94,7 @@ function bollingerPosition(prices, period = 20) {
 }
 
 // Volume ratio (current vs average)
-function volumeRatio(volumes, period = 20) {
+function volumeRatio(volumes: number[], period: number = 20): number {
   if (volumes.length < 2) return 1;
   const recent = volumes.slice(-period);
   const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
@@ -81,7 +102,7 @@ function volumeRatio(volumes, period = 20) {
 }
 
 // Price momentum (rate of change)
-function momentum(prices, period = 10) {
+function momentum(prices: number[], period: number = 10): number {
   if (prices.length < period + 1) return 0;
   const current = prices[prices.length - 1];
   const past = prices[prices.length - 1 - period];
@@ -89,9 +110,9 @@ function momentum(prices, period = 10) {
 }
 
 // Volatility (standard deviation of returns)
-function volatility(prices, period = 20) {
+function volatility(prices: number[], period: number = 20): number {
   if (prices.length < period + 1) return 0;
-  const returns = [];
+  const returns: number[] = [];
   const recent = prices.slice(-period - 1);
   for (let i = 1; i < recent.length; i++) {
     returns.push(recent[i - 1] !== 0 ? (recent[i] - recent[i - 1]) / recent[i - 1] : 0);
@@ -104,19 +125,19 @@ function volatility(prices, period = 20) {
  * Extract features for a single asset from its price history.
  * Returns a fixed-size feature vector.
  */
-export function extractAssetFeatures(priceHistory, volumeHistory = []) {
+export function extractAssetFeatures(priceHistory: number[], volumeHistory: number[] = []): number[] {
   const prices = priceHistory || [];
-  const volumes = volumeHistory.length > 0 ? volumeHistory : new Array(prices.length).fill(1);
+  const volumes = volumeHistory.length > 0 ? volumeHistory : new Array(prices.length).fill(1) as number[];
 
   if (prices.length < 5) {
-    return new Array(12).fill(0);
+    return new Array(12).fill(0) as number[];
   }
 
   const currentPrice = prices[prices.length - 1];
   const ma5 = movingAverage(prices, 5);
   const ma20 = movingAverage(prices, 20);
 
-  const features = [
+  const features: number[] = [
     // 0: RSI (normalized 0-1)
     rsi(prices, 14) / 100,
     // 1: MACD histogram (clamped)
@@ -154,7 +175,7 @@ export function extractAssetFeatures(priceHistory, volumeHistory = []) {
 }
 
 // Linear regression slope normalized as trend strength
-function trendStrength(prices) {
+function trendStrength(prices: number[]): number {
   const n = prices.length;
   if (n < 3) return 0;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
@@ -175,53 +196,53 @@ function trendStrength(prices) {
  * Extract cross-market features from the full market snapshot.
  * These capture correlations between asset classes.
  */
-export function extractCrossMarketFeatures(marketData) {
-  if (!marketData) return new Array(8).fill(0);
+export function extractCrossMarketFeatures(marketData: MarketSnapshot | null): number[] {
+  if (!marketData) return new Array(8).fill(0) as number[];
 
-  const features = [];
+  const features: number[] = [];
 
   // 0: BTC dominance proxy — BTC change vs overall crypto average
   const crypto = marketData.crypto || {};
-  const cryptoEntries = Object.entries(crypto);
-  const btcChange = crypto.BTC?.changePct || crypto.BTCUSDT?.changePct || 0;
+  const cryptoEntries = Object.entries(crypto) as [string, MarketTick][];
+  const btcChange = (crypto as Record<string, MarketTick>).BTC?.changePct || (crypto as Record<string, MarketTick>).BTCUSDT?.changePct || 0;
   const avgCryptoChange = cryptoEntries.length > 0
-    ? cryptoEntries.reduce((s, [, d]) => s + (Number(d?.changePct) || 0), 0) / cryptoEntries.length
+    ? cryptoEntries.reduce((s: number, [, d]: [string, MarketTick]) => s + (Number(d?.changePct) || 0), 0) / cryptoEntries.length
     : 0;
   features.push(Math.max(-1, Math.min(1, (btcChange - avgCryptoChange) / 10)));
 
   // 1: Stock market breadth — % of stocks positive
   const stocks = marketData.stocks || {};
-  const stockEntries = Object.entries(stocks);
-  const positiveStocks = stockEntries.filter(([, d]) => (Number(d?.changePct) || 0) > 0).length;
+  const stockEntries = Object.entries(stocks) as [string, MarketTick][];
+  const positiveStocks = stockEntries.filter(([, d]: [string, MarketTick]) => (Number(d?.changePct) || 0) > 0).length;
   features.push(stockEntries.length > 0 ? positiveStocks / stockEntries.length : 0.5);
 
   // 2: USD strength — average forex change (inverse since pairs are usually X/USD)
   const forex = marketData.forex || {};
-  const forexEntries = Object.entries(forex);
+  const forexEntries = Object.entries(forex) as [string, MarketTick][];
   const avgForexChange = forexEntries.length > 0
-    ? forexEntries.reduce((s, [, d]) => s + (typeof d === 'number' ? 0 : Number(d?.changePct) || 0), 0) / forexEntries.length
+    ? forexEntries.reduce((s: number, [, d]: [string, MarketTick]) => s + (typeof d === 'number' ? 0 : Number(d?.changePct) || 0), 0) / forexEntries.length
     : 0;
   features.push(Math.max(-1, Math.min(1, -avgForexChange / 5)));
 
   // 3: Bond yield direction — average bond change
   const bonds = marketData.bonds || [];
-  const bondArr = Array.isArray(bonds) ? bonds : Object.entries(bonds).map(([k, v]) => ({ maturity: k, ...(typeof v === 'number' ? { yield: v } : v) }));
+  const bondArr: BondYield[] = Array.isArray(bonds) ? bonds : Object.entries(bonds).map(([k, v]: [string, unknown]) => ({ maturity: k, ...(typeof v === 'number' ? { yield: v } : v as object) })) as BondYield[];
   const avgBondChange = bondArr.length > 0
-    ? bondArr.reduce((s, b) => s + (Number(b?.change) || 0), 0) / bondArr.length
+    ? bondArr.reduce((s: number, b: BondYield) => s + (Number(b?.change) || 0), 0) / bondArr.length
     : 0;
   features.push(Math.max(-1, Math.min(1, avgBondChange / 0.1)));
 
   // 4: Commodity strength
   const commodities = marketData.commodities || {};
-  const commEntries = Object.entries(commodities);
+  const commEntries = Object.entries(commodities) as [string, CommodityData][];
   const avgCommChange = commEntries.length > 0
-    ? commEntries.reduce((s, [, d]) => s + (typeof d === 'number' ? 0 : Number(d?.changePct) || 0), 0) / commEntries.length
+    ? commEntries.reduce((s: number, [, d]: [string, CommodityData]) => s + (typeof d === 'number' ? 0 : Number(d?.changePct) || 0), 0) / commEntries.length
     : 0;
   features.push(Math.max(-1, Math.min(1, avgCommChange / 5)));
 
   // 5: Risk-on/risk-off indicator (stocks positive + crypto positive = risk on)
   const avgStockChange = stockEntries.length > 0
-    ? stockEntries.reduce((s, [, d]) => s + (Number(d?.changePct) || 0), 0) / stockEntries.length
+    ? stockEntries.reduce((s: number, [, d]: [string, MarketTick]) => s + (Number(d?.changePct) || 0), 0) / stockEntries.length
     : 0;
   const riskOn = (avgStockChange > 0 && avgCryptoChange > 0) ? 1 : (avgStockChange < 0 && avgCryptoChange < 0) ? -1 : 0;
   features.push(riskOn);
@@ -230,9 +251,9 @@ export function extractCrossMarketFeatures(marketData) {
   features.push(Math.max(-1, Math.min(1, (avgCryptoChange * avgStockChange) / 25)));
 
   // 7: Overall market volatility (dispersion of changes)
-  const allChanges = [
-    ...stockEntries.map(([, d]) => Number(d?.changePct) || 0),
-    ...cryptoEntries.map(([, d]) => Number(d?.changePct) || 0),
+  const allChanges: number[] = [
+    ...stockEntries.map(([, d]: [string, MarketTick]) => Number(d?.changePct) || 0),
+    ...cryptoEntries.map(([, d]: [string, MarketTick]) => Number(d?.changePct) || 0),
   ];
   if (allChanges.length > 2) {
     const mean = allChanges.reduce((a, b) => a + b, 0) / allChanges.length;
@@ -256,8 +277,8 @@ export function extractCrossMarketFeatures(marketData) {
  * Build a labeled training dataset from price history buffer.
  * Label: 1 if price went up in next period, 0 if down.
  */
-export function buildTrainingData(buffer, symbols, marketData) {
-  const dataset = [];
+export function buildTrainingData(buffer: RollingBuffer, symbols: string[], marketData: MarketSnapshot | null): TrainingDataPointExtended[] {
+  const dataset: TrainingDataPointExtended[] = [];
   const crossFeatures = extractCrossMarketFeatures(marketData);
 
   for (const sym of symbols) {
@@ -296,7 +317,7 @@ export function buildTrainingData(buffer, symbols, marketData) {
 /**
  * Split data into train/test sets
  */
-export function trainTestSplit(data, testRatio = 0.2) {
+export function trainTestSplit(data: TrainingDataPointExtended[], testRatio: number = 0.2): TrainTestResult {
   const shuffled = fisherYatesShuffle([...data]);
   const split = Math.floor(data.length * (1 - testRatio));
   return {
@@ -309,8 +330,8 @@ export function trainTestSplit(data, testRatio = 0.2) {
  * Compute a composite market score from features (0-100).
  * Uses weighted combination of key indicators.
  */
-export function computeMarketScore(assetFeatures, crossFeatures) {
-  const weights = {
+export function computeMarketScore(assetFeatures: number[], crossFeatures: number[]): number {
+  const weights: Record<string, number> = {
     rsi: 0.15,
     macd: 0.1,
     bollinger: 0.1,

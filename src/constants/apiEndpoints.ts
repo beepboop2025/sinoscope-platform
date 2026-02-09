@@ -51,6 +51,6 @@ export const API = {
     search: (key: string, q: string): string => `https://api.worldnewsapi.com/search-news?text=${encodeURIComponent(q)}&language=en&number=20&api-key=${key}`,
     headlines: (key: string): string => `https://api.worldnewsapi.com/top-news?source-country=us&language=en&api-key=${key}`,
   },
-  BINANCE_WS: 'wss://stream.binance.com:9443/ws' as const,
+  BINANCE_WS: 'wss://stream.binance.com:9443/ws',
   FINNHUB_WS: (key: string): string => `wss://ws.finnhub.io?token=${key}`,
-} as const;
+};

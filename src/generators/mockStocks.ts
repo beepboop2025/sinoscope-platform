@@ -1,6 +1,7 @@
 import { rand, randInt } from '../utils/math';
+import type { MarketTick } from '../types/market';
 
-const STOCKS = {
+const STOCKS: Record<string, { price: number; name: string }> = {
   AAPL: { price: 188, name: 'Apple' }, MSFT: { price: 415, name: 'Microsoft' },
   GOOGL: { price: 155, name: 'Alphabet' }, AMZN: { price: 185, name: 'Amazon' },
   NVDA: { price: 880, name: 'NVIDIA' }, TSLA: { price: 195, name: 'Tesla' },
@@ -8,8 +9,8 @@ const STOCKS = {
   V: { price: 280, name: 'Visa' }, JNJ: { price: 155, name: 'J&J' },
 };
 
-export function generateMockStocks() {
-  const result = {};
+export function generateMockStocks(): Record<string, MarketTick> {
+  const result: Record<string, MarketTick> = {};
   for (const [sym, info] of Object.entries(STOCKS)) {
     const drift = rand(-0.02, 0.02);
     const price = +(info.price * (1 + drift)).toFixed(2);

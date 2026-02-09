@@ -1,12 +1,25 @@
-const connections = {};
+import type { WSCallbacks, WSStatus } from '../../types/api';
 
-export function createWSConnection(id, url, { onMessage, onOpen, onClose, onError, reconnect = true } = {}) {
+interface WSConnectionEntry {
+  ws: WebSocket;
+  status: WSStatus;
+  url: string;
+  intentionalClose?: boolean;
+}
+
+interface CreateWSOptions extends WSCallbacks {
+  reconnect?: boolean;
+}
+
+const connections: Record<string, WSConnectionEntry> = {};
+
+export function createWSConnection(id: string, url: string, { onMessage, onOpen, onClose, onError, reconnect = true }: CreateWSOptions = { onMessage: () => {} }): WSConnectionEntry {
   if (connections[id]?.ws?.readyState === WebSocket.OPEN) return connections[id];
 
   let retryCount = 0;
   const maxRetries = 10;
 
-  function connect() {
+  function connect(): void {
     try {
       const ws = new WebSocket(url);
 
@@ -16,9 +29,9 @@ export function createWSConnection(id, url, { onMessage, onOpen, onClose, onErro
         onOpen?.();
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = (event: MessageEvent) => {
         try {
-          const data = JSON.parse(event.data);
+          const data: unknown = JSON.parse(event.data as string);
           onMessage?.(data);
         } catch {
           onMessage?.(event.data);
@@ -36,14 +49,14 @@ export function createWSConnection(id, url, { onMessage, onOpen, onClose, onErro
         }
       };
 
-      ws.onerror = (err) => {
+      ws.onerror = (err: Event) => {
         connections[id] = { ...connections[id], status: 'error' };
         onError?.(err);
       };
 
       connections[id] = { ws, status: 'connecting', url };
     } catch (err) {
-      console.warn(`[WS ${id}] Connection error:`, err.message);
+      console.warn(`[WS ${id}] Connection error:`, (err as Error).message);
     }
   }
 
@@ -51,7 +64,7 @@ export function createWSConnection(id, url, { onMessage, onOpen, onClose, onErro
   return connections[id];
 }
 
-export function sendWSMessage(id, message) {
+export function sendWSMessage(id: string, message: string | Record<string, unknown>): boolean {
   const conn = connections[id];
   if (conn?.ws?.readyState === WebSocket.OPEN) {
     conn.ws.send(typeof message === 'string' ? message : JSON.stringify(message));
@@ -60,7 +73,7 @@ export function sendWSMessage(id, message) {
   return false;
 }
 
-export function closeWSConnection(id) {
+export function closeWSConnection(id: string): void {
   const conn = connections[id];
   if (conn?.ws) {
     // Mark as intentionally closed to suppress reconnection
@@ -70,12 +83,12 @@ export function closeWSConnection(id) {
   }
 }
 
-export function getWSStatus(id) {
+export function getWSStatus(id: string): WSStatus {
   return connections[id]?.status || 'disconnected';
 }
 
-export function getAllWSStatus() {
-  const result = {};
+export function getAllWSStatus(): Record<string, WSStatus> {
+  const result: Record<string, WSStatus> = {};
   for (const [id, conn] of Object.entries(connections)) {
     result[id] = conn.status;
   }

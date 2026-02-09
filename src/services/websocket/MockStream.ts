@@ -1,14 +1,26 @@
 import { rand } from '../../utils/math';
 
-let mockInterval = null;
-const subscribers = new Map();
+interface MockTick {
+  symbol: string;
+  price: number;
+  change: number;
+  changePct: number;
+  volume: number;
+  high: number;
+  low: number;
+  timestamp: number;
+  mock: true;
+}
 
-const MOCK_PRICES = {
+let mockInterval: ReturnType<typeof setInterval> | null = null;
+const subscribers = new Map<string, (tick: MockTick) => void>();
+
+const MOCK_PRICES: Record<string, number> = {
   BTCUSDT: 67500, ETHUSDT: 3400, BNBUSDT: 580, SOLUSDT: 145,
   XRPUSDT: 0.62, ADAUSDT: 0.48, DOGEUSDT: 0.165, DOTUSDT: 7.2,
 };
 
-export function startMockStream(onTick) {
+export function startMockStream(onTick: (tick: MockTick) => void): void {
   if (mockInterval) return;
 
   mockInterval = setInterval(() => {
@@ -31,7 +43,7 @@ export function startMockStream(onTick) {
   }, 2000);
 }
 
-export function stopMockStream() {
+export function stopMockStream(): void {
   if (mockInterval) {
     clearInterval(mockInterval);
     mockInterval = null;

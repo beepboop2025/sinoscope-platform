@@ -3,14 +3,58 @@
  * Manages data buffering, training loops, and prediction generation.
  */
 
-import { RollingBuffer, extractAssetFeatures, extractCrossMarketFeatures, buildTrainingData, trainTestSplit } from './FeatureEngine.js';
-import { PricePredictor, AnomalyDetector, MarketRegime, SignalGenerator } from './Models.js';
+import { RollingBuffer, extractAssetFeatures, extractCrossMarketFeatures, buildTrainingData, trainTestSplit } from './FeatureEngine';
+import { PricePredictor, AnomalyDetector, MarketRegime, SignalGenerator } from './Models';
+import type { MarketSnapshot, MarketTick } from '../types/market';
+import type { TrainingDataPoint } from '../types/ml';
 
 const TRAIN_INTERVAL = 60_000; // retrain every 60s
 const MIN_DATA_POINTS = 30;    // minimum history before training
 const PREDICT_INTERVAL = 5_000; // generate predictions every 5s
 
+interface TrainingStatus {
+  isTraining: boolean;
+  lastTrained: number | null;
+  epochs: number;
+  dataPoints: number;
+  priceAccuracy: number;
+  regimeAccuracy: number;
+  priceLoss: number;
+  trainSize?: number;
+  testSize?: number;
+  precision?: number;
+  recall?: number;
+  f1?: number;
+}
+
+interface MLEngineState {
+  trainingStatus: TrainingStatus;
+  predictions: Record<string, unknown>;
+  signals: unknown[];
+  signalSummary: unknown;
+  anomalies: unknown[];
+  anomalyStats: unknown;
+  trackedSymbols: number;
+  dataPoints: number;
+  trainLoss: number[];
+}
+
+type MLStateListener = (state: MLEngineState) => void;
+
 export class MLEngine {
+  buffer: RollingBuffer;
+  pricePredictor: PricePredictor;
+  anomalyDetector: AnomalyDetector;
+  marketRegime: MarketRegime;
+  signalGenerator: SignalGenerator;
+  lastTrainTime: number;
+  lastPredictTime: number;
+  trackedSymbols: Set<string>;
+  latestMarketData: MarketSnapshot | null;
+  trainingStatus: TrainingStatus;
+  predictions: Record<string, unknown>;
+  listeners: Set<MLStateListener>;
+
   constructor() {
     this.buffer = new RollingBuffer(200);
     this.pricePredictor = new PricePredictor();
@@ -47,8 +91,8 @@ export class MLEngine {
     this._validateLoadedModels();
   }
 
-  _validateLoadedModels() {
-    const dummyInput = new Array(20).fill(0);
+  _validateLoadedModels(): void {
+    const dummyInput: number[] = new Array(20).fill(0);
     try {
       if (this.pricePredictor.trained) {
         const out = this.pricePredictor.net.predict(dummyInput);
@@ -57,7 +101,7 @@ export class MLEngine {
           this.pricePredictor = new PricePredictor();
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn('MLEngine: PricePredictor validation failed, reinitializing:', err);
       this.pricePredictor = new PricePredictor();
     }
@@ -69,19 +113,19 @@ export class MLEngine {
           this.marketRegime = new MarketRegime();
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn('MLEngine: MarketRegime validation failed, reinitializing:', err);
       this.marketRegime = new MarketRegime();
     }
   }
 
   // Subscribe to updates
-  subscribe(fn) {
+  subscribe(fn: MLStateListener): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
   }
 
-  notify() {
+  notify(): void {
     const state = this.getState();
     for (const fn of this.listeners) {
       try { fn(state); } catch { /* ignore */ }
@@ -89,7 +133,7 @@ export class MLEngine {
   }
 
   // Ingest new market data snapshot
-  ingest(marketData) {
+  ingest(marketData: MarketSnapshot | null): void {
     if (!marketData) return;
     this.latestMarketData = marketData;
 
@@ -97,7 +141,7 @@ export class MLEngine {
     const now = Date.now();
 
     // Stocks
-    for (const [sym, d] of Object.entries(marketData.stocks || {})) {
+    for (const [sym, d] of Object.entries(marketData.stocks || {}) as [string, MarketTick][]) {
       const price = Number(d?.price) || 0;
       if (price > 0) {
         this.buffer.push(`${sym}_price`, price);
@@ -107,7 +151,7 @@ export class MLEngine {
     }
 
     // Crypto
-    for (const [sym, d] of Object.entries(marketData.crypto || {})) {
+    for (const [sym, d] of Object.entries(marketData.crypto || {}) as [string, MarketTick][]) {
       const price = Number(d?.price) || 0;
       if (price > 0) {
         this.buffer.push(`${sym}_price`, price);
@@ -127,7 +171,7 @@ export class MLEngine {
     }
   }
 
-  getDataSize() {
+  getDataSize(): number {
     let total = 0;
     for (const sym of this.trackedSymbols) {
       total += this.buffer.len(`${sym}_price`);
@@ -136,7 +180,7 @@ export class MLEngine {
   }
 
   // Train all models
-  train() {
+  train(): void {
     if (this.trainingStatus.isTraining) return;
 
     const symbols = [...this.trackedSymbols];
@@ -224,7 +268,7 @@ export class MLEngine {
       };
 
       this.lastTrainTime = Date.now();
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn('ML training error:', err);
       this.trainingStatus.isTraining = false;
     }
@@ -233,7 +277,7 @@ export class MLEngine {
   }
 
   // Generate predictions for all tracked symbols
-  predictAll() {
+  predictAll(): void {
     if (!this.latestMarketData) return;
 
     const crossFeatures = extractCrossMarketFeatures(this.latestMarketData);
@@ -257,7 +301,7 @@ export class MLEngine {
   }
 
   // Get current state for UI
-  getState() {
+  getState(): MLEngineState {
     return {
       trainingStatus: { ...this.trainingStatus },
       predictions: { ...this.predictions },
@@ -272,13 +316,13 @@ export class MLEngine {
   }
 
   // Force retrain
-  forceRetrain() {
+  forceRetrain(): void {
     this.lastTrainTime = 0;
     this.train();
   }
 
   // Reset all models
-  reset() {
+  reset(): void {
     this.buffer.clear();
     this.trackedSymbols.clear();
     this.predictions = {};
