@@ -225,7 +225,7 @@ export const BRI_CORRIDORS: readonly BRICorridorEntry[] = [
   },
   {
     name: 'Bangladesh-China-India-Myanmar',
-    route: 'Kunming \u2192 Kolkata',
+    route: 'Kunming → Kolkata',
     investment: '$22B',
     projects: 67,
     status: 'Planning',
@@ -290,7 +290,7 @@ export const CNY_MARKET: {
   },
   spread: {
     description: 'CNH - CNY spread indicates offshore sentiment',
-    normalRange: '\u00b1200 bps',
+    normalRange: '±200 bps',
     positive: 'Offshore yuan weaker (outflow pressure)',
     negative: 'Offshore yuan stronger (inflow demand)',
   },
