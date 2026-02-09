@@ -1,6 +1,6 @@
-export const exportCsvFile = (filename, headers, rows) => {
+export const exportCsvFile = (filename: string, headers: string[], rows: unknown[][]): void => {
   if (typeof window === "undefined") return;
-  const escape = (v) => {
+  const escape = (v: unknown): string => {
     const s = String(v ?? '');
     return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
   };
@@ -20,21 +20,19 @@ export const exportCsvFile = (filename, headers, rows) => {
 /**
  * Export a chart container DOM element as a PNG image.
  * Finds the SVG inside the container, serializes it to a canvas, then triggers download.
- * @param {HTMLElement} containerEl - DOM element containing the chart SVG
- * @param {string} [filename='chart.png'] - Download filename
  */
-export const exportChartAsPng = (containerEl, filename = 'chart.png') => {
+export const exportChartAsPng = (containerEl: HTMLElement | null, filename: string = 'chart.png'): void => {
   if (!containerEl) return;
   const svgEl = containerEl.querySelector('svg');
   if (!svgEl) return;
 
-  const clone = svgEl.cloneNode(true);
+  const clone = svgEl.cloneNode(true) as SVGSVGElement;
   // Ensure the SVG has explicit dimensions for canvas rendering
   const rect = svgEl.getBoundingClientRect();
   const w = Math.round(rect.width * 2); // 2x for retina
   const h = Math.round(rect.height * 2);
-  clone.setAttribute('width', w);
-  clone.setAttribute('height', h);
+  clone.setAttribute('width', String(w));
+  clone.setAttribute('height', String(h));
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
   // Inline computed styles for CSS variables used in the chart
@@ -64,7 +62,7 @@ export const exportChartAsPng = (containerEl, filename = 'chart.png') => {
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d')!;
     // Dark background fill
     ctx.fillStyle = computedStyle.getPropertyValue('--bg-2').trim() || '#0f172a';
     ctx.fillRect(0, 0, w, h);

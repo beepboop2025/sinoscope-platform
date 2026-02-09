@@ -5,12 +5,9 @@
 
 /**
  * Simple Moving Average (SMA)
- * @param {Array<number>} data - Price data
- * @param {number} period - SMA period
- * @returns {Array<number>} SMA values
  */
-export function sma(data, period) {
-  const result = [];
+export function sma(data: number[], period: number): number[] {
+  const result: number[] = [];
   for (let i = period - 1; i < data.length; i++) {
     const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
     result.push(+(sum / period).toFixed(4));
@@ -20,11 +17,8 @@ export function sma(data, period) {
 
 /**
  * Exponential Moving Average (EMA)
- * @param {Array<number>} data - Price data
- * @param {number} period - EMA period
- * @returns {Array<number>} EMA values
  */
-export function ema(data, period) {
+export function ema(data: number[], period: number): number[] {
   const k = 2 / (period + 1);
   const result = [data[0]];
 
@@ -38,19 +32,16 @@ export function ema(data, period) {
 
 /**
  * Relative Strength Index (RSI)
- * @param {Array<number>} data - Price data
- * @param {number} period - RSI period (default 14)
- * @returns {Array<number>} RSI values (0-100)
  */
-export function rsi(data, period = 14) {
+export function rsi(data: number[], period: number = 14): number[] {
   if (data.length < period + 1) return [];
 
-  const changes = [];
+  const changes: number[] = [];
   for (let i = 1; i < data.length; i++) {
     changes.push(data[i] - data[i - 1]);
   }
 
-  const result = [];
+  const result: number[] = [];
   let avgGain = 0;
   let avgLoss = 0;
 
@@ -81,20 +72,21 @@ export function rsi(data, period = 14) {
   return result;
 }
 
+interface MACDOutput {
+  macdLine: number[];
+  signalLine: number[];
+  histogram: number[];
+}
+
 /**
  * MACD (Moving Average Convergence Divergence)
- * @param {Array<number>} data - Price data
- * @param {number} fast - Fast EMA period (default 12)
- * @param {number} slow - Slow EMA period (default 26)
- * @param {number} signal - Signal line period (default 9)
- * @returns {Object} MACD line, signal line, histogram
  */
-export function macd(data, fast = 12, slow = 26, signal = 9) {
+export function macd(data: number[], fast: number = 12, slow: number = 26, signal: number = 9): MACDOutput {
   const emaFast = ema(data, fast);
   const emaSlow = ema(data, slow);
 
   // MACD line = Fast EMA - Slow EMA
-  const macdLine = [];
+  const macdLine: number[] = [];
   const offset = slow - fast;
   for (let i = 0; i < emaSlow.length; i++) {
     macdLine.push(+(emaFast[i + offset] - emaSlow[i]).toFixed(4));
@@ -104,7 +96,7 @@ export function macd(data, fast = 12, slow = 26, signal = 9) {
   const signalLine = ema(macdLine, signal);
 
   // Histogram = MACD - Signal
-  const histogram = [];
+  const histogram: number[] = [];
   const signalOffset = macdLine.length - signalLine.length;
   for (let i = 0; i < signalLine.length; i++) {
     histogram.push(+(macdLine[i + signalOffset] - signalLine[i]).toFixed(4));
@@ -113,17 +105,19 @@ export function macd(data, fast = 12, slow = 26, signal = 9) {
   return { macdLine, signalLine, histogram };
 }
 
+interface BollingerOutput {
+  upper: number[];
+  middle: number[];
+  lower: number[];
+}
+
 /**
  * Bollinger Bands
- * @param {Array<number>} data - Price data
- * @param {number} period - SMA period (default 20)
- * @param {number} multiplier - Std dev multiplier (default 2)
- * @returns {Object} Upper band, middle band (SMA), lower band
  */
-export function bollingerBands(data, period = 20, multiplier = 2) {
+export function bollingerBands(data: number[], period: number = 20, multiplier: number = 2): BollingerOutput {
   const middle = sma(data, period);
-  const upper = [];
-  const lower = [];
+  const upper: number[] = [];
+  const lower: number[] = [];
 
   for (let i = period - 1; i < data.length; i++) {
     const slice = data.slice(i - period + 1, i + 1);
@@ -140,12 +134,9 @@ export function bollingerBands(data, period = 20, multiplier = 2) {
 
 /**
  * Rate of Change (ROC)
- * @param {Array<number>} data - Price data
- * @param {number} period - Period (default 12)
- * @returns {Array<number>} ROC percentages
  */
-export function roc(data, period = 12) {
-  const result = [];
+export function roc(data: number[], period: number = 12): number[] {
+  const result: number[] = [];
   for (let i = period; i < data.length; i++) {
     const change = ((data[i] - data[i - period]) / data[i - period]) * 100;
     result.push(+change.toFixed(2));
@@ -155,14 +146,9 @@ export function roc(data, period = 12) {
 
 /**
  * Average True Range (ATR)
- * @param {Array<number>} high - High prices
- * @param {Array<number>} low - Low prices
- * @param {Array<number>} close - Close prices
- * @param {number} period - ATR period (default 14)
- * @returns {Array<number>} ATR values
  */
-export function atr(high, low, close, period = 14) {
-  const trValues = [high[0] - low[0]]; // First TR
+export function atr(high: number[], low: number[], close: number[], period: number = 14): number[] {
+  const trValues: number[] = [high[0] - low[0]]; // First TR
 
   for (let i = 1; i < close.length; i++) {
     const tr1 = high[i] - low[i];
@@ -174,15 +160,22 @@ export function atr(high, low, close, period = 14) {
   return sma(trValues, period);
 }
 
+interface PriceLevel {
+  price: number;
+  index: number;
+}
+
+interface DetectedLevels {
+  supports: PriceLevel[];
+  resistances: PriceLevel[];
+}
+
 /**
  * Detect price patterns (simple support/resistance)
- * @param {Array<number>} data - Price data
- * @param {number} window - Lookback window (default 5)
- * @returns {Object} Support and resistance levels
  */
-export function detectLevels(data, window = 5) {
-  const supports = [];
-  const resistances = [];
+export function detectLevels(data: number[], window: number = 5): DetectedLevels {
+  const supports: PriceLevel[] = [];
+  const resistances: PriceLevel[] = [];
 
   for (let i = window; i < data.length - window; i++) {
     const slice = data.slice(i - window, i + window + 1);

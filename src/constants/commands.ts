@@ -1,4 +1,13 @@
-export const COMMANDS = [
+interface CommandEntry {
+  readonly id: string;
+  readonly label: string;
+  readonly desc: string;
+  readonly shortcut?: string;
+  readonly action: string;
+  readonly target?: string;
+}
+
+export const COMMANDS: readonly CommandEntry[] = [
   { id: 'overview', label: 'Overview', desc: 'Default workspace', shortcut: '1', action: 'workspace', target: 'overview' },
   { id: 'china', label: 'China Focus', desc: 'China markets workspace', shortcut: '2', action: 'workspace', target: 'china' },
   { id: 'correlation', label: 'Cross-Market Analysis', desc: 'Correlation workspace', shortcut: '3', action: 'workspace', target: 'correlation' },
@@ -32,4 +41,4 @@ export const COMMANDS = [
   { id: 'add_portfolio', label: 'Add Portfolio', desc: 'Add portfolio tracker with P&L', action: 'addPanel', target: 'portfolio' },
   { id: 'add_earnings', label: 'Add Earnings Calendar', desc: 'Add upcoming earnings calendar', action: 'addPanel', target: 'earningsCalendar' },
   { id: 'export', label: 'Export Data', desc: 'Export current data as JSON', action: 'export' },
-];
+] as const;

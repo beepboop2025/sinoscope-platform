@@ -1,4 +1,6 @@
-export const FOREX_PAIRS = [
+import type { ForexPair, StockSymbol, CryptoSymbol, CommoditySymbol, IndexSymbol } from '../types';
+
+export const FOREX_PAIRS: readonly ForexPair[] = [
   { symbol: 'EUR/USD', base: 'EUR', quote: 'USD', name: 'Euro/Dollar' },
   { symbol: 'GBP/USD', base: 'GBP', quote: 'USD', name: 'Pound/Dollar' },
   { symbol: 'USD/JPY', base: 'USD', quote: 'JPY', name: 'Dollar/Yen' },
@@ -12,9 +14,9 @@ export const FOREX_PAIRS = [
   { symbol: 'USD/INR', base: 'USD', quote: 'INR', name: 'Dollar/Rupee' },
   { symbol: 'EUR/GBP', base: 'EUR', quote: 'GBP', name: 'Euro/Pound' },
   { symbol: 'EUR/JPY', base: 'EUR', quote: 'JPY', name: 'Euro/Yen' },
-];
+] as const;
 
-export const STOCK_SYMBOLS = [
+export const STOCK_SYMBOLS: readonly StockSymbol[] = [
   { symbol: 'AAPL', name: 'Apple', exchange: 'NASDAQ' },
   { symbol: 'MSFT', name: 'Microsoft', exchange: 'NASDAQ' },
   { symbol: 'GOOGL', name: 'Alphabet', exchange: 'NASDAQ' },
@@ -25,9 +27,9 @@ export const STOCK_SYMBOLS = [
   { symbol: 'JPM', name: 'JPMorgan', exchange: 'NYSE' },
   { symbol: 'V', name: 'Visa', exchange: 'NYSE' },
   { symbol: 'JNJ', name: 'Johnson & Johnson', exchange: 'NYSE' },
-];
+] as const;
 
-export const CRYPTO_SYMBOLS = [
+export const CRYPTO_SYMBOLS: readonly CryptoSymbol[] = [
   { symbol: 'BTC', name: 'Bitcoin', pair: 'btcusdt' },
   { symbol: 'ETH', name: 'Ethereum', pair: 'ethusdt' },
   { symbol: 'BNB', name: 'Binance Coin', pair: 'bnbusdt' },
@@ -36,9 +38,9 @@ export const CRYPTO_SYMBOLS = [
   { symbol: 'ADA', name: 'Cardano', pair: 'adausdt' },
   { symbol: 'DOGE', name: 'Dogecoin', pair: 'dogeusdt' },
   { symbol: 'DOT', name: 'Polkadot', pair: 'dotusdt' },
-];
+] as const;
 
-export const COMMODITY_SYMBOLS = [
+export const COMMODITY_SYMBOLS: readonly CommoditySymbol[] = [
   { symbol: 'GOLD', name: 'Gold', unit: '$/oz' },
   { symbol: 'SILVER', name: 'Silver', unit: '$/oz' },
   { symbol: 'OIL_WTI', name: 'Crude Oil WTI', unit: '$/bbl' },
@@ -47,9 +49,9 @@ export const COMMODITY_SYMBOLS = [
   { symbol: 'COPPER', name: 'Copper', unit: '$/lb' },
   { symbol: 'WHEAT', name: 'Wheat', unit: '$/bu' },
   { symbol: 'CORN', name: 'Corn', unit: '$/bu' },
-];
+] as const;
 
-export const INDEX_SYMBOLS = [
+export const INDEX_SYMBOLS: readonly IndexSymbol[] = [
   { symbol: 'SPX', name: 'S&P 500', exchange: 'NYSE' },
   { symbol: 'DJI', name: 'Dow Jones', exchange: 'NYSE' },
   { symbol: 'IXIC', name: 'NASDAQ Composite', exchange: 'NASDAQ' },
@@ -58,6 +60,6 @@ export const INDEX_SYMBOLS = [
   { symbol: 'N225', name: 'Nikkei 225', exchange: 'TSE' },
   { symbol: 'SSEC', name: 'SSE Composite', exchange: 'SSE' },
   { symbol: 'HSI', name: 'Hang Seng', exchange: 'HKEX' },
-];
+] as const;
 
-export const BOND_MATURITIES = ['1M', '3M', '6M', '1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '20Y', '30Y'];
+export const BOND_MATURITIES = ['1M', '3M', '6M', '1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '20Y', '30Y'] as const;

@@ -3,8 +3,77 @@
  * SSE/SZSE tickers, PBOC indicators, Belt & Road countries
  */
 
+interface ChinaIndexEntry {
+  readonly symbol: string;
+  readonly name: string;
+  readonly exchange: string;
+  readonly currency: string;
+  readonly timezone: string;
+  readonly description?: string;
+}
+
+interface ChinaBlueChipEntry {
+  readonly symbol: string;
+  readonly name: string;
+  readonly sector: string;
+  readonly marketCap: string;
+}
+
+interface BRICountryEntry {
+  readonly code: string;
+  readonly name: string;
+  readonly region: string;
+  readonly joined: number;
+  readonly projects: number;
+  readonly flagship?: string;
+}
+
+interface BRICorridorEntry {
+  readonly name: string;
+  readonly route: string;
+  readonly investment: string;
+  readonly projects: number;
+  readonly status: string;
+}
+
+interface PBOCToolEntry {
+  readonly name: string;
+  readonly description: string;
+  readonly currentRate: number;
+  readonly lastChange: string;
+}
+
+interface CNYMarketEntry {
+  readonly symbol: string;
+  readonly name: string;
+  readonly tradedIn: string;
+  readonly exchange: string;
+  readonly tradingHours: string;
+  readonly restrictions: string;
+}
+
+interface CNYSpreadInfo {
+  readonly description: string;
+  readonly normalRange: string;
+  readonly positive: string;
+  readonly negative: string;
+}
+
+interface ChinaCalendarEntry {
+  readonly indicator: string;
+  readonly frequency: string;
+  readonly releaseDay: string;
+  readonly importance: 'High' | 'Medium' | 'Low';
+}
+
+interface TradeCategoryItem {
+  readonly category: string;
+  readonly share: number;
+  readonly examples: string;
+}
+
 // Major China Stock Indices
-export const CHINA_INDICES = {
+export const CHINA_INDICES: Record<string, ChinaIndexEntry> = {
   SSE: {
     symbol: '^SSEC',
     name: 'Shanghai Composite',
@@ -49,10 +118,10 @@ export const CHINA_INDICES = {
     currency: 'HKD',
     timezone: 'Asia/Hong_Kong',
   },
-};
+} as const;
 
 // Major A-Share Companies by Sector
-export const CHINA_BLUE_CHIPS = {
+export const CHINA_BLUE_CHIPS: Record<string, readonly ChinaBlueChipEntry[]> = {
   banks: [
     { symbol: '601398.SS', name: 'ICBC', sector: 'Banking', marketCap: '200B+' },
     { symbol: '601288.SS', name: 'Agricultural Bank', sector: 'Banking', marketCap: '150B+' },
@@ -72,10 +141,10 @@ export const CHINA_BLUE_CHIPS = {
     { symbol: '601857.SS', name: 'PetroChina', sector: 'Oil & Gas', marketCap: '180B' },
     { symbol: '601088.SS', name: 'China Shenhua', sector: 'Coal', marketCap: '80B' },
   ],
-};
+} as const;
 
 // Belt and Road Initiative Countries
-export const BRI_COUNTRIES = [
+export const BRI_COUNTRIES: readonly BRICountryEntry[] = [
   // East Asia
   { code: 'MNG', name: 'Mongolia', region: 'East Asia', joined: 2014, projects: 32 },
   // Southeast Asia
@@ -115,10 +184,10 @@ export const BRI_COUNTRIES = [
   { code: 'ETH', name: 'Ethiopia', region: 'Africa', joined: 2015, projects: 42 },
   { code: 'ZAF', name: 'South Africa', region: 'Africa', joined: 2015, projects: 38 },
   { code: 'NGA', name: 'Nigeria', region: 'Africa', joined: 2018, projects: 45 },
-];
+] as const;
 
 // BRI Economic Corridors
-export const BRI_CORRIDORS = [
+export const BRI_CORRIDORS: readonly BRICorridorEntry[] = [
   {
     name: 'China-Pakistan Economic Corridor (CPEC)',
     route: 'Kashgar → Gwadar',
@@ -156,15 +225,15 @@ export const BRI_CORRIDORS = [
   },
   {
     name: 'Bangladesh-China-India-Myanmar',
-    route: 'Kunming → Kolkata',
+    route: 'Kunming \u2192 Kolkata',
     investment: '$22B',
     projects: 67,
     status: 'Planning',
   },
-];
+] as const;
 
 // PBOC Policy Tools
-export const PBOC_TOOLS = {
+export const PBOC_TOOLS: Record<string, PBOCToolEntry> = {
   MLF: {
     name: 'Medium-term Lending Facility',
     description: '1-year loans to banks',
@@ -195,10 +264,14 @@ export const PBOC_TOOLS = {
     currentRate: 10.0,
     lastChange: '2023-09-15',
   },
-};
+} as const;
 
 // CNY/CNH Market Info
-export const CNY_MARKET = {
+export const CNY_MARKET: {
+  readonly onshore: CNYMarketEntry;
+  readonly offshore: CNYMarketEntry;
+  readonly spread: CNYSpreadInfo;
+} = {
   onshore: {
     symbol: 'CNY',
     name: 'Chinese Yuan (Onshore)',
@@ -217,14 +290,14 @@ export const CNY_MARKET = {
   },
   spread: {
     description: 'CNH - CNY spread indicates offshore sentiment',
-    normalRange: '±200 bps',
+    normalRange: '\u00b1200 bps',
     positive: 'Offshore yuan weaker (outflow pressure)',
     negative: 'Offshore yuan stronger (inflow demand)',
   },
-};
+} as const;
 
 // China Economic Calendar - Key Releases
-export const CHINA_CALENDAR = [
+export const CHINA_CALENDAR: readonly ChinaCalendarEntry[] = [
   { indicator: 'PMI Manufacturing', frequency: 'Monthly', releaseDay: '1st of month', importance: 'High' },
   { indicator: 'PMI Non-Manufacturing', frequency: 'Monthly', releaseDay: '1st of month', importance: 'Medium' },
   { indicator: 'Trade Balance', frequency: 'Monthly', releaseDay: '8-10th of month', importance: 'High' },
@@ -238,10 +311,13 @@ export const CHINA_CALENDAR = [
   { indicator: 'Retail Sales', frequency: 'Monthly', releaseDay: '15th of month', importance: 'Medium' },
   { indicator: 'Fixed Asset Investment', frequency: 'Monthly', releaseDay: '15th of month', importance: 'Medium' },
   { indicator: 'LPR', frequency: 'Monthly', releaseDay: '20th of month', importance: 'High' },
-];
+] as const;
 
 // US-China Trade Categories
-export const TRADE_CATEGORIES = {
+export const TRADE_CATEGORIES: {
+  readonly exports: readonly TradeCategoryItem[];
+  readonly imports: readonly TradeCategoryItem[];
+} = {
   exports: [
     { category: 'Electronics', share: 25, examples: 'Phones, computers, semiconductors' },
     { category: 'Machinery', share: 18, examples: 'Computers, parts, equipment' },
@@ -256,7 +332,7 @@ export const TRADE_CATEGORIES = {
     { category: 'Aircraft', share: 10, examples: 'Boeing planes' },
     { category: 'Vehicles', share: 8, examples: 'Cars, parts' },
   ],
-};
+} as const;
 
 export default {
   CHINA_INDICES,

@@ -1,4 +1,18 @@
-export const DEFAULT_WORKSPACES = {
+import type { LayoutItem } from '../types';
+
+interface WorkspaceConfig {
+  readonly id: string;
+  readonly name: string;
+  readonly layout: readonly LayoutItem[];
+  readonly panels: readonly string[];
+}
+
+interface PanelRegistryEntry {
+  readonly title: string;
+  readonly icon: string;
+}
+
+export const DEFAULT_WORKSPACES: Record<string, WorkspaceConfig> = {
   overview: {
     id: 'overview',
     name: 'Overview',
@@ -107,7 +121,7 @@ export const DEFAULT_WORKSPACES = {
   },
 };
 
-export const PANEL_REGISTRY = {
+export const PANEL_REGISTRY: Record<string, PanelRegistryEntry> = {
   forex: { title: 'Forex Rates', icon: 'DollarSign' },
   stocks: { title: 'Stock Watchlist', icon: 'TrendingUp' },
   crypto: { title: 'Crypto Markets', icon: 'Bitcoin' },
