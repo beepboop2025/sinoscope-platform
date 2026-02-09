@@ -1,14 +1,12 @@
 export interface CacheEntry<T = unknown> {
   data: T;
   expiry: number;
-  insertedAt: number;
 }
 
 export interface RateLimiterBucket {
   tokens: number;
-  maxTokens: number;
-  refillRate: number;
-  refillInterval: number;
+  max: number;
+  windowMs: number;
   lastRefill: number;
 }
 

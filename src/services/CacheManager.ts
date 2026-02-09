@@ -1,17 +1,19 @@
-const memCache = new Map();
-const MAX_SIZE = 500;
+import type { CacheEntry } from '../types/config';
 
-export function cacheGet(key) {
+const memCache: Map<string, CacheEntry> = new Map();
+const MAX_SIZE: number = 500;
+
+export function cacheGet<T>(key: string): T | null {
   const entry = memCache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiry) {
     memCache.delete(key);
     return null;
   }
-  return entry.data;
+  return entry.data as T;
 }
 
-export function cacheSet(key, data, ttlMs = 30000) {
+export function cacheSet(key: string, data: unknown, ttlMs: number = 30000): void {
   memCache.set(key, { data, expiry: Date.now() + ttlMs });
 
   if (memCache.size > MAX_SIZE) {
@@ -33,14 +35,14 @@ export function cacheSet(key, data, ttlMs = 30000) {
   }
 }
 
-export function cacheClear(prefix) {
+export function cacheClear(prefix?: string): void {
   if (!prefix) { memCache.clear(); return; }
   for (const key of memCache.keys()) {
     if (key.startsWith(prefix)) memCache.delete(key);
   }
 }
 
-export function cacheStats() {
+export function cacheStats(): { total: number; active: number } {
   let active = 0;
   const now = Date.now();
   for (const entry of memCache.values()) {
