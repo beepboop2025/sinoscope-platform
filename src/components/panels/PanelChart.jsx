@@ -51,7 +51,7 @@ async function fetchChartData(symbol, days) {
     return sampled;
   } catch (err) {
     console.warn('[PanelChart]', err.message);
-    throw err;
+    return null;
   }
 }
 
@@ -86,7 +86,7 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }) 
   useEffect(() => { loadData(); }, [loadData]);
 
   const isPositive = (priceChange || 0) >= 0;
-  const strokeColor = isPositive ? '#22c55e' : '#ef4444';
+  const strokeColor = isPositive ? 'var(--green)' : 'var(--red)';
 
   return (
     <PanelChrome title={`${symbol} Price Chart`} icon={LineChartIcon} iconColor="var(--cyan)">
@@ -155,19 +155,19 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }) 
                       <stop offset="95%" stopColor={strokeColor} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="time" tick={{ fontSize: 8, fill: '#64748b' }} tickCount={6} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 8, fill: '#64748b' }} domain={['auto', 'auto']} width={55}
+                  <XAxis dataKey="time" tick={{ fontSize: 8, fill: 'var(--text-3)' }} tickCount={6} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 8, fill: 'var(--text-3)' }} domain={['auto', 'auto']} width={55}
                     tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(2)}`} />
-                  <Tooltip contentStyle={{ background: '#0f1628', border: '1px solid #243356', borderRadius: 6, fontSize: 10 }}
+                  <Tooltip contentStyle={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 10 }}
                     formatter={v => [`$${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Price']} />
                   <Area type="monotone" dataKey="close" stroke={strokeColor} fill="url(#chartGrad)" strokeWidth={1.5} dot={false} />
                 </AreaChart>
               ) : (
                 <LineChart data={chartData}>
-                  <XAxis dataKey="time" tick={{ fontSize: 8, fill: '#64748b' }} tickCount={6} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 8, fill: '#64748b' }} domain={['auto', 'auto']} width={55}
+                  <XAxis dataKey="time" tick={{ fontSize: 8, fill: 'var(--text-3)' }} tickCount={6} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 8, fill: 'var(--text-3)' }} domain={['auto', 'auto']} width={55}
                     tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(2)}`} />
-                  <Tooltip contentStyle={{ background: '#0f1628', border: '1px solid #243356', borderRadius: 6, fontSize: 10 }}
+                  <Tooltip contentStyle={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 10 }}
                     formatter={v => [`$${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Price']} />
                   <Line type="monotone" dataKey="close" stroke={strokeColor} strokeWidth={1.5} dot={false} />
                 </LineChart>

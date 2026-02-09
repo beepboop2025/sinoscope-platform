@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 // SEC EDGAR: 10 requests/second, we'll be conservative
 createRateLimiter('sec', 10, 60000);
@@ -30,7 +31,7 @@ export async function fetchRecentFilings(query = '', forms = ['10-K', '10-Q', '8
       forms: forms.join(','),
     });
 
-    const res = await fetch(`${EDGAR_FULL_TEXT}?${params}`, {
+    const res = await fetchWithTimeout(`${EDGAR_FULL_TEXT}?${params}`, {
       headers: { 'User-Agent': 'DragonScope research@example.com' },
     });
     if (!res.ok) throw new Error(`SEC EDGAR: ${res.status}`);
@@ -67,7 +68,7 @@ export async function fetchCompanyFilings(ticker) {
   consumeToken('sec');
 
   try {
-    const res = await fetch(`${EDGAR_FULL_TEXT}?q=%22${ticker}%22&forms=10-K,10-Q,8-K&dateRange=custom&startdt=${new Date(Date.now() - 365 * 86400000).toISOString().split('T')[0]}&enddt=${new Date().toISOString().split('T')[0]}`, {
+    const res = await fetchWithTimeout(`${EDGAR_FULL_TEXT}?q=%22${ticker}%22&forms=10-K,10-Q,8-K&dateRange=custom&startdt=${new Date(Date.now() - 365 * 86400000).toISOString().split('T')[0]}&enddt=${new Date().toISOString().split('T')[0]}`, {
       headers: { 'User-Agent': 'DragonScope research@example.com' },
     });
     if (!res.ok) throw new Error(`SEC EDGAR company: ${res.status}`);

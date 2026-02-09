@@ -22,6 +22,7 @@ export const API = {
     quote: (sym, key) => `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${key}`,
     news: (cat, key) => `https://finnhub.io/api/v1/news?category=${cat}&token=${key}`,
     candles: (sym, res, from, to, key) => `https://finnhub.io/api/v1/stock/candle?symbol=${sym}&resolution=${res}&from=${from}&to=${to}&token=${key}`,
+    earnings: (from, to, key) => `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${key}`,
   },
   WORLD_BANK: {
     indicator: (country, ind) => `https://api.worldbank.org/v2/country/${country}/indicator/${ind}?format=json&per_page=50`,

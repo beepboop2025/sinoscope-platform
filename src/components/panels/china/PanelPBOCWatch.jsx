@@ -25,14 +25,19 @@ export default function PanelPBOCWatch() {
 
   useEffect(() => {
     async function fetchData() {
-      setLoading(true);
-      const data = await ChinaAPI.fetchPBOCRates();
-      setPbocData(data);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const data = await ChinaAPI.fetchPBOCRates();
+        if (data) setPbocData(data);
+      } catch (err) {
+        console.warn('[PanelPBOCWatch]', err.message);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchData();
-    const interval = setInterval(fetchData, 300000); // Every 5 minutes
+    const interval = setInterval(fetchData, 300000);
     return () => clearInterval(interval);
   }, []);
 

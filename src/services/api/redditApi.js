@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 // Reddit public JSON has informal rate limits
 createRateLimiter('reddit', 10, 60000);
@@ -16,7 +17,7 @@ export async function fetchSubredditHot(subreddit, limit = 15) {
   consumeToken('reddit');
 
   try {
-    const res = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}&raw_json=1`, {
+    const res = await fetchWithTimeout(`https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}&raw_json=1`, {
       headers: { 'User-Agent': 'DragonScope/1.0' },
     });
     if (!res.ok) throw new Error(`Reddit ${subreddit}: ${res.status}`);

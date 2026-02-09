@@ -30,6 +30,17 @@ function randn() {
   return Math.sqrt(-2 * Math.log(u1 || 1e-10)) * Math.cos(2 * Math.PI * u2);
 }
 
+/** Proper Fisher-Yates (Durstenfeld) shuffle — unbiased O(n) */
+export function fisherYatesShuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
 export class NeuralNet {
   /**
    * @param {number[]} layers - e.g. [10, 16, 8, 3] for 10 inputs, 2 hidden layers, 3 outputs
@@ -94,12 +105,27 @@ export class NeuralNet {
   }
 
   predict(input) {
-    return this.forward(input).output;
+    const output = this.forward(input).output;
+    // Guard against NaN/Infinity in predictions
+    for (let i = 0; i < output.length; i++) {
+      if (!Number.isFinite(output[i])) output[i] = 0.5;
+    }
+    return output;
   }
 
   // Backpropagation
   backward(input, target) {
+    // Validate inputs
+    if (input.some(v => !Number.isFinite(v)) || target.some(v => !Number.isFinite(v))) {
+      return 1; // Return high loss for invalid inputs
+    }
+
     const { output, activations: acts, zs } = this.forward(input);
+
+    // Early exit if output contains NaN (network is corrupted)
+    if (output.some(v => !Number.isFinite(v))) {
+      return 1;
+    }
 
     const numLayers = this.weights.length;
     const deltas = new Array(numLayers);
@@ -129,25 +155,30 @@ export class NeuralNet {
     // Gradient clipping: cap deltas to [-5, 5]
     for (let l = 0; l < numLayers; l++) {
       for (let j = 0; j < deltas[l].length; j++) {
-        deltas[l][j] = Math.max(-5, Math.min(5, deltas[l][j]));
+        if (!Number.isFinite(deltas[l][j])) {
+          deltas[l][j] = 0;
+        } else {
+          deltas[l][j] = Math.max(-5, Math.min(5, deltas[l][j]));
+        }
       }
     }
 
-    // Update weights and biases
+    // Update weights and biases with gradient clipping
     for (let l = 0; l < numLayers; l++) {
       const a = acts[l];
       for (let j = 0; j < this.weights[l].length; j++) {
         for (let k = 0; k < this.weights[l][j].length; k++) {
-          this.weights[l][j][k] -= this.lr * (deltas[l][j] * a[k] + this.l2 * this.weights[l][j][k]);
+          const grad = deltas[l][j] * a[k] + this.l2 * this.weights[l][j][k];
+          // Clip individual gradients
+          const clippedGrad = Math.max(-10, Math.min(10, grad));
+          this.weights[l][j][k] -= this.lr * clippedGrad;
           // Reset corrupted weights
           if (!Number.isFinite(this.weights[l][j][k])) {
-            console.warn(`NeuralNet: weight[${l}][${j}][${k}] became ${this.weights[l][j][k]}, resetting to 0`);
-            this.weights[l][j][k] = 0;
+            this.weights[l][j][k] = randn() * 0.01;
           }
         }
         this.biases[l][j] -= this.lr * deltas[l][j];
         if (!Number.isFinite(this.biases[l][j])) {
-          console.warn(`NeuralNet: bias[${l}][${j}] became ${this.biases[l][j]}, resetting to 0`);
           this.biases[l][j] = 0;
         }
       }
@@ -158,7 +189,8 @@ export class NeuralNet {
     for (let j = 0; j < output.length; j++) {
       loss += (output[j] - target[j]) ** 2;
     }
-    return loss / output.length;
+    const avgLoss = loss / output.length;
+    return Number.isFinite(avgLoss) ? avgLoss : 1;
   }
 
   // Train on dataset
@@ -166,13 +198,17 @@ export class NeuralNet {
     const losses = [];
     for (let e = 0; e < epochs; e++) {
       let totalLoss = 0;
-      const shuffled = [...data].sort(() => Math.random() - 0.5);
+      const shuffled = fisherYatesShuffle([...data]);
       for (const { input, target } of shuffled) {
         totalLoss += this.backward(input, target);
       }
       const avgLoss = totalLoss / data.length;
       losses.push(avgLoss);
       this.trainLoss.push(avgLoss);
+      // Cap trainLoss history to prevent unbounded growth
+      if (this.trainLoss.length > 500) {
+        this.trainLoss = this.trainLoss.slice(-250);
+      }
     }
     return losses;
   }

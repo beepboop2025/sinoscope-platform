@@ -2,6 +2,7 @@ import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 const FRED_KEY = () => import.meta.env.VITE_FRED_API_KEY || '';
 
@@ -34,7 +35,7 @@ export async function fetchEconIndicator(indicator) {
 
   try {
     const url = `${API.FRED.series(seriesId, key)}&sort_order=desc&limit=24`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`FRED econ: ${res.status}`);
     const data = await res.json();
     const obs = (data.observations || []).filter(o => o.value !== '.').map(o => ({
@@ -56,7 +57,7 @@ export async function fetchWorldBankIndicator(country = 'USA', indicator = 'NY.G
 
   try {
     const url = API.WORLD_BANK.indicator(country, indicator);
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return null;
     const data = await res.json();
     const entries = (data[1] || []).filter(e => e.value != null).map(e => ({

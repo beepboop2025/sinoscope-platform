@@ -17,7 +17,7 @@ module.exports = {
     merge_logs: true,
   }, {
     name: 'dragonscope-dataserver',
-    script: 'dataServer.js',
+    script: 'apiServer.js',
     cwd: __dirname,
     watch: false,
     autorestart: true,

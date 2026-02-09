@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 // DeFi Llama is free, no API key needed, generous limits
 createRateLimiter('defillama', 20, 60000);
@@ -23,7 +24,7 @@ export async function fetchDefiProtocols() {
   consumeToken('defillama');
 
   try {
-    const res = await fetch(`${BASE}/protocols`);
+    const res = await fetchWithTimeout(`${BASE}/protocols`);
     if (!res.ok) throw new Error(`DeFi Llama protocols: ${res.status}`);
     const data = await res.json();
 
@@ -58,7 +59,7 @@ export async function fetchDefiTVL() {
   consumeToken('defillama');
 
   try {
-    const res = await fetch(`${BASE}/v2/historicalChainTvl`);
+    const res = await fetchWithTimeout(`${BASE}/v2/historicalChainTvl`);
     if (!res.ok) throw new Error(`DeFi Llama TVL: ${res.status}`);
     const data = await res.json();
     const recent = (data || []).slice(-30).map(d => ({
@@ -87,7 +88,7 @@ export async function fetchChainTVL() {
   consumeToken('defillama');
 
   try {
-    const res = await fetch(`${BASE}/v2/chains`);
+    const res = await fetchWithTimeout(`${BASE}/v2/chains`);
     if (!res.ok) throw new Error(`DeFi Llama chains: ${res.status}`);
     const data = await res.json();
 
@@ -120,7 +121,7 @@ export async function fetchDefiYields() {
   consumeToken('defillama');
 
   try {
-    const res = await fetch(`${YIELDS}/pools`);
+    const res = await fetchWithTimeout(`${YIELDS}/pools`);
     if (!res.ok) throw new Error(`DeFi Llama yields: ${res.status}`);
     const data = await res.json();
 
@@ -163,7 +164,7 @@ export async function fetchStablecoins() {
   consumeToken('defillama');
 
   try {
-    const res = await fetch(`${STABLECOINS}/stablecoins?includePrices=true`);
+    const res = await fetchWithTimeout(`${STABLECOINS}/stablecoins?includePrices=true`);
     if (!res.ok) throw new Error(`DeFi Llama stables: ${res.status}`);
     const data = await res.json();
 

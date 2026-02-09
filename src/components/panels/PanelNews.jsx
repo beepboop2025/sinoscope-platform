@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Newspaper, ExternalLink, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
 import { fetchFinnhubNews } from '../../services/api/newsApi';
@@ -8,8 +8,11 @@ const PanelNews = memo(() => {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const inFlightRef = useRef(false);
 
   const load = useCallback(async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -18,8 +21,10 @@ const PanelNews = memo(() => {
     } catch (err) {
       console.warn('[PanelNews]', err);
       setError(err.message || 'Failed to load news');
+    } finally {
+      setLoading(false);
+      inFlightRef.current = false;
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {

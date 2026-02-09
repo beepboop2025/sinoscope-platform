@@ -26,9 +26,10 @@ export function createWSConnection(id, url, { onMessage, onOpen, onClose, onErro
       };
 
       ws.onclose = () => {
+        const wasIntentional = connections[id]?.intentionalClose;
         connections[id] = { ...connections[id], status: 'disconnected' };
         onClose?.();
-        if (reconnect && retryCount < maxRetries) {
+        if (reconnect && !wasIntentional && retryCount < maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
           retryCount++;
           setTimeout(connect, delay);
@@ -62,7 +63,8 @@ export function sendWSMessage(id, message) {
 export function closeWSConnection(id) {
   const conn = connections[id];
   if (conn?.ws) {
-    conn.ws.onclose = null;
+    // Mark as intentionally closed to suppress reconnection
+    conn.intentionalClose = true;
     conn.ws.close();
     delete connections[id];
   }

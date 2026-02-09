@@ -4,27 +4,32 @@ export function createRateLimiter(provider, maxRequests, windowMs) {
   buckets[provider] = { tokens: maxRequests, max: maxRequests, windowMs, lastRefill: Date.now() };
 }
 
+function refillIfNeeded(b) {
+  const elapsed = Date.now() - b.lastRefill;
+  if (elapsed >= b.windowMs) {
+    b.tokens = b.max;
+    b.lastRefill = Date.now();
+  }
+}
+
 export function canRequest(provider) {
   const b = buckets[provider];
   if (!b) return true;
-  const now = Date.now();
-  const elapsed = now - b.lastRefill;
-  if (elapsed >= b.windowMs) {
-    b.tokens = b.max;
-    b.lastRefill = now;
-  }
+  refillIfNeeded(b);
   return b.tokens > 0;
 }
 
 export function consumeToken(provider) {
   const b = buckets[provider];
   if (!b) return;
+  refillIfNeeded(b);
   b.tokens = Math.max(0, b.tokens - 1);
 }
 
 export function getTokens(provider) {
   const b = buckets[provider];
   if (!b) return Infinity;
+  refillIfNeeded(b);
   return b.tokens;
 }
 

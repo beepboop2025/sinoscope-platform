@@ -1,4 +1,5 @@
 const memCache = new Map();
+const MAX_SIZE = 500;
 
 export function cacheGet(key) {
   const entry = memCache.get(key);
@@ -12,9 +13,23 @@ export function cacheGet(key) {
 
 export function cacheSet(key, data, ttlMs = 30000) {
   memCache.set(key, { data, expiry: Date.now() + ttlMs });
-  if (memCache.size > 500) {
-    const oldest = memCache.keys().next().value;
-    memCache.delete(oldest);
+
+  if (memCache.size > MAX_SIZE) {
+    // Evict expired entries first
+    const now = Date.now();
+    for (const [k, v] of memCache) {
+      if (now > v.expiry) memCache.delete(k);
+    }
+    // If still over limit, evict oldest entries by insertion order
+    if (memCache.size > MAX_SIZE) {
+      const toDelete = memCache.size - MAX_SIZE;
+      let deleted = 0;
+      for (const k of memCache.keys()) {
+        if (deleted >= toDelete) break;
+        memCache.delete(k);
+        deleted++;
+      }
+    }
   }
 }
 

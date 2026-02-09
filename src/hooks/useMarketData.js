@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 export function useMarketData(engine) {
   const [data, setData] = useState(null);
-  const intervalRef = useRef(null);
 
   useEffect(() => {
     if (!engine) return;

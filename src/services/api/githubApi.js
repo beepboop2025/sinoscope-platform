@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 // GitHub API has 60 req/hour unauthenticated
 createRateLimiter('github', 30, 3600000);
@@ -23,7 +24,7 @@ export async function fetchGithubTrending(query = 'finance trading stock market 
 
   try {
     const q = encodeURIComponent(query);
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=30`,
       { headers: { Accept: 'application/vnd.github.v3+json' } }
     );

@@ -1,7 +1,8 @@
 import { memo, useState, useCallback, useRef, useMemo } from 'react';
-import { Database, Play, Trash2, ChevronDown, ChevronUp, Clock, Download, Copy, Star, BookOpen, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Save } from 'lucide-react';
+import { Database, Play, Trash2, ChevronDown, ChevronUp, Clock, Download, Copy, Star, BookOpen, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Save, FileSpreadsheet } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
 import { useSqlEngine } from '../../hooks/useSqlEngine';
+import { exportToXlsx } from '../../utils/excelExport';
 
 const PRESETS = [
   { label: 'Top Gainers', sql: 'SELECT symbol, asset_type, price, changePct FROM all_assets WHERE changePct > 0 ORDER BY changePct DESC LIMIT 10' },
@@ -144,8 +145,12 @@ const PanelSqlQuery = memo(({ data }) => {
 
   const handleCopy = useCallback(async () => {
     if (!result?.columns?.length) return;
-    const ok = await copyResults(result.columns, sortedRows);
-    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    try {
+      const ok = await copyResults(result.columns, sortedRows);
+      if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    } catch (err) {
+      console.warn('[PanelSqlQuery] copy failed:', err.message);
+    }
   }, [result, sortedRows, copyResults]);
 
   const handleExport = useCallback(() => {
@@ -285,6 +290,14 @@ const PanelSqlQuery = memo(({ data }) => {
                 title="Export CSV"
               >
                 <Download size={9} /> CSV
+              </button>
+              <button
+                className="btn-ghost"
+                onClick={() => exportToXlsx('Query Results', result.columns, sortedRows)}
+                style={{ padding: '2px 7px', fontSize: 9, display: 'flex', alignItems: 'center', gap: 3 }}
+                title="Export XLSX"
+              >
+                <FileSpreadsheet size={9} /> XLSX
               </button>
               <button
                 className="btn-ghost"

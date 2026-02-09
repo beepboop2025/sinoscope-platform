@@ -3,6 +3,7 @@ import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { generateMockChinaIndices, generateMockChinaStocks } from '../../generators/mockChina';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 const FMP_KEY = () => import.meta.env.VITE_FMP_API_KEY || '';
 
@@ -20,7 +21,7 @@ export const ChinaAPI = {
       consumeToken('fmp');
       try {
         const symbols = '^SSEC,^HSI,000300.SS';
-        const res = await fetch(API.FMP.quote(symbols, key));
+        const res = await fetchWithTimeout(API.FMP.quote(symbols, key));
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
@@ -52,7 +53,7 @@ export const ChinaAPI = {
       consumeToken('fmp');
       try {
         const symbols = '601398.SS,002594.SZ,300750.SZ,600519.SS';
-        const res = await fetch(API.FMP.quote(symbols, key));
+        const res = await fetchWithTimeout(API.FMP.quote(symbols, key));
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
@@ -97,7 +98,8 @@ export const ChinaAPI = {
     // Collector-first: pre-fetched CNY rates
     const collected = await getCollectorData('cny_rates');
     if (collected && collected.cnyUsd) {
-      return { cnyUsd: collected.cnyUsd, cnhUsd: collected.cnyUsd + 0.01, timestamp: collected.timestamp || Date.now(), isStale: false };
+      const cny = Number(collected.cnyUsd) || 7.24;
+      return { cnyUsd: cny, cnhUsd: collected.cnhUsd ? Number(collected.cnhUsd) : cny + 0.01, timestamp: collected.timestamp || Date.now(), isStale: false };
     }
 
     const cacheKey = 'cny_cnh';
@@ -110,7 +112,7 @@ export const ChinaAPI = {
     consumeToken('frankfurter');
 
     try {
-      const res = await fetch(`${API.FRANKFURTER.latest}?base=USD&symbols=CNY`);
+      const res = await fetchWithTimeout(`${API.FRANKFURTER.latest}?base=USD&symbols=CNY`);
       if (!res.ok) throw new Error('CNY fetch failed');
       const data = await res.json();
       const cny = data.rates?.CNY || 7.24;
@@ -141,7 +143,7 @@ export const ChinaAPI = {
     for (const ind of indicators) {
       try {
         const url = `${API.WORLD_BANK.indicator('CHN', ind.id)}&per_page=5&date=2020:2025`;
-        const res = await fetch(url);
+        const res = await fetchWithTimeout(url);
         if (!res.ok) continue;
         const data = await res.json();
         const entries = data?.[1] || [];
@@ -175,7 +177,7 @@ export const ChinaAPI = {
     try {
       const to = new Date().toISOString().split('T')[0];
       const from = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
-      const res = await fetch(`${API.FRANKFURTER.timeseries(from, to)}?base=USD&symbols=CNY`);
+      const res = await fetchWithTimeout(`${API.FRANKFURTER.timeseries(from, to)}?base=USD&symbols=CNY`);
       if (!res.ok) return null;
       const data = await res.json();
       const rates = Object.entries(data.rates || {}).map(([date, r]) => ({

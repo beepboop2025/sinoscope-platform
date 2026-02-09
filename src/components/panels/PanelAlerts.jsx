@@ -1,6 +1,8 @@
 import { memo, useState, useEffect, useRef } from 'react';
-import { Bell, AlertTriangle, TrendingUp, TrendingDown, Volume2, Activity, Trash2, Zap, BarChart3 } from 'lucide-react';
+import { Bell, AlertTriangle, TrendingUp, TrendingDown, Volume2, Activity, Trash2, Zap, BarChart3, Plus } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
+import AlertConfigModal from './AlertConfigModal';
+import { useAlertConfig } from '../../hooks/useAlertConfig';
 
 const SEVERITY_COLORS = { critical: 'var(--red)', high: 'var(--orange)', medium: 'var(--amber)', low: 'var(--text-3)' };
 const TYPE_ICONS = { price_spike: TrendingUp, price_drop: TrendingDown, volume_spike: Volume2, anomaly: AlertTriangle, ml_signal: Activity, pattern: Zap, technical: BarChart3, breakout: TrendingUp, breakdown: TrendingDown, bearish_divergence: TrendingDown, bullish_divergence: TrendingUp, default: Bell };
@@ -17,7 +19,14 @@ function loadAlerts() {
 function saveAlerts(alerts) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts.slice(0, 100)));
-  } catch { /* quota */ }
+  } catch (err) {
+    if (err?.name === 'QuotaExceededError') {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts.slice(0, 50)));
+      } catch { /* give up */ }
+    }
+  }
 }
 
 function timeAgo(ts) {
@@ -32,6 +41,8 @@ const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState, pa
   const [alerts, setAlerts] = useState(loadAlerts);
   const [filter, setFilter] = useState('all');
   const prevRef = useRef({});
+  const [showAlertConfig, setShowAlertConfig] = useState(false);
+  const alertConfig = useAlertConfig();
 
   // Generate alerts from market data
   useEffect(() => {
@@ -218,6 +229,24 @@ const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState, pa
     }
   }, [externalAlerts]);
 
+  // Evaluate custom alert configs
+  useEffect(() => {
+    if (!marketData) return;
+    const triggered = alertConfig.evaluateAlerts(marketData);
+    if (triggered.length > 0) {
+      const prev = prevRef.current;
+      const newOnes = triggered.filter(t => !prev[t.id]);
+      if (newOnes.length > 0) {
+        for (const t of newOnes) prev[t.id] = true;
+        setAlerts(prev2 => {
+          const next = [...newOnes, ...prev2].slice(0, 100);
+          saveAlerts(next);
+          return next;
+        });
+      }
+    }
+  }, [marketData, alertConfig]);
+
   const clearAlerts = () => {
     setAlerts([]);
     saveAlerts([]);
@@ -242,7 +271,30 @@ const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState, pa
               <Trash2 size={10} />
             </button>
           )}
+          <button
+            className="btn-ghost"
+            onClick={() => setShowAlertConfig(true)}
+            style={{ padding: '2px 5px', fontSize: 9, color: 'var(--cyan)' }}
+            title="Add custom alert"
+          >
+            <Plus size={10} />
+          </button>
         </div>
+        {alertConfig.configs.length > 0 && (
+          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', padding: '2px 0' }}>
+            {alertConfig.configs.map(c => (
+              <span key={c.id} style={{
+                fontSize: 8, padding: '1px 5px', borderRadius: 3,
+                background: c.isActive ? 'var(--bg-3)' : 'var(--bg-2)',
+                color: c.isActive ? 'var(--amber)' : 'var(--text-4)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3,
+              }} onClick={() => alertConfig.toggleConfig(c.id)}>
+                {c.symbol} {c.condition.replace(/_/g, ' ')} {c.threshold}
+                <span onClick={e => { e.stopPropagation(); alertConfig.removeConfig(c.id); }} style={{ color: 'var(--text-4)' }}>×</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
           {filtered.length === 0 && (
@@ -268,6 +320,11 @@ const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState, pa
           })}
         </div>
       </div>
+      <AlertConfigModal
+        isOpen={showAlertConfig}
+        onClose={() => setShowAlertConfig(false)}
+        onAdd={alertConfig.addConfig}
+      />
     </PanelChrome>
   );
 });

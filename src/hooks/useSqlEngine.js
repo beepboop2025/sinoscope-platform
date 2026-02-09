@@ -131,7 +131,9 @@ export function useSqlEngine(marketData) {
       } catch { /* use mock on failure */ }
     }
 
-    loadResearchData();
+    loadResearchData().catch(err => {
+      console.warn('[useSqlEngine] loadResearchData failed:', err.message);
+    });
   }, []);
 
   // Helper: upsert rows by key — delete only matching key, then insert

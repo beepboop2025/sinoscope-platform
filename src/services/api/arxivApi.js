@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 // arXiv API is free but has 3 sec delay requirement between requests
 createRateLimiter('arxiv', 10, 60000);
@@ -23,7 +24,7 @@ export async function fetchFinancePapers(query = 'quantitative finance', maxResu
       sortOrder: 'descending',
     });
 
-    const res = await fetch(`https://export.arxiv.org/api/query?${params}`);
+    const res = await fetchWithTimeout(`https://export.arxiv.org/api/query?${params}`);
     if (!res.ok) throw new Error(`arXiv: ${res.status}`);
     const text = await res.text();
 

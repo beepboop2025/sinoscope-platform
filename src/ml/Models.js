@@ -8,6 +8,7 @@
 
 import { NeuralNet, LinearRegression, zScore } from './NeuralNet.js';
 import { extractAssetFeatures, extractCrossMarketFeatures, computeMarketScore } from './FeatureEngine.js';
+import { storageWrite, storageRead } from '../utils/storage.js';
 
 const STORAGE_PREFIX = 'dragonscope_ml_';
 
@@ -50,20 +51,20 @@ export class PricePredictor {
   }
 
   save() {
-    try {
-      localStorage.setItem(STORAGE_PREFIX + 'price_predictor', this.net.serialize());
-    } catch { /* quota exceeded */ }
+    storageWrite(STORAGE_PREFIX + 'price_predictor', this.net.serialize());
   }
 
   load() {
     try {
-      const json = localStorage.getItem(STORAGE_PREFIX + 'price_predictor');
+      const json = storageRead(STORAGE_PREFIX + 'price_predictor');
       if (json) {
         this.net = NeuralNet.deserialize(json);
         this.trained = true;
         return true;
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.warn('[PricePredictor] load failed:', err.message);
+    }
     return false;
   }
 }
@@ -113,26 +114,25 @@ export class AnomalyDetector {
   }
 
   save() {
-    try {
-      localStorage.setItem(STORAGE_PREFIX + 'anomaly_detector', JSON.stringify({
-        history: this.history,
-        threshold: this.threshold,
-        anomalies: this.anomalies.slice(0, 20), // persist recent anomalies
-      }));
-    } catch { /* quota exceeded */ }
+    storageWrite(STORAGE_PREFIX + 'anomaly_detector', {
+      history: this.history,
+      threshold: this.threshold,
+      anomalies: this.anomalies.slice(0, 20),
+    });
   }
 
   load() {
     try {
-      const json = localStorage.getItem(STORAGE_PREFIX + 'anomaly_detector');
-      if (json) {
-        const data = JSON.parse(json);
+      const data = storageRead(STORAGE_PREFIX + 'anomaly_detector');
+      if (data) {
         this.history = data.history || {};
         this.threshold = data.threshold || 2.5;
         this.anomalies = data.anomalies || [];
         return true;
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.warn('[AnomalyDetector] load failed:', err.message);
+    }
     return false;
   }
 
@@ -216,20 +216,20 @@ export class MarketRegime {
   }
 
   save() {
-    try {
-      localStorage.setItem(STORAGE_PREFIX + 'regime', this.net.serialize());
-    } catch { /* quota */ }
+    storageWrite(STORAGE_PREFIX + 'regime', this.net.serialize());
   }
 
   load() {
     try {
-      const json = localStorage.getItem(STORAGE_PREFIX + 'regime');
+      const json = storageRead(STORAGE_PREFIX + 'regime');
       if (json) {
         this.net = NeuralNet.deserialize(json);
         this.trained = true;
         return true;
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.warn('[MarketRegime] load failed:', err.message);
+    }
     return false;
   }
 }

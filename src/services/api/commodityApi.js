@@ -2,6 +2,7 @@ import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 const COMMODITY_INDICATORS = {
   GASOLINE: 'GASREGW',
@@ -27,7 +28,7 @@ export async function fetchCommodityPrice(commodity) {
 
   try {
     const url = `${API.FRED.series(seriesId, key)}&sort_order=desc&limit=30`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`FRED commodity: ${res.status}`);
     const data = await res.json();
     const obs = (data.observations || []).filter(o => o.value !== '.').map(o => ({

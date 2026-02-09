@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, Fragment } from 'react';
 import { Grid3X3 } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
 import { correlationColor } from '../../constants/colors';
@@ -38,8 +38,8 @@ const PanelCorrelation = memo(({ matrix, symbols = [], window: windowProp = 30, 
             <div key={s} style={{ fontSize: 8, textAlign: 'center', color: 'var(--text-3)', padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s}</div>
           ))}
           {symbols.map(s1 => (
-            <>
-              <div key={`label_${s1}`} style={{ fontSize: 8, display: 'flex', alignItems: 'center', color: 'var(--text-3)', paddingRight: 4, justifyContent: 'flex-end' }}>{s1}</div>
+            <Fragment key={s1}>
+              <div style={{ fontSize: 8, display: 'flex', alignItems: 'center', color: 'var(--text-3)', paddingRight: 4, justifyContent: 'flex-end' }}>{s1}</div>
               {symbols.map(s2 => {
                 const val = matrix[s1]?.[s2] ?? 0;
                 return (
@@ -53,7 +53,7 @@ const PanelCorrelation = memo(({ matrix, symbols = [], window: windowProp = 30, 
                   </div>
                 );
               })}
-            </>
+            </Fragment>
           ))}
         </div>
       </div>

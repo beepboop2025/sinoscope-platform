@@ -4,6 +4,7 @@ import 'react-grid-layout/css/styles.css';
 
 import AppShell from './components/layout/AppShell';
 import CommandBar from './components/layout/CommandBar';
+import ShortcutsModal from './components/shared/ShortcutsModal';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
 // Panels
@@ -33,6 +34,9 @@ import PanelSECFilings from './components/panels/PanelSECFilings';
 import PanelResearchPapers from './components/panels/PanelResearchPapers';
 import PanelML from './components/panels/PanelML';
 import PanelSignals from './components/panels/PanelSignals';
+import PanelCandlestick from './components/panels/PanelCandlestick';
+import PanelPortfolio from './components/panels/PanelPortfolio';
+import PanelEarningsCalendar from './components/panels/PanelEarningsCalendar';
 
 // China panels
 import PanelChinaMarkets from './components/panels/china/PanelChinaMarkets';
@@ -337,6 +341,12 @@ function App() {
         return <PanelML mlState={mlEngine} onRetrain={mlEngine.forceRetrain} onReset={mlEngine.reset} />;
       case 'signals':
         return <PanelSignals mlState={mlEngine} />;
+      case 'candlestick':
+        return <PanelCandlestick />;
+      case 'portfolio':
+        return <PanelPortfolio data={marketData} />;
+      case 'earningsCalendar':
+        return <PanelEarningsCalendar />;
       default:
         return <div style={{ padding: 16, color: 'var(--text-3)', fontSize: 12 }}>Unknown panel: {panelId}</div>;
     }
@@ -392,6 +402,7 @@ function App() {
         handleKeyDown={commandBar.handleKeyDown}
         onClose={() => commandBar.setIsOpen(false)}
       />
+      <ShortcutsModal isOpen={commandBar.showShortcuts} onClose={() => commandBar.setShowShortcuts(false)} />
     </AppShell>
   );
 }

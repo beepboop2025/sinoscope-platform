@@ -21,3 +21,15 @@ export const throttle = (fn, ms) => {
     }
   };
 };
+
+/** Fetch with timeout — aborts request if it takes longer than timeoutMs */
+export async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}

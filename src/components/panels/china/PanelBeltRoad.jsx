@@ -5,6 +5,7 @@
 import { useState, useMemo } from 'react';
 import { Globe, MapPin, Route, Building2, TrendingUp } from 'lucide-react';
 import { BRI_COUNTRIES, BRI_CORRIDORS } from '../../../constants/china';
+import PanelChrome from '../../shared/PanelChrome';
 
 // Simple world map regions (simplified coordinates for visualization)
 const REGIONS = [
@@ -79,17 +80,8 @@ export default function PanelBeltRoad() {
   };
 
   return (
-    <div className="panel-content" style={{ padding: 16 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Globe size={18} color="var(--cyan)" />
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Belt & Road Initiative</h3>
-        </div>
-        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
-          {BRI_COUNTRIES.length} Countries
-        </span>
-      </div>
+    <PanelChrome title="Belt & Road Initiative" icon={Globe} iconColor="var(--cyan)">
+      <div style={{ padding: 4 }}>
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -261,5 +253,6 @@ export default function PanelBeltRoad() {
         </div>
       )}
     </div>
+    </PanelChrome>
   );
 }

@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 createRateLimiter('huggingface', 30, 60000);
 
@@ -21,7 +22,7 @@ export async function fetchHuggingFaceModels(search = 'finance') {
   consumeToken('huggingface');
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://huggingface.co/api/models?search=${encodeURIComponent(search)}&sort=downloads&direction=-1&limit=20`
     );
     if (!res.ok) throw new Error(`HuggingFace: ${res.status}`);

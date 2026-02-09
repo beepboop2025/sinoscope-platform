@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 // Uses existing coingecko rate limiter
 
@@ -18,7 +19,7 @@ export async function fetchCryptoGlobal() {
   consumeToken('coingecko');
 
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/global');
+    const res = await fetchWithTimeout('https://api.coingecko.com/api/v3/global');
     if (!res.ok) throw new Error(`CoinGecko global: ${res.status}`);
     const data = await res.json();
     const d = data.data;
@@ -56,7 +57,7 @@ export async function fetchTrendingCoins() {
   consumeToken('coingecko');
 
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/search/trending');
+    const res = await fetchWithTimeout('https://api.coingecko.com/api/v3/search/trending');
     if (!res.ok) throw new Error(`CoinGecko trending: ${res.status}`);
     const data = await res.json();
 
@@ -106,7 +107,7 @@ export async function fetchTopMovers() {
   consumeToken('coingecko');
 
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h');
+    const res = await fetchWithTimeout('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h');
     if (!res.ok) throw new Error(`CoinGecko markets: ${res.status}`);
     const data = await res.json();
 

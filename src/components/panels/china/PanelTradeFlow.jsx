@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ArrowRightLeft, TrendingUp, TrendingDown, Package, Ship, Scale, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, ReferenceLine } from 'recharts';
 import { TRADE_CATEGORIES } from '../../../constants/china';
+import PanelChrome from '../../shared/PanelChrome';
 
 // Reference trade data (monthly US-China trade in billions USD)
 // Source: US Census Bureau / BEA — figures are illustrative based on public reporting
@@ -47,25 +48,10 @@ export default function PanelTradeFlow() {
   const formatBillion = (val) => `$${val.toFixed(1)}B`;
 
   return (
-    <div className="panel-content" style={{ padding: 16 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ArrowRightLeft size={18} color="var(--green)" />
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>US-China Trade Flow</h3>
-          <span
-            style={{
-              padding: '2px 6px',
-              fontSize: 9,
-              borderRadius: 4,
-              background: 'var(--surface-2)',
-              color: 'var(--text-3)',
-              fontWeight: 500,
-            }}
-          >
-            Reference Data
-          </span>
-        </div>
+    <PanelChrome title="US-China Trade Flow" icon={ArrowRightLeft} iconColor="var(--green)">
+      <div style={{ padding: 4 }}>
+      {/* View Toggle */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
         <div style={{ display: 'flex', gap: 4 }}>
           <button
             onClick={() => setSelectedView('monthly')}
@@ -272,5 +258,6 @@ export default function PanelTradeFlow() {
         <span>Reference data as of {TRADE_DATA_LAST_UPDATED} — Source: US Census Bureau / BEA (illustrative)</span>
       </div>
     </div>
+    </PanelChrome>
   );
 }

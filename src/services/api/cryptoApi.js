@@ -2,6 +2,7 @@ import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 export async function fetchCryptoMarkets(vs = 'usd', perPage = 20) {
   // Collector-first: pre-fetched crypto markets (top 50)
@@ -19,7 +20,7 @@ export async function fetchCryptoMarkets(vs = 'usd', perPage = 20) {
 
   try {
     const url = `${API.COINGECKO.markets}?vs_currency=${vs}&order=market_cap_desc&per_page=${perPage}&page=1&sparkline=true&price_change_percentage=1h,24h,7d`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`CoinGecko: ${res.status}`);
     const data = await res.json();
     cacheSet(cacheKey, data, 30000);
@@ -40,7 +41,7 @@ export async function fetchCryptoPrices(ids = 'bitcoin,ethereum,binancecoin,sola
 
   try {
     const url = `${API.COINGECKO.prices}?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`CoinGecko prices: ${res.status}`);
     const data = await res.json();
     cacheSet(cacheKey, data, 30000);
@@ -60,7 +61,7 @@ export async function fetchCoinDetail(coinId) {
   consumeToken('coingecko');
 
   try {
-    const res = await fetch(API.COINGECKO.coin(coinId));
+    const res = await fetchWithTimeout(API.COINGECKO.coin(coinId));
     if (!res.ok) throw new Error(`CoinGecko coin: ${res.status}`);
     const data = await res.json();
 

@@ -1,6 +1,7 @@
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 // Fear & Greed Index from alternative.me (free, no key needed)
 export async function fetchFearGreedIndex() {
@@ -13,7 +14,7 @@ export async function fetchFearGreedIndex() {
   if (cached) return cached;
 
   try {
-    const res = await fetch('https://api.alternative.me/fng/?limit=30&format=json');
+    const res = await fetchWithTimeout('https://api.alternative.me/fng/?limit=30&format=json');
     if (!res.ok) throw new Error(`FearGreed: ${res.status}`);
     const data = await res.json();
 
@@ -68,7 +69,7 @@ export async function fetchSectorPerformance() {
 
   try {
     const symbols = SECTOR_ETFS.map(s => s.symbol).join(',');
-    const res = await fetch(`/api/yahoo/v7/finance/quote?symbols=${symbols}`);
+    const res = await fetchWithTimeout(`/api/yahoo/v7/finance/quote?symbols=${symbols}`);
     if (!res.ok) return null;
     const data = await res.json();
     const quotes = data?.quoteResponse?.result || [];

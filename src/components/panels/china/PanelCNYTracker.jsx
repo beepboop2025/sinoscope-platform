@@ -16,26 +16,30 @@ export default function PanelCNYTracker() {
 
   useEffect(() => {
     async function fetchData() {
-      setLoading(true);
-      const data = await ChinaAPI.fetchCNYCNHRates();
-      setFxData(data);
-      
-      // Add to history (keep last 50 points)
-      setHistory(prev => {
-        const newPoint = {
-          time: new Date().toLocaleTimeString(),
-          cny: data.cnyUsd,
-          cnh: data.cnhUsd,
-          spread: data.cnhUsd - data.cnyUsd,
-        };
-        return [...prev.slice(-49), newPoint];
-      });
-      
-      setLoading(false);
+      try {
+        setLoading(true);
+        const data = await ChinaAPI.fetchCNYCNHRates();
+        if (data) {
+          setFxData(data);
+          setHistory(prev => {
+            const newPoint = {
+              time: new Date().toLocaleTimeString(),
+              cny: data.cnyUsd,
+              cnh: data.cnhUsd,
+              spread: (Number(data.cnhUsd) || 0) - (Number(data.cnyUsd) || 0),
+            };
+            return [...prev.slice(-49), newPoint];
+          });
+        }
+      } catch (err) {
+        console.warn('[PanelCNYTracker]', err.message);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Every 30s
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -136,7 +140,7 @@ export default function PanelCNYTracker() {
             <AlertCircle size={14} color={interpretation.color} />
           ) : null}
           <span style={{ fontSize: 12, fontWeight: 500, color: interpretation.color }}>
-            Spread: {spreadBps > 0 ? '+' : ''}{spreadBps.toFixed(0)} bps
+            Spread: {spreadBps > 0 ? '+' : ''}{(Number(spreadBps) || 0).toFixed(0)} bps
           </span>
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-2)' }}>

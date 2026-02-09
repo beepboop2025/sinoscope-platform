@@ -3,6 +3,26 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-charts': ['recharts', 'lightweight-charts'],
+          'vendor-data': ['alasql', 'xlsx'],
+          'vendor-ui': ['lucide-react', 'react-grid-layout'],
+        },
+      },
+    },
+  },
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    setupFiles: ['./src/test/setup.js'],
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    pool: 'threads',
+    testTimeout: 10000,
+    coverage: { provider: 'v8', include: ['src/**/*.{js,jsx}'] },
+  },
   server: {
     port: 5174,
     open: true,
@@ -23,10 +43,33 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/rss/, ''),
       },
-      '/api/collector': {
+      '/api/data': {
         target: 'http://127.0.0.1:3456',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/collector/, ''),
+      },
+      '/api/portfolios': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/api/watchlists': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/api/alerts': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/api/users': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/api/api-keys': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/api/health': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
       },
     },
   },

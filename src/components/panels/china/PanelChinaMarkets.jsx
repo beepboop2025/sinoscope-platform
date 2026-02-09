@@ -15,33 +15,44 @@ export default function PanelChinaMarkets({ apiKey }) {
   const [lastUpdate, setLastUpdate] = useState(null);
 
   useEffect(() => {
+    let inFlight = false;
     async function fetchData() {
+      if (inFlight) return;
+      inFlight = true;
       setLoading(true);
-      const [idxData, stockData] = await Promise.all([
-        ChinaAPI.fetchChinaIndices(apiKey),
-        ChinaAPI.fetchChinaStocks(apiKey),
-      ]);
-      setIndices(idxData);
-      setStocks(stockData);
-      setLastUpdate(new Date().toLocaleTimeString());
-      setLoading(false);
+      try {
+        const [idxData, stockData] = await Promise.all([
+          ChinaAPI.fetchChinaIndices(apiKey),
+          ChinaAPI.fetchChinaStocks(apiKey),
+        ]);
+        setIndices(idxData);
+        setStocks(stockData);
+        setLastUpdate(new Date().toLocaleTimeString());
+      } catch (err) {
+        console.warn('[PanelChinaMarkets]', err.message);
+      } finally {
+        setLoading(false);
+        inFlight = false;
+      }
     }
 
     fetchData();
-    const interval = setInterval(fetchData, 60000); // Refresh every minute
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, [apiKey]);
 
   const formatChange = (change, pct) => {
-    const isPositive = change >= 0;
+    const safeChange = Number(change) || 0;
+    const safePct = Number(pct) || 0;
+    const isPositive = safeChange >= 0;
     const Icon = isPositive ? TrendingUp : TrendingDown;
     const color = isPositive ? 'var(--green)' : 'var(--red)';
-    
+
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, color }}>
         <Icon size={14} />
-        <span>{isPositive ? '+' : ''}{change.toFixed(2)}</span>
-        <span style={{ fontSize: 12, opacity: 0.8 }}>({isPositive ? '+' : ''}{pct.toFixed(2)}%)</span>
+        <span>{isPositive ? '+' : ''}{safeChange.toFixed(2)}</span>
+        <span style={{ fontSize: 12, opacity: 0.8 }}>({isPositive ? '+' : ''}{safePct.toFixed(2)}%)</span>
       </div>
     );
   };

@@ -5,6 +5,7 @@ export function useCommandBar({ onCommand }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const filtered = query
     ? COMMANDS.filter(c =>
@@ -16,6 +17,11 @@ export function useCommandBar({ onCommand }) {
 
   useEffect(() => {
     const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === '?' || e.key === '/')) {
+        e.preventDefault();
+        setShowShortcuts(prev => !prev);
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsOpen(prev => !prev);
@@ -68,5 +74,7 @@ export function useCommandBar({ onCommand }) {
     setActiveIndex,
     execute,
     handleKeyDown,
+    showShortcuts,
+    setShowShortcuts,
   };
 }

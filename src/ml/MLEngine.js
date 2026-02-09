@@ -300,10 +300,10 @@ export class MLEngine {
       priceLoss: 1,
     };
     try {
-      localStorage.removeItem('dragonscope_ml_price_predictor');
-      localStorage.removeItem('dragonscope_ml_regime');
-      localStorage.removeItem('dragonscope_ml_anomaly_detector');
-    } catch { /* ignore */ }
+      window.localStorage.removeItem('dragonscope_ml_price_predictor');
+      window.localStorage.removeItem('dragonscope_ml_regime');
+      window.localStorage.removeItem('dragonscope_ml_anomaly_detector');
+    } catch { /* storage unavailable */ }
     this.notify();
   }
 }

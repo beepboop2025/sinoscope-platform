@@ -20,6 +20,7 @@ export function createPatternEngine() {
    * @returns {Object|null} Anomaly info
    */
   function detectPriceAnomaly(symbol, currentPrice, previousPrice, threshold = 2.5) {
+    if (!previousPrice || !Number.isFinite(currentPrice) || !Number.isFinite(previousPrice)) return null;
     const change = (currentPrice - previousPrice) / previousPrice;
     const changePct = change * 100;
     
@@ -49,6 +50,7 @@ export function createPatternEngine() {
    * @returns {Object|null} Anomaly info
    */
   function detectVolumeAnomaly(symbol, currentVolume, avgVolume) {
+    if (!avgVolume || !Number.isFinite(currentVolume)) return null;
     const ratio = currentVolume / avgVolume;
     
     if (ratio > 3) {
@@ -61,10 +63,11 @@ export function createPatternEngine() {
         message: `${symbol} volume ${ratio.toFixed(1)}x average`,
       };
       
+      if (eventLog.length > 500) eventLog.splice(0, eventLog.length - 250);
       eventLog.push(anomaly);
       return anomaly;
     }
-    
+
     return null;
   }
 

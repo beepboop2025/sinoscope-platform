@@ -6,15 +6,29 @@
   "main": "collector.js",
   "scripts": {
     "start": "node collector.js",
+    "start:api": "node apiServer.js",
     "pm2:start": "pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop dragonscope-collector",
     "pm2:restart": "pm2 restart dragonscope-collector",
     "pm2:logs": "pm2 logs dragonscope-collector",
-    "pm2:status": "pm2 status"
+    "pm2:status": "pm2 status",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate dev",
+    "db:push": "npx prisma db push"
   },
   "dependencies": {
+    "@clerk/express": "^1.7.69",
+    "@prisma/client": "^7.3.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
     "node-cron": "^3.0.3",
-    "ws": "^8.18.0",
-    "dotenv": "^16.4.7"
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.3.0"
   }
 }

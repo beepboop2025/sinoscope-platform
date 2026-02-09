@@ -3,7 +3,7 @@
  * Extracts numerical features from raw market snapshots for ML models.
  */
 
-import { normalize, movingAverage, rsi, zScore } from './NeuralNet.js';
+import { normalize, movingAverage, rsi, zScore, fisherYatesShuffle } from './NeuralNet.js';
 
 // Rolling window buffer for time-series features
 export class RollingBuffer {
@@ -297,7 +297,7 @@ export function buildTrainingData(buffer, symbols, marketData) {
  * Split data into train/test sets
  */
 export function trainTestSplit(data, testRatio = 0.2) {
-  const shuffled = [...data].sort(() => Math.random() - 0.5);
+  const shuffled = fisherYatesShuffle([...data]);
   const split = Math.floor(data.length * (1 - testRatio));
   return {
     train: shuffled.slice(0, split),

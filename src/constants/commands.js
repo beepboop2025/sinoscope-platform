@@ -28,5 +28,8 @@ export const COMMANDS = [
   { id: 'add_research', label: 'Add Research Papers', desc: 'Add arXiv finance papers', action: 'addPanel', target: 'researchPapers' },
   { id: 'add_ml', label: 'Add ML Dashboard', desc: 'Add neural network dashboard', action: 'addPanel', target: 'mlDashboard' },
   { id: 'add_signals', label: 'Add Trading Signals', desc: 'Add ML trading signals', action: 'addPanel', target: 'signals' },
+  { id: 'add_candlestick', label: 'Add Candlestick Chart', desc: 'Add TradingView candlestick chart', action: 'addPanel', target: 'candlestick' },
+  { id: 'add_portfolio', label: 'Add Portfolio', desc: 'Add portfolio tracker with P&L', action: 'addPanel', target: 'portfolio' },
+  { id: 'add_earnings', label: 'Add Earnings Calendar', desc: 'Add upcoming earnings calendar', action: 'addPanel', target: 'earningsCalendar' },
   { id: 'export', label: 'Export Data', desc: 'Export current data as JSON', action: 'export' },
 ];

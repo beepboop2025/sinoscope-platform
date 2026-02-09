@@ -2,6 +2,7 @@ import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 const FINNHUB_KEY = () => import.meta.env.VITE_FINNHUB_API_KEY || '';
 const GNEWS_KEY = () => import.meta.env.VITE_GNEWS_API_KEY || '';
@@ -80,7 +81,7 @@ async function _fetchFinnhub(category) {
   consumeToken('finnhub');
 
   try {
-    const res = await fetch(API.FINNHUB.news(category, key));
+    const res = await fetchWithTimeout(API.FINNHUB.news(category, key));
     if (!res.ok) return null;
     const data = await res.json();
     return (data || []).slice(0, 20).map(a => ({
@@ -115,7 +116,7 @@ export async function fetchNewsData(query = 'finance') {
     const url = query
       ? API.NEWSDATA.latest(key, query)
       : API.NEWSDATA.headlines(key);
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return null;
     const data = await res.json();
     if (data.status !== 'success') return null;
@@ -154,7 +155,7 @@ export async function fetchNewsApiOrg(query) {
     const url = query
       ? API.NEWSAPI_ORG.search(key, query)
       : API.NEWSAPI_ORG.headlines(key);
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return null;
     const data = await res.json();
     if (data.status !== 'ok') return null;
@@ -191,7 +192,7 @@ export async function fetchWorldNewsApi(query = 'finance') {
 
   try {
     const url = API.WORLD_NEWS_API.search(key, query);
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return null;
     const data = await res.json();
 
@@ -227,7 +228,7 @@ export async function fetchGNews(query = 'financial markets') {
   consumeToken('gnews');
 
   try {
-    const res = await fetch(API.GNEWS.search(query, key));
+    const res = await fetchWithTimeout(API.GNEWS.search(query, key));
     if (!res.ok) return null;
     const data = await res.json();
     const articles = (data.articles || []).map(a => ({
@@ -237,7 +238,7 @@ export async function fetchGNews(query = 'financial markets') {
       source: a.source?.name,
       url: a.url,
       image: a.image,
-      time: new Date(a.publishedAt).getTime(),
+      time: a.publishedAt ? new Date(a.publishedAt).getTime() : Date.now(),
       category: 'general',
     }));
     if (articles.length > 0) cacheSet(cacheKey, articles, 300000);
@@ -257,7 +258,7 @@ export async function fetchRSSNews() {
 
   for (const feedUrl of NEWS_RSS_FEEDS) {
     try {
-      const res = await fetch(API.RSS2JSON.convert(feedUrl));
+      const res = await fetchWithTimeout(API.RSS2JSON.convert(feedUrl));
       if (!res.ok) continue;
       const data = await res.json();
       if (data.status !== 'ok') continue;

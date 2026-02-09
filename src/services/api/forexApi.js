@@ -2,6 +2,7 @@ import { API } from '../../constants/apiEndpoints';
 import { cacheGet, cacheSet } from '../CacheManager';
 import { canRequest, consumeToken } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
+import { fetchWithTimeout } from '../../utils/helpers';
 
 export async function fetchForexRates(base = 'USD') {
   // Collector-first: pre-fetched forex data
@@ -18,7 +19,7 @@ export async function fetchForexRates(base = 'USD') {
   consumeToken('frankfurter');
 
   try {
-    const res = await fetch(`${API.FRANKFURTER.latest}?base=${base}`);
+    const res = await fetchWithTimeout(`${API.FRANKFURTER.latest}?base=${base}`);
     if (!res.ok) throw new Error(`Frankfurter: ${res.status}`);
     const data = await res.json();
     const result = { base: data.base, date: data.date, rates: data.rates, timestamp: Date.now() };
@@ -41,7 +42,7 @@ export async function fetchForexTimeseries(base = 'USD', symbols = 'CNY,EUR,GBP,
   consumeToken('frankfurter');
 
   try {
-    const res = await fetch(`${API.FRANKFURTER.timeseries(from, to)}?base=${base}&symbols=${symbols}`);
+    const res = await fetchWithTimeout(`${API.FRANKFURTER.timeseries(from, to)}?base=${base}&symbols=${symbols}`);
     if (!res.ok) throw new Error(`Frankfurter timeseries: ${res.status}`);
     const data = await res.json();
     cacheSet(cacheKey, data, 300000);

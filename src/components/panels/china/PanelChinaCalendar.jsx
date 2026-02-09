@@ -6,6 +6,7 @@
 import { useState, useMemo } from 'react';
 import { Calendar, Clock, AlertCircle, TrendingUp, TrendingDown, Minus, Bell, Info } from 'lucide-react';
 import { CHINA_CALENDAR } from '../../../constants/china';
+import PanelChrome from '../../shared/PanelChrome';
 
 // Generate illustrative calendar events using fixed offsets from today
 // These use realistic indicator names and typical values but are NOT sourced from a live feed.
@@ -98,25 +99,10 @@ export default function PanelChinaCalendar() {
   };
 
   return (
-    <div className="panel-content" style={{ padding: 16 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Calendar size={18} color="var(--magenta)" />
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>China Calendar</h3>
-          <span
-            style={{
-              padding: '2px 6px',
-              fontSize: 9,
-              borderRadius: 4,
-              background: 'var(--amber-alpha)',
-              color: 'var(--amber)',
-              fontWeight: 500,
-            }}
-          >
-            Sample Data
-          </span>
-        </div>
+    <PanelChrome title="China Calendar" icon={Calendar} iconColor="var(--magenta)">
+      <div style={{ padding: 4 }}>
+      {/* Filter */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {['all', 'upcoming', 'high'].map((f) => (
             <button
@@ -140,6 +126,7 @@ export default function PanelChinaCalendar() {
       </div>
 
       {/* Legend */}
+
       <div style={{ display: 'flex', gap: 12, marginBottom: 12, fontSize: 9 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div style={{ width: 6, height: 6, background: 'var(--amber)', borderRadius: '50%' }} />
@@ -267,5 +254,6 @@ export default function PanelChinaCalendar() {
         </div>
       </div>
     </div>
+    </PanelChrome>
   );
 }
