@@ -1,4 +1,73 @@
-export function normalizeTick(raw, market) {
+import type { MarketTick, MarketType } from '../types/market';
+
+interface RawTickData {
+  symbol?: string;
+  s?: string;
+  price?: number | string;
+  c?: number | string;
+  p?: number | string;
+  change?: number | string;
+  d?: number | string;
+  changePct?: number | string;
+  dp?: number | string;
+  changesPercentage?: number | string;
+  volume?: number | string;
+  v?: number | string;
+  high?: number | string;
+  h?: number | string;
+  low?: number | string;
+  l?: number | string;
+  open?: number | string;
+  o?: number | string;
+  timestamp?: number;
+  t?: number;
+}
+
+interface RawCryptoData {
+  symbol?: string;
+  id?: string;
+  name?: string;
+  current_price?: number | string;
+  price?: number | string;
+  price_change_24h?: number | string;
+  price_change_percentage_24h?: number | string;
+  total_volume?: number | string;
+  market_cap?: number | string;
+  high_24h?: number | string;
+  low_24h?: number | string;
+}
+
+interface NormalizedCrypto extends MarketTick {
+  name: string;
+  marketCap: number;
+}
+
+interface RawOHLCData {
+  t?: number | string;
+  date?: number | string;
+  timestamp?: number | string;
+  o?: number | string;
+  open?: number | string;
+  h?: number | string;
+  high?: number | string;
+  l?: number | string;
+  low?: number | string;
+  c?: number | string;
+  close?: number | string;
+  v?: number | string;
+  volume?: number | string;
+}
+
+interface NormalizedOHLC {
+  time: number | string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export function normalizeTick(raw: RawTickData, market: MarketType): MarketTick {
   return {
     symbol: raw.symbol || raw.s || '',
     price: Number(raw.price ?? raw.c ?? raw.p ?? 0),
@@ -13,8 +82,8 @@ export function normalizeTick(raw, market) {
   };
 }
 
-export function normalizeForex(pair, data) {
-  const rate = Number(data) || 0;
+export function normalizeForex(pair: string, data: unknown): MarketTick {
+  const rate: number = Number(data) || 0;
   return {
     symbol: pair,
     price: rate,
@@ -29,7 +98,7 @@ export function normalizeForex(pair, data) {
   };
 }
 
-export function normalizeCrypto(data) {
+export function normalizeCrypto(data: RawCryptoData): NormalizedCrypto {
   return {
     symbol: (data.symbol || data.id || '').toUpperCase(),
     name: data.name || '',
@@ -45,7 +114,7 @@ export function normalizeCrypto(data) {
   };
 }
 
-export function normalizeOHLC(data) {
+export function normalizeOHLC(data: RawOHLCData): NormalizedOHLC {
   return {
     time: data.t || data.date || data.timestamp,
     open: Number(data.o ?? data.open ?? 0),

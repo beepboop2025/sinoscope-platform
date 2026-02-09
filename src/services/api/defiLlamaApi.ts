@@ -6,19 +6,69 @@ import { fetchWithTimeout } from '../../utils/helpers';
 // DeFi Llama is free, no API key needed, generous limits
 createRateLimiter('defillama', 20, 60000);
 
-const BASE = 'https://api.llama.fi';
-const YIELDS = 'https://yields.llama.fi';
-const STABLECOINS = 'https://stablecoins.llama.fi';
+const BASE: string = 'https://api.llama.fi';
+const YIELDS: string = 'https://yields.llama.fi';
+const STABLECOINS: string = 'https://stablecoins.llama.fi';
+
+interface DefiProtocol {
+  name: string;
+  symbol: string;
+  tvl: number;
+  change1h: number;
+  change1d: number;
+  change7d: number;
+  category: string;
+  chains: string[];
+  url: string;
+  logo: string;
+}
+
+interface TVLDataPoint {
+  date: string;
+  tvl: number;
+}
+
+interface ChainTVL {
+  name: string;
+  tvl: number;
+  tokenSymbol: string;
+  gecko_id: string;
+}
+
+interface DefiYieldPool {
+  pool: string;
+  project: string;
+  symbol: string;
+  chain: string;
+  tvl: number;
+  apy: number;
+  apyBase: number;
+  apyReward: number;
+  stablecoin: boolean;
+}
+
+interface StablecoinData {
+  name: string;
+  symbol: string;
+  pegType: string;
+  circulating: number;
+  price: number;
+}
+
+interface MockDefiData {
+  protocols: { name: string; symbol: string; tvl: number; change1d: number; change7d: number; category: string; chains: string[] }[];
+  chains: { name: string; tvl: number }[];
+}
 
 // Top DeFi protocols by TVL
-export async function fetchDefiProtocols() {
+export async function fetchDefiProtocols(): Promise<DefiProtocol[] | null> {
   // Collector-first: pre-fetched DeFi protocols
   const collected = await getCollectorData('defi_protocols');
-  if (collected && collected.length > 0) return collected;
+  if (collected && (collected as DefiProtocol[]).length > 0) return collected as DefiProtocol[];
 
   const cacheKey = 'defi_protocols';
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as DefiProtocol[];
 
   if (!canRequest('defillama')) return null;
   consumeToken('defillama');
@@ -26,34 +76,34 @@ export async function fetchDefiProtocols() {
   try {
     const res = await fetchWithTimeout(`${BASE}/protocols`);
     if (!res.ok) throw new Error(`DeFi Llama protocols: ${res.status}`);
-    const data = await res.json();
+    const data: unknown = await res.json();
 
-    const protocols = (data || []).slice(0, 50).map(p => ({
-      name: p.name,
-      symbol: p.symbol || '',
-      tvl: p.tvl || 0,
-      change1h: p.change_1h || 0,
-      change1d: p.change_1d || 0,
-      change7d: p.change_7d || 0,
-      category: p.category || '',
-      chains: (p.chains || []).slice(0, 5),
-      url: p.url || '',
-      logo: p.logo || '',
+    const protocols: DefiProtocol[] = ((data as Record<string, unknown>[]) || []).slice(0, 50).map((p: Record<string, unknown>): DefiProtocol => ({
+      name: p.name as string,
+      symbol: (p.symbol || '') as string,
+      tvl: (p.tvl || 0) as number,
+      change1h: (p.change_1h || 0) as number,
+      change1d: (p.change_1d || 0) as number,
+      change7d: (p.change_7d || 0) as number,
+      category: (p.category || '') as string,
+      chains: ((p.chains || []) as string[]).slice(0, 5),
+      url: (p.url || '') as string,
+      logo: (p.logo || '') as string,
     }));
 
     cacheSet(cacheKey, protocols, 300000);
     return protocols;
   } catch (err) {
-    console.warn('[DeFiLlama protocols]', err.message);
+    console.warn('[DeFiLlama protocols]', (err as Error).message);
     return null;
   }
 }
 
 // Total TVL across all chains
-export async function fetchDefiTVL() {
+export async function fetchDefiTVL(): Promise<TVLDataPoint[] | null> {
   const cacheKey = 'defi_tvl_total';
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as TVLDataPoint[];
 
   if (!canRequest('defillama')) return null;
   consumeToken('defillama');
@@ -61,28 +111,28 @@ export async function fetchDefiTVL() {
   try {
     const res = await fetchWithTimeout(`${BASE}/v2/historicalChainTvl`);
     if (!res.ok) throw new Error(`DeFi Llama TVL: ${res.status}`);
-    const data = await res.json();
-    const recent = (data || []).slice(-30).map(d => ({
+    const data: unknown = await res.json();
+    const recent: TVLDataPoint[] = ((data as { date: number; tvl: number }[]) || []).slice(-30).map((d: { date: number; tvl: number }): TVLDataPoint => ({
       date: new Date(d.date * 1000).toISOString().split('T')[0],
       tvl: d.tvl,
     }));
     cacheSet(cacheKey, recent, 300000);
     return recent;
   } catch (err) {
-    console.warn('[DeFiLlama TVL]', err.message);
+    console.warn('[DeFiLlama TVL]', (err as Error).message);
     return null;
   }
 }
 
 // Chain TVL breakdown
-export async function fetchChainTVL() {
+export async function fetchChainTVL(): Promise<ChainTVL[] | null> {
   // Collector-first: pre-fetched chain TVLs
   const collected = await getCollectorData('defi_chains');
-  if (collected && collected.length > 0) return collected;
+  if (collected && (collected as ChainTVL[]).length > 0) return collected as ChainTVL[];
 
   const cacheKey = 'defi_chain_tvl';
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as ChainTVL[];
 
   if (!canRequest('defillama')) return null;
   consumeToken('defillama');
@@ -90,32 +140,32 @@ export async function fetchChainTVL() {
   try {
     const res = await fetchWithTimeout(`${BASE}/v2/chains`);
     if (!res.ok) throw new Error(`DeFi Llama chains: ${res.status}`);
-    const data = await res.json();
+    const data: unknown = await res.json();
 
-    const chains = (data || []).slice(0, 20).map(c => ({
-      name: c.name,
-      tvl: c.tvl || 0,
-      tokenSymbol: c.tokenSymbol || '',
-      gecko_id: c.gecko_id || '',
+    const chains: ChainTVL[] = ((data as Record<string, unknown>[]) || []).slice(0, 20).map((c: Record<string, unknown>): ChainTVL => ({
+      name: c.name as string,
+      tvl: (c.tvl || 0) as number,
+      tokenSymbol: (c.tokenSymbol || '') as string,
+      gecko_id: (c.gecko_id || '') as string,
     }));
 
     cacheSet(cacheKey, chains, 300000);
     return chains;
   } catch (err) {
-    console.warn('[DeFiLlama chains]', err.message);
+    console.warn('[DeFiLlama chains]', (err as Error).message);
     return null;
   }
 }
 
 // Top DeFi yields
-export async function fetchDefiYields() {
+export async function fetchDefiYields(): Promise<DefiYieldPool[] | null> {
   // Collector-first: pre-fetched DeFi yields
   const collected = await getCollectorData('defi_yields');
-  if (collected && collected.length > 0) return collected;
+  if (collected && (collected as DefiYieldPool[]).length > 0) return collected as DefiYieldPool[];
 
   const cacheKey = 'defi_yields';
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as DefiYieldPool[];
 
   if (!canRequest('defillama')) return null;
   consumeToken('defillama');
@@ -123,42 +173,42 @@ export async function fetchDefiYields() {
   try {
     const res = await fetchWithTimeout(`${YIELDS}/pools`);
     if (!res.ok) throw new Error(`DeFi Llama yields: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { data?: Record<string, unknown>[] };
 
     // Filter for reasonable yields with meaningful TVL
-    const pools = (data.data || [])
-      .filter(p => p.tvlUsd > 1000000 && p.apy > 0 && p.apy < 100)
-      .sort((a, b) => b.tvlUsd - a.tvlUsd)
+    const pools: DefiYieldPool[] = (data.data || [])
+      .filter((p: Record<string, unknown>) => (p.tvlUsd as number) > 1000000 && (p.apy as number) > 0 && (p.apy as number) < 100)
+      .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.tvlUsd as number) - (a.tvlUsd as number))
       .slice(0, 40)
-      .map(p => ({
-        pool: p.pool,
-        project: p.project,
-        symbol: p.symbol,
-        chain: p.chain,
-        tvl: p.tvlUsd,
-        apy: p.apy,
-        apyBase: p.apyBase || 0,
-        apyReward: p.apyReward || 0,
-        stablecoin: p.stablecoin || false,
+      .map((p: Record<string, unknown>): DefiYieldPool => ({
+        pool: p.pool as string,
+        project: p.project as string,
+        symbol: p.symbol as string,
+        chain: p.chain as string,
+        tvl: p.tvlUsd as number,
+        apy: p.apy as number,
+        apyBase: (p.apyBase || 0) as number,
+        apyReward: (p.apyReward || 0) as number,
+        stablecoin: (p.stablecoin || false) as boolean,
       }));
 
     cacheSet(cacheKey, pools, 300000);
     return pools;
   } catch (err) {
-    console.warn('[DeFiLlama yields]', err.message);
+    console.warn('[DeFiLlama yields]', (err as Error).message);
     return null;
   }
 }
 
 // Stablecoin market caps
-export async function fetchStablecoins() {
+export async function fetchStablecoins(): Promise<StablecoinData[] | null> {
   // Collector-first: pre-fetched stablecoin data
   const collected = await getCollectorData('defi_stablecoins');
-  if (collected && collected.length > 0) return collected;
+  if (collected && (collected as StablecoinData[]).length > 0) return collected as StablecoinData[];
 
   const cacheKey = 'defi_stablecoins';
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as StablecoinData[];
 
   if (!canRequest('defillama')) return null;
   consumeToken('defillama');
@@ -166,26 +216,26 @@ export async function fetchStablecoins() {
   try {
     const res = await fetchWithTimeout(`${STABLECOINS}/stablecoins?includePrices=true`);
     if (!res.ok) throw new Error(`DeFi Llama stables: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { peggedAssets?: Record<string, unknown>[] };
 
-    const stables = (data.peggedAssets || []).slice(0, 15).map(s => ({
-      name: s.name,
-      symbol: s.symbol,
-      pegType: s.pegType,
-      circulating: s.circulating?.peggedUSD || 0,
-      price: s.price || 1,
+    const stables: StablecoinData[] = (data.peggedAssets || []).slice(0, 15).map((s: Record<string, unknown>): StablecoinData => ({
+      name: s.name as string,
+      symbol: s.symbol as string,
+      pegType: s.pegType as string,
+      circulating: (s.circulating as { peggedUSD?: number })?.peggedUSD || 0,
+      price: (s.price || 1) as number,
     }));
 
     cacheSet(cacheKey, stables, 300000);
     return stables;
   } catch (err) {
-    console.warn('[DeFiLlama stables]', err.message);
+    console.warn('[DeFiLlama stables]', (err as Error).message);
     return null;
   }
 }
 
 // Mock data fallback
-export function getMockDefiData() {
+export function getMockDefiData(): MockDefiData {
   return {
     protocols: [
       { name: 'Lido', symbol: 'LDO', tvl: 33200000000, change1d: 0.5, change7d: 2.1, category: 'Liquid Staking', chains: ['Ethereum'] },

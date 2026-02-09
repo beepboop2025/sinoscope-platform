@@ -6,7 +6,21 @@ import { fetchWithTimeout } from '../../utils/helpers';
 // GitHub API has 60 req/hour unauthenticated
 createRateLimiter('github', 30, 3600000);
 
-const FINANCE_QUERIES = [
+interface GithubRepo {
+  id: number;
+  name: string;
+  description: string;
+  stars: number;
+  forks: number;
+  language: string;
+  topics: string[];
+  url: string;
+  updated: string;
+  openIssues: number;
+  license: string;
+}
+
+const FINANCE_QUERIES: string[] = [
   'topic:finance topic:trading',
   'topic:cryptocurrency topic:trading-bot',
   'topic:quantitative-finance',
@@ -14,57 +28,57 @@ const FINANCE_QUERIES = [
   'topic:algorithmic-trading',
 ];
 
-export async function fetchGithubTrending(query = 'finance trading stock market crypto') {
+export async function fetchGithubTrending(query: string = 'finance trading stock market crypto'): Promise<GithubRepo[] | null> {
   const cacheKey = `github_trending_${query}`;
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as GithubRepo[];
 
   if (!canRequest('github')) return null;
   consumeToken('github');
 
   try {
-    const q = encodeURIComponent(query);
+    const q: string = encodeURIComponent(query);
     const res = await fetchWithTimeout(
       `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=30`,
       { headers: { Accept: 'application/vnd.github.v3+json' } }
     );
     if (!res.ok) throw new Error(`GitHub: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { items?: Record<string, unknown>[] };
 
-    const repos = (data.items || []).map(r => ({
-      id: r.id,
-      name: r.full_name,
-      description: r.description?.slice(0, 200) || '',
-      stars: r.stargazers_count,
-      forks: r.forks_count,
-      language: r.language || 'Unknown',
-      topics: (r.topics || []).slice(0, 5),
-      url: r.html_url,
-      updated: r.updated_at,
-      openIssues: r.open_issues_count,
-      license: r.license?.spdx_id || '',
+    const repos: GithubRepo[] = (data.items || []).map((r: Record<string, unknown>): GithubRepo => ({
+      id: r.id as number,
+      name: r.full_name as string,
+      description: (r.description as string)?.slice(0, 200) || '',
+      stars: r.stargazers_count as number,
+      forks: r.forks_count as number,
+      language: (r.language || 'Unknown') as string,
+      topics: ((r.topics || []) as string[]).slice(0, 5),
+      url: r.html_url as string,
+      updated: r.updated_at as string,
+      openIssues: r.open_issues_count as number,
+      license: (r.license as { spdx_id?: string })?.spdx_id || '',
     }));
 
     cacheSet(cacheKey, repos, 300000); // 5 min cache
     return repos;
   } catch (err) {
-    console.warn('[GitHubAPI]', err.message);
+    console.warn('[GitHubAPI]', (err as Error).message);
     return null;
   }
 }
 
-export async function fetchGithubFinanceRepos() {
+export async function fetchGithubFinanceRepos(): Promise<GithubRepo[] | null> {
   // Collector-first: pre-fetched github repos
   const collected = await getCollectorData('github_repos');
-  if (collected && collected.length > 0) return collected;
+  if (collected && (collected as GithubRepo[]).length > 0) return collected as GithubRepo[];
 
   const cacheKey = 'github_finance_all';
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as GithubRepo[];
 
   // Try multiple queries and merge
-  const allRepos = [];
-  const seen = new Set();
+  const allRepos: GithubRepo[] = [];
+  const seen = new Set<number>();
 
   for (const q of FINANCE_QUERIES) {
     const repos = await fetchGithubTrending(q);
@@ -77,12 +91,12 @@ export async function fetchGithubFinanceRepos() {
       }
     }
     // Small delay between requests
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise<void>(r => setTimeout(r, 500));
   }
 
   // Sort by stars
   allRepos.sort((a, b) => b.stars - a.stars);
-  const top = allRepos.slice(0, 50);
+  const top: GithubRepo[] = allRepos.slice(0, 50);
 
   if (top.length > 0) {
     cacheSet(cacheKey, top, 600000); // 10 min cache
@@ -91,7 +105,7 @@ export async function fetchGithubFinanceRepos() {
 }
 
 // Fallback mock data for when API is rate-limited
-export function getMockGithubRepos() {
+export function getMockGithubRepos(): GithubRepo[] {
   return [
     { id: 1, name: 'freqtrade/freqtrade', description: 'Free, open source crypto trading bot', stars: 28500, forks: 6100, language: 'Python', topics: ['trading-bot', 'cryptocurrency', 'bitcoin'], url: '', updated: new Date().toISOString(), openIssues: 120, license: 'GPL-3.0' },
     { id: 2, name: 'ccxt/ccxt', description: 'A JavaScript / TypeScript / Python / C# / PHP cryptocurrency trading API', stars: 33000, forks: 7500, language: 'JavaScript', topics: ['cryptocurrency', 'exchange', 'trading'], url: '', updated: new Date().toISOString(), openIssues: 85, license: 'MIT' },

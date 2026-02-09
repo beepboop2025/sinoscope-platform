@@ -4,7 +4,18 @@ import { canRequest, consumeToken } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
 import { fetchWithTimeout } from '../../utils/helpers';
 
-const COMMODITY_INDICATORS = {
+interface CommodityObservation {
+  date: string;
+  value: number;
+}
+
+interface CommodityResult {
+  price: number;
+  date: string;
+  history: CommodityObservation[];
+}
+
+const COMMODITY_INDICATORS: Record<string, string> = {
   GASOLINE: 'GASREGW',
   OIL_WTI: 'DCOILWTICO',
   OIL_BRENT: 'DCOILBRENTEU',
@@ -12,16 +23,16 @@ const COMMODITY_INDICATORS = {
   COPPER: 'PCOPPUSDM',
 };
 
-const FRED_KEY = () => import.meta.env.VITE_FRED_API_KEY || '';
+const FRED_KEY = (): string => import.meta.env.VITE_FRED_API_KEY || '';
 
-export async function fetchCommodityPrice(commodity) {
-  const key = FRED_KEY();
-  const seriesId = COMMODITY_INDICATORS[commodity];
+export async function fetchCommodityPrice(commodity: string): Promise<CommodityObservation[] | null> {
+  const key: string = FRED_KEY();
+  const seriesId: string | undefined = COMMODITY_INDICATORS[commodity];
   if (!key || !seriesId) return null;
 
   const cacheKey = `commodity_${commodity}`;
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as CommodityObservation[];
 
   if (!canRequest('fred')) return null;
   consumeToken('fred');
@@ -30,25 +41,26 @@ export async function fetchCommodityPrice(commodity) {
     const url = `${API.FRED.series(seriesId, key)}&sort_order=desc&limit=30`;
     const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`FRED commodity: ${res.status}`);
-    const data = await res.json();
-    const obs = (data.observations || []).filter(o => o.value !== '.').map(o => ({
+    const data: unknown = await res.json();
+    const parsed = data as { observations?: { date: string; value: string }[] };
+    const obs: CommodityObservation[] = (parsed.observations || []).filter((o: { value: string }) => o.value !== '.').map((o: { date: string; value: string }) => ({
       date: o.date,
       value: parseFloat(o.value),
     }));
     cacheSet(cacheKey, obs, 300000);
     return obs;
   } catch (err) {
-    console.warn('[CommodityAPI]', err.message);
+    console.warn('[CommodityAPI]', (err as Error).message);
     return null;
   }
 }
 
-export async function fetchAllCommodities() {
+export async function fetchAllCommodities(): Promise<Record<string, CommodityResult>> {
   // Collector-first: pre-fetched commodities
   const collected = await getCollectorData('commodities');
-  if (collected) return collected;
+  if (collected) return collected as Record<string, CommodityResult>;
 
-  const results = {};
+  const results: Record<string, CommodityResult> = {};
   for (const [name, _] of Object.entries(COMMODITY_INDICATORS)) {
     const data = await fetchCommodityPrice(name);
     if (data && data.length > 0) {

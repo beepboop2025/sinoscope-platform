@@ -6,11 +6,22 @@ import { fetchWithTimeout } from '../../utils/helpers';
 // arXiv API is free but has 3 sec delay requirement between requests
 createRateLimiter('arxiv', 10, 60000);
 
+interface ArxivPaper {
+  id: string;
+  title: string;
+  summary: string;
+  authors: (string | null)[];
+  categories: (string | null)[];
+  published: string;
+  pdfUrl: string;
+  url: string;
+}
+
 // Fetch recent quantitative finance papers
-export async function fetchFinancePapers(query = 'quantitative finance', maxResults = 20) {
+export async function fetchFinancePapers(query: string = 'quantitative finance', maxResults: number = 20): Promise<ArxivPaper[] | null> {
   const cacheKey = `arxiv_${query}_${maxResults}`;
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as ArxivPaper[];
 
   if (!canRequest('arxiv')) return null;
   consumeToken('arxiv');
@@ -18,30 +29,30 @@ export async function fetchFinancePapers(query = 'quantitative finance', maxResu
   try {
     const params = new URLSearchParams({
       search_query: `cat:q-fin* OR all:${query}`,
-      start: 0,
-      max_results: maxResults,
+      start: '0',
+      max_results: String(maxResults),
       sortBy: 'submittedDate',
       sortOrder: 'descending',
     });
 
     const res = await fetchWithTimeout(`https://export.arxiv.org/api/query?${params}`);
     if (!res.ok) throw new Error(`arXiv: ${res.status}`);
-    const text = await res.text();
+    const text: string = await res.text();
 
     // Parse XML (arXiv uses Atom format)
     const parser = new DOMParser();
-    const xml = parser.parseFromString(text, 'text/xml');
-    const entries = xml.querySelectorAll('entry');
+    const xml: Document = parser.parseFromString(text, 'text/xml');
+    const entries: NodeListOf<Element> = xml.querySelectorAll('entry');
 
-    const papers = [];
+    const papers: ArxivPaper[] = [];
     for (const entry of entries) {
-      const title = entry.querySelector('title')?.textContent?.trim().replace(/\s+/g, ' ') || '';
-      const summary = entry.querySelector('summary')?.textContent?.trim().replace(/\s+/g, ' ').slice(0, 300) || '';
-      const published = entry.querySelector('published')?.textContent || '';
-      const id = entry.querySelector('id')?.textContent || '';
-      const authors = [...entry.querySelectorAll('author name')].map(n => n.textContent).slice(0, 3);
-      const categories = [...entry.querySelectorAll('category')].map(c => c.getAttribute('term')).filter(Boolean).slice(0, 3);
-      const pdfLink = [...entry.querySelectorAll('link')].find(l => l.getAttribute('title') === 'pdf')?.getAttribute('href') || '';
+      const title: string = entry.querySelector('title')?.textContent?.trim().replace(/\s+/g, ' ') || '';
+      const summary: string = entry.querySelector('summary')?.textContent?.trim().replace(/\s+/g, ' ').slice(0, 300) || '';
+      const published: string = entry.querySelector('published')?.textContent || '';
+      const id: string = entry.querySelector('id')?.textContent || '';
+      const authors: (string | null)[] = [...entry.querySelectorAll('author name')].map(n => n.textContent).slice(0, 3);
+      const categories: (string | null)[] = [...entry.querySelectorAll('category')].map(c => c.getAttribute('term')).filter(Boolean).slice(0, 3);
+      const pdfLink: string = [...entry.querySelectorAll('link')].find(l => l.getAttribute('title') === 'pdf')?.getAttribute('href') || '';
 
       papers.push({
         id,
@@ -58,30 +69,30 @@ export async function fetchFinancePapers(query = 'quantitative finance', maxResu
     cacheSet(cacheKey, papers, 600000); // 10 min
     return papers;
   } catch (err) {
-    console.warn('[arXiv]', err.message);
+    console.warn('[arXiv]', (err as Error).message);
     return null;
   }
 }
 
 // Specific finance sub-categories
-export async function fetchAllFinanceResearch() {
+export async function fetchAllFinanceResearch(): Promise<ArxivPaper[] | null> {
   // Collector-first: pre-fetched arxiv papers
   const collected = await getCollectorData('arxiv_papers');
-  if (collected && collected.length > 0) return collected;
+  if (collected && (collected as ArxivPaper[]).length > 0) return collected as ArxivPaper[];
 
   const cacheKey = 'arxiv_finance_all';
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as ArxivPaper[];
 
-  const queries = [
+  const queries: string[] = [
     'algorithmic trading machine learning',
     'portfolio optimization deep learning',
     'financial sentiment analysis NLP',
     'cryptocurrency market prediction',
   ];
 
-  const allPapers = [];
-  const seen = new Set();
+  const allPapers: ArxivPaper[] = [];
+  const seen = new Set<string>();
 
   for (const q of queries) {
     const papers = await fetchFinancePapers(q, 10);
@@ -93,11 +104,11 @@ export async function fetchAllFinanceResearch() {
         }
       }
     }
-    await new Promise(r => setTimeout(r, 3500)); // arXiv requires 3 sec between requests
+    await new Promise<void>(r => setTimeout(r, 3500)); // arXiv requires 3 sec between requests
   }
 
   allPapers.sort((a, b) => b.published.localeCompare(a.published));
-  const top = allPapers.slice(0, 30);
+  const top: ArxivPaper[] = allPapers.slice(0, 30);
 
   if (top.length > 0) {
     cacheSet(cacheKey, top, 600000);
@@ -105,7 +116,7 @@ export async function fetchAllFinanceResearch() {
   return top.length > 0 ? top : null;
 }
 
-export function getMockPapers() {
+export function getMockPapers(): ArxivPaper[] {
   return [
     { id: '1', title: 'Deep Reinforcement Learning for Portfolio Management', summary: 'We propose a novel DRL framework for dynamic portfolio allocation that outperforms traditional mean-variance optimization...', authors: ['Zhang Y.', 'Wang L.', 'Chen H.'], categories: ['q-fin.PM', 'cs.AI'], published: '2024-11-10', pdfUrl: '', url: '' },
     { id: '2', title: 'Transformer-based Models for Stock Price Prediction', summary: 'This paper explores the application of attention mechanisms and transformer architectures for multi-step stock price forecasting...', authors: ['Liu J.', 'Kim S.'], categories: ['q-fin.ST', 'cs.LG'], published: '2024-11-08', pdfUrl: '', url: '' },

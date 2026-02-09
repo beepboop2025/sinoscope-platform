@@ -5,15 +5,46 @@ import { generateMockChinaIndices, generateMockChinaStocks } from '../../generat
 import { getCollectorData } from '../CollectorClient';
 import { fetchWithTimeout } from '../../utils/helpers';
 
-const FMP_KEY = () => import.meta.env.VITE_FMP_API_KEY || '';
+interface PBOCRates {
+  lpr1y: number;
+  lpr5y: number;
+  lendingFacility: number;
+  reverseRepo: number;
+  rrr: number;
+  lastUpdated: string;
+  source: string;
+}
+
+interface CNYRates {
+  cnyUsd: number;
+  cnhUsd: number;
+  timestamp?: number;
+  isStale: boolean;
+  lastUpdated?: string;
+  source?: string;
+}
+
+interface ChinaEconIndicator {
+  indicator: string;
+  value: number;
+  year: string;
+  id: string;
+}
+
+interface CNYHistoryPoint {
+  date: string;
+  rate: number;
+}
+
+const FMP_KEY = (): string => import.meta.env.VITE_FMP_API_KEY || '';
 
 export const ChinaAPI = {
-  async fetchChinaIndices(apiKey) {
-    const key = apiKey || FMP_KEY();
+  async fetchChinaIndices(apiKey?: string): Promise<unknown[]> {
+    const key: string = apiKey || FMP_KEY();
 
     const cacheKey = 'china_indices';
     const cached = cacheGet(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as unknown[];
 
     // Try FMP API if key available
     if (key) {
@@ -23,14 +54,14 @@ export const ChinaAPI = {
         const symbols = '^SSEC,^HSI,000300.SS';
         const res = await fetchWithTimeout(API.FMP.quote(symbols, key));
         if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0) {
+          const data: unknown = await res.json();
+          if (data && (data as unknown[]).length > 0) {
             cacheSet(cacheKey, data, 60000);
-            return data;
+            return data as unknown[];
           }
         }
       } catch (err) {
-        console.warn('[ChinaAPI indices]', err.message);
+        console.warn('[ChinaAPI indices]', (err as Error).message);
       }
     }
 
@@ -40,12 +71,12 @@ export const ChinaAPI = {
     return mock;
   },
 
-  async fetchChinaStocks(apiKey) {
-    const key = apiKey || FMP_KEY();
+  async fetchChinaStocks(apiKey?: string): Promise<unknown[]> {
+    const key: string = apiKey || FMP_KEY();
 
     const cacheKey = 'china_stocks';
     const cached = cacheGet(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as unknown[];
 
     // Try FMP API if key available
     if (key) {
@@ -55,14 +86,14 @@ export const ChinaAPI = {
         const symbols = '601398.SS,002594.SZ,300750.SZ,600519.SS';
         const res = await fetchWithTimeout(API.FMP.quote(symbols, key));
         if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0) {
+          const data: unknown = await res.json();
+          if (data && (data as unknown[]).length > 0) {
             cacheSet(cacheKey, data, 60000);
-            return data;
+            return data as unknown[];
           }
         }
       } catch (err) {
-        console.warn('[ChinaAPI stocks]', err.message);
+        console.warn('[ChinaAPI stocks]', (err as Error).message);
       }
     }
 
@@ -72,16 +103,16 @@ export const ChinaAPI = {
     return mock;
   },
 
-  async fetchPBOCRates() {
+  async fetchPBOCRates(): Promise<PBOCRates> {
     const cacheKey = 'pboc_rates';
     const cached = cacheGet(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as PBOCRates;
 
-    // PBOC rates are not freely available via a free public API — return reference data.
+    // PBOC rates are not freely available via a free public API -- return reference data.
     // These values were last verified from official PBOC publications.
     // Verify/update at: http://www.pbc.gov.cn/english/130437/index.html (PBOC English portal)
     // and: https://www.chinamoney.com.cn/english/ (China Foreign Exchange Trade System)
-    const rates = {
+    const rates: PBOCRates = {
       lpr1y: 3.45,
       lpr5y: 3.95,
       lendingFacility: 2.50,
@@ -94,17 +125,18 @@ export const ChinaAPI = {
     return rates;
   },
 
-  async fetchCNYCNHRates() {
+  async fetchCNYCNHRates(): Promise<CNYRates> {
     // Collector-first: pre-fetched CNY rates
     const collected = await getCollectorData('cny_rates');
-    if (collected && collected.cnyUsd) {
-      const cny = Number(collected.cnyUsd) || 7.24;
-      return { cnyUsd: cny, cnhUsd: collected.cnhUsd ? Number(collected.cnhUsd) : cny + 0.01, timestamp: collected.timestamp || Date.now(), isStale: false };
+    if (collected && (collected as Record<string, unknown>).cnyUsd) {
+      const collectedData = collected as Record<string, unknown>;
+      const cny: number = Number(collectedData.cnyUsd) || 7.24;
+      return { cnyUsd: cny, cnhUsd: collectedData.cnhUsd ? Number(collectedData.cnhUsd) : cny + 0.01, timestamp: (collectedData.timestamp as number) || Date.now(), isStale: false };
     }
 
     const cacheKey = 'cny_cnh';
     const cached = cacheGet(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as CNYRates;
 
     if (!canRequest('frankfurter')) {
       return { cnyUsd: 7.24, cnhUsd: 7.25, isStale: true, lastUpdated: '2024-01-01', source: 'static_fallback' };
@@ -114,44 +146,44 @@ export const ChinaAPI = {
     try {
       const res = await fetchWithTimeout(`${API.FRANKFURTER.latest}?base=USD&symbols=CNY`);
       if (!res.ok) throw new Error('CNY fetch failed');
-      const data = await res.json();
-      const cny = data.rates?.CNY || 7.24;
-      const cnh = cny + (Math.random() - 0.5) * 0.02;
-      const result = { cnyUsd: cny, cnhUsd: cnh, timestamp: Date.now(), isStale: false };
+      const data = await res.json() as { rates?: { CNY?: number } };
+      const cny: number = data.rates?.CNY || 7.24;
+      const cnh: number = cny + (Math.random() - 0.5) * 0.02;
+      const result: CNYRates = { cnyUsd: cny, cnhUsd: cnh, timestamp: Date.now(), isStale: false };
       cacheSet(cacheKey, result, 30000);
       return result;
     } catch (err) {
-      console.warn('[ChinaAPI CNY]', err.message);
+      console.warn('[ChinaAPI CNY]', (err as Error).message);
       return { cnyUsd: 7.24, cnhUsd: 7.25, isStale: true, lastUpdated: '2024-01-01', source: 'static_fallback' };
     }
   },
 
   // Fetch China GDP and trade data from World Bank (free, no key)
-  async fetchChinaEconomic() {
+  async fetchChinaEconomic(): Promise<ChinaEconIndicator[] | null> {
     const cacheKey = 'china_economic';
     const cached = cacheGet(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as ChinaEconIndicator[];
 
-    const indicators = [
+    const indicators: { id: string; label: string }[] = [
       { id: 'NY.GDP.MKTP.CD', label: 'GDP (USD)' },
       { id: 'NE.TRD.GNFS.ZS', label: 'Trade (% GDP)' },
       { id: 'FP.CPI.TOTL.ZG', label: 'CPI Inflation' },
       { id: 'BN.CAB.XOKA.CD', label: 'Current Account' },
     ];
 
-    const results = [];
+    const results: ChinaEconIndicator[] = [];
     for (const ind of indicators) {
       try {
         const url = `${API.WORLD_BANK.indicator('CHN', ind.id)}&per_page=5&date=2020:2025`;
         const res = await fetchWithTimeout(url);
         if (!res.ok) continue;
-        const data = await res.json();
-        const entries = data?.[1] || [];
-        const latest = entries.find(e => e.value != null);
+        const data: unknown = await res.json();
+        const entries = ((data as unknown[])?.[1] || []) as { value: number | null; date: string }[];
+        const latest = entries.find((e: { value: number | null }) => e.value != null);
         if (latest) {
           results.push({
             indicator: ind.label,
-            value: latest.value,
+            value: latest.value as number,
             year: latest.date,
             id: ind.id,
           });
@@ -166,28 +198,28 @@ export const ChinaAPI = {
   },
 
   // CNY historical rates for charting
-  async fetchCNYHistory(days = 30) {
+  async fetchCNYHistory(days: number = 30): Promise<CNYHistoryPoint[] | null> {
     const cacheKey = `cny_history_${days}`;
     const cached = cacheGet(cacheKey);
-    if (cached) return cached;
+    if (cached) return cached as CNYHistoryPoint[];
 
     if (!canRequest('frankfurter')) return null;
     consumeToken('frankfurter');
 
     try {
-      const to = new Date().toISOString().split('T')[0];
-      const from = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+      const to: string = new Date().toISOString().split('T')[0];
+      const from: string = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
       const res = await fetchWithTimeout(`${API.FRANKFURTER.timeseries(from, to)}?base=USD&symbols=CNY`);
       if (!res.ok) return null;
-      const data = await res.json();
-      const rates = Object.entries(data.rates || {}).map(([date, r]) => ({
+      const data = await res.json() as { rates?: Record<string, { CNY: number }> };
+      const rates: CNYHistoryPoint[] = Object.entries(data.rates || {}).map(([date, r]: [string, { CNY: number }]): CNYHistoryPoint => ({
         date,
         rate: r.CNY,
       })).sort((a, b) => a.date.localeCompare(b.date));
       cacheSet(cacheKey, rates, 600000);
       return rates;
     } catch (err) {
-      console.warn('[ChinaAPI history]', err.message);
+      console.warn('[ChinaAPI history]', (err as Error).message);
       return null;
     }
   },

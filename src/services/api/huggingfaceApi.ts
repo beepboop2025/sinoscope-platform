@@ -5,7 +5,19 @@ import { fetchWithTimeout } from '../../utils/helpers';
 
 createRateLimiter('huggingface', 30, 60000);
 
-const FINANCE_SEARCHES = [
+interface HuggingFaceModel {
+  id: string;
+  name: string;
+  pipeline: string;
+  downloads: number;
+  likes: number;
+  tags: string[];
+  lastModified: string;
+  library: string;
+  isPrivate?: boolean;
+}
+
+const FINANCE_SEARCHES: string[] = [
   'financial-sentiment',
   'stock-prediction',
   'finance-text-classification',
@@ -13,10 +25,10 @@ const FINANCE_SEARCHES = [
   'trading',
 ];
 
-export async function fetchHuggingFaceModels(search = 'finance') {
+export async function fetchHuggingFaceModels(search: string = 'finance'): Promise<HuggingFaceModel[] | null> {
   const cacheKey = `hf_models_${search}`;
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as HuggingFaceModel[];
 
   if (!canRequest('huggingface')) return null;
   consumeToken('huggingface');
@@ -26,39 +38,39 @@ export async function fetchHuggingFaceModels(search = 'finance') {
       `https://huggingface.co/api/models?search=${encodeURIComponent(search)}&sort=downloads&direction=-1&limit=20`
     );
     if (!res.ok) throw new Error(`HuggingFace: ${res.status}`);
-    const data = await res.json();
+    const data: unknown = await res.json();
 
-    const models = (data || []).map(m => ({
-      id: m.modelId || m.id,
-      name: m.modelId || m.id,
-      pipeline: m.pipeline_tag || 'unknown',
-      downloads: m.downloads || 0,
-      likes: m.likes || 0,
-      tags: (m.tags || []).slice(0, 8),
-      lastModified: m.lastModified,
-      library: m.library_name || '',
-      isPrivate: m.private || false,
+    const models: HuggingFaceModel[] = ((data as Record<string, unknown>[]) || []).map((m: Record<string, unknown>): HuggingFaceModel => ({
+      id: (m.modelId || m.id) as string,
+      name: (m.modelId || m.id) as string,
+      pipeline: (m.pipeline_tag || 'unknown') as string,
+      downloads: (m.downloads || 0) as number,
+      likes: (m.likes || 0) as number,
+      tags: ((m.tags || []) as string[]).slice(0, 8),
+      lastModified: m.lastModified as string,
+      library: (m.library_name || '') as string,
+      isPrivate: (m.private || false) as boolean,
     }));
 
     cacheSet(cacheKey, models, 300000); // 5 min cache
     return models;
   } catch (err) {
-    console.warn('[HuggingFaceAPI]', err.message);
+    console.warn('[HuggingFaceAPI]', (err as Error).message);
     return null;
   }
 }
 
-export async function fetchFinanceModels() {
+export async function fetchFinanceModels(): Promise<HuggingFaceModel[] | null> {
   // Collector-first: pre-fetched HuggingFace models
   const collected = await getCollectorData('huggingface_models');
-  if (collected && collected.length > 0) return collected;
+  if (collected && (collected as HuggingFaceModel[]).length > 0) return collected as HuggingFaceModel[];
 
   const cacheKey = 'hf_finance_all';
   const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (cached) return cached as HuggingFaceModel[];
 
-  const allModels = [];
-  const seen = new Set();
+  const allModels: HuggingFaceModel[] = [];
+  const seen = new Set<string>();
 
   for (const q of FINANCE_SEARCHES) {
     const models = await fetchHuggingFaceModels(q);
@@ -70,11 +82,11 @@ export async function fetchFinanceModels() {
         }
       }
     }
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise<void>(r => setTimeout(r, 300));
   }
 
   allModels.sort((a, b) => b.downloads - a.downloads);
-  const top = allModels.slice(0, 40);
+  const top: HuggingFaceModel[] = allModels.slice(0, 40);
 
   if (top.length > 0) {
     cacheSet(cacheKey, top, 600000);
@@ -82,7 +94,7 @@ export async function fetchFinanceModels() {
   return top.length > 0 ? top : null;
 }
 
-export function getMockHuggingFaceModels() {
+export function getMockHuggingFaceModels(): HuggingFaceModel[] {
   return [
     { id: 'ProsusAI/finbert', name: 'ProsusAI/finbert', pipeline: 'text-classification', downloads: 5800000, likes: 520, tags: ['finance', 'sentiment', 'bert'], lastModified: new Date().toISOString(), library: 'transformers' },
     { id: 'yiyanghkust/finbert-tone', name: 'yiyanghkust/finbert-tone', pipeline: 'text-classification', downloads: 1200000, likes: 180, tags: ['finance', 'sentiment'], lastModified: new Date().toISOString(), library: 'transformers' },

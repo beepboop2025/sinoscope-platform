@@ -4,25 +4,30 @@
  * with a 10s in-memory cache. Returns null on any failure (silent fallback).
  */
 
-const cache = new Map();
-const CACHE_TTL = 10_000; // 10 seconds
-const FETCH_TIMEOUT = 8_000; // 8 second timeout
+interface CollectorCacheEntry {
+  data: unknown;
+  time: number;
+}
 
-export async function getCollectorData(category) {
-  const now = Date.now();
-  const cached = cache.get(category);
+const cache: Map<string, CollectorCacheEntry> = new Map();
+const CACHE_TTL: number = 10_000; // 10 seconds
+const FETCH_TIMEOUT: number = 8_000; // 8 second timeout
+
+export async function getCollectorData(category: string): Promise<unknown> {
+  const now: number = Date.now();
+  const cached: CollectorCacheEntry | undefined = cache.get(category);
   if (cached && (now - cached.time) < CACHE_TTL) {
     return cached.data;
   }
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-    const res = await fetch(`/api/data/${category}`, { signal: controller.signal });
+    const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    const res: Response = await fetch(`/api/data/${category}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) return null;
-    const json = await res.json();
-    const data = json.data ?? null;
+    const json: { data?: unknown } = await res.json();
+    const data: unknown = json.data ?? null;
     if (data !== null) {
       cache.set(category, { data, time: now });
     }
