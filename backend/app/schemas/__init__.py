@@ -15,4 +15,12 @@ from app.schemas.watchlist import (
 )
 from app.schemas.alert import AlertCreate, AlertUpdate, AlertResponse
 from app.schemas.market_data import MarketDataResponse
+from app.schemas.history import (
+    TickResponse,
+    CandleResponse,
+    SnapshotResponse,
+    SymbolInfo,
+    TimeSeriesResponse,
+    StatsResponse,
+)
 from app.schemas.api_key import ApiKeyCreate, ApiKeyResponse

@@ -12,7 +12,7 @@ from app.config import get_settings
 from app.database import engine
 from app.middleware.request_id import RequestIdMiddleware
 from app.redis import close_redis, init_redis
-from app.routes import alerts, api_keys, data, health, portfolios, users, watchlists, websocket
+from app.routes import alerts, api_keys, data, health, history, portfolios, users, watchlists, websocket
 from app.services.websocket_manager import ws_manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -70,6 +70,7 @@ app.add_middleware(
 # Routes
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(data.router, prefix="/api", tags=["data"])
+app.include_router(history.router, prefix="/api", tags=["history"])
 app.include_router(portfolios.router, prefix="/api", tags=["portfolios"])
 app.include_router(watchlists.router, prefix="/api", tags=["watchlists"])
 app.include_router(alerts.router, prefix="/api", tags=["alerts"])

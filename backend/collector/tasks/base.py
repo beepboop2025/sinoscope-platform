@@ -39,6 +39,20 @@ def save_data(category: str, data: Any, ttl: int = 120) -> None:
     r.publish("market:updates", json.dumps({"category": category, "timestamp": payload["_updated"]}))
     logger.info(f"[{category.upper()}] Data saved to Redis")
 
+    # Persist to TimescaleDB (fire-and-forget)
+    _persist_to_db(category, data)
+
+
+def _persist_to_db(category: str, data: Any) -> None:
+    """Write data to TimescaleDB if enabled. Failures are logged, never raised."""
+    if not settings.TIMESCALE_ENABLED:
+        return
+    try:
+        from collector.db_writer import persist
+        persist(category, data)
+    except Exception as e:
+        logger.error(f"[{category.upper()}] TimescaleDB persist failed: {e}")
+
 
 def safe_fetch(url: str, headers: dict | None = None, timeout: float = 15.0) -> httpx.Response:
     """Synchronous HTTP fetch with timeout."""

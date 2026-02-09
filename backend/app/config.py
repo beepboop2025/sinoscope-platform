@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     NEWSAPI_API_KEY: str = ""
     WORLD_NEWS_API_KEY: str = ""
 
+    # TimescaleDB
+    TIMESCALE_ENABLED: bool = True
+    TIMESCALE_RETENTION_DAYS: int = 90
+    TIMESCALE_COMPRESSION_AFTER_DAYS: int = 7
+
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 200
 

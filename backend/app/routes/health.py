@@ -33,6 +33,27 @@ async def health_check():
         status["redis"] = f"error: {e}"
         status["status"] = "degraded"
 
+    # Check TimescaleDB
+    try:
+        async with async_session_factory() as session:
+            result = await session.execute(
+                text("SELECT extversion FROM pg_extension WHERE extname = 'timescaledb'")
+            )
+            version = result.scalar_one_or_none()
+            if version:
+                status["timescaledb"] = {"version": version}
+                # Chunk count
+                result = await session.execute(text(
+                    "SELECT coalesce(sum(num_chunks), 0) FROM timescaledb_information.hypertables "
+                    "WHERE hypertable_schema = 'public'"
+                ))
+                chunk_count = result.scalar_one_or_none()
+                status["timescaledb"]["chunks"] = chunk_count or 0
+            else:
+                status["timescaledb"] = "extension not installed"
+    except Exception as e:
+        status["timescaledb"] = f"error: {e}"
+
     # Check collector last update
     try:
         r = get_redis()
