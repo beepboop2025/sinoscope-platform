@@ -6,6 +6,7 @@ import AppShell from './components/layout/AppShell';
 import CommandBar from './components/layout/CommandBar';
 import ShortcutsModal from './components/shared/ShortcutsModal';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import OfflineIndicator from './components/shared/OfflineIndicator';
 
 // Panels
 import PanelForex from './components/panels/PanelForex';
@@ -68,6 +69,17 @@ import { generateMockEconomic, generateMockYieldCurve } from './generators/mockE
 const CORRELATION_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'BTC', 'ETH', 'SOL'];
 
 function App() {
+  // Remove splash screen once React has mounted
+  useEffect(() => {
+    const splash = document.getElementById('splash');
+    if (splash) {
+      requestAnimationFrame(() => {
+        splash.classList.add('splash-fade-out');
+        setTimeout(() => splash.remove(), 600);
+      });
+    }
+  }, []);
+
   const engineRef = useRef(null);
   const [useMock, setUseMock] = useState(false);
   const [events, setEvents] = useState([]);
@@ -403,6 +415,7 @@ function App() {
         onClose={() => commandBar.setIsOpen(false)}
       />
       <ShortcutsModal isOpen={commandBar.showShortcuts} onClose={() => commandBar.setShowShortcuts(false)} />
+      <OfflineIndicator />
     </AppShell>
   );
 }

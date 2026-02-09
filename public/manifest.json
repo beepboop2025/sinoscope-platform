@@ -6,9 +6,12 @@
   "display": "standalone",
   "background_color": "#050810",
   "theme_color": "#06d6e0",
+  "orientation": "any",
+  "lang": "en",
+  "categories": ["finance", "productivity"],
   "icons": [
     {
-      "src": "/vite.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

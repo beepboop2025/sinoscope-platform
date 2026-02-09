@@ -1,7 +1,11 @@
-import { useState, useEffect, memo } from 'react';
-import { Activity, Wifi, WifiOff, Command, Sun, Moon } from 'lucide-react';
+import { useState, useEffect, memo, lazy, Suspense } from 'react';
+import { Activity, Wifi, WifiOff, Command, Sun, Moon, Download } from 'lucide-react';
 import { useTheme } from '../shared/ThemeProvider';
+import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 import { TIMEZONES, getTimeInZone } from '../../utils/time';
+
+const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const UserMenu = CLERK_ENABLED ? lazy(() => import('../auth/UserMenu')) : null;
 
 const ClockDisplay = memo(({ label, tz, abbr }) => {
   const [time, setTime] = useState(getTimeInZone(tz));
@@ -21,6 +25,7 @@ ClockDisplay.displayName = "ClockDisplay";
 export default function Header({ wsStatus, onOpenCommandBar }) {
   const isConnected = wsStatus === 'connected';
   const { theme, toggleTheme } = useTheme();
+  const { canInstall, promptInstall } = useInstallPrompt();
 
   return (
     <div className="app-header">
@@ -48,6 +53,18 @@ export default function Header({ wsStatus, onOpenCommandBar }) {
           <Command size={12} aria-hidden="true" /> <span className="mono">Ctrl+K</span>
         </button>
 
+        {canInstall && (
+          <button
+            className="btn-ghost"
+            onClick={promptInstall}
+            title="Install DragonScope"
+            aria-label="Install DragonScope as app"
+            style={{ padding: '4px 10px', fontSize: 11, color: 'var(--cyan)' }}
+          >
+            <Download size={12} aria-hidden="true" /> <span className="mono">Install</span>
+          </button>
+        )}
+
         <button
           className="btn-ghost"
           onClick={toggleTheme}
@@ -57,6 +74,12 @@ export default function Header({ wsStatus, onOpenCommandBar }) {
         >
           {theme === 'dark' ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
         </button>
+
+        {UserMenu && (
+          <Suspense fallback={null}>
+            <UserMenu />
+          </Suspense>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} role="status" aria-live="polite" aria-label={isConnected ? 'WebSocket connected' : 'WebSocket disconnected'}>
           {isConnected ? <Wifi size={14} color="var(--green)" aria-hidden="true" /> : <WifiOff size={14} color="var(--text-4)" aria-hidden="true" />}
