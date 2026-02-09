@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createTimelineEngine } from './TimelineEngine';
 
 describe('TimelineEngine', () => {
-  let timeline;
+  let timeline: ReturnType<typeof createTimelineEngine>;
 
   beforeEach(() => {
     timeline = createTimelineEngine();
@@ -58,8 +58,8 @@ describe('TimelineEngine', () => {
     ];
     const impact = timeline.calculateImpact('ev1', 'AAPL', history);
     expect(impact).not.toBeNull();
-    expect(impact.impacts['5m'].change).toBeCloseTo(5, 0);
-    expect(impact.impacts['30m'].change).toBeCloseTo(10, 0);
+    expect(impact!.impacts['5m'].change).toBeCloseTo(5, 0);
+    expect(impact!.impacts['30m'].change).toBeCloseTo(10, 0);
   });
 
   it('gets market regime', () => {

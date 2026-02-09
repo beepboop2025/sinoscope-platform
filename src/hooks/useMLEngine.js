@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MLEngine } from '../ml/MLEngine.js';
+import { MLEngine } from '../ml/MLEngine';
 
 // Singleton ML engine instance
 let engineInstance = null;

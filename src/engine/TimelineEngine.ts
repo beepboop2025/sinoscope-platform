@@ -3,26 +3,86 @@
  * Maps news/events to price movements
  */
 
+interface TimelineEvent {
+  id: string;
+  type: string;
+  title: string;
+  timestamp: number;
+  symbols: string[];
+  impact: string;
+  source: string;
+  addedAt?: number;
+}
+
+interface PriceCapture {
+  symbol: string;
+  timestamp: number;
+  price: number;
+  capturedAt: number;
+}
+
+interface PriceHistoryPoint {
+  timestamp: number;
+  price: number;
+}
+
+interface ImpactWindow {
+  change: number;
+  direction: 'up' | 'down' | 'neutral';
+  magnitude: number;
+}
+
+interface ImpactAnalysis {
+  eventId: string;
+  symbol: string;
+  eventTime: number;
+  eventPrice: number;
+  impacts: Record<string, ImpactWindow>;
+}
+
+interface VolatilityDataPoint {
+  timestamp: number;
+  volatility: number;
+}
+
+interface VolatilityEventCorrelation {
+  timestamp: number;
+  volatility: number;
+  events: TimelineEvent[];
+}
+
+interface MarketRegimeInfo {
+  regime: string;
+  eventCount: number;
+  typeDistribution: Record<string, number>;
+  impactDistribution: Record<string, number>;
+  window: number;
+}
+
+interface TimelineEngineInstance {
+  addEvent(event: Omit<TimelineEvent, 'addedAt'>): void;
+  capturePriceAtEvent(symbol: string, timestamp: number, price: number): void;
+  calculateImpact(eventId: string, symbol: string, priceHistory: PriceHistoryPoint[], windows?: number[]): ImpactAnalysis | null;
+  getEventsForSymbol(symbol: string, startTime: number, endTime: number): TimelineEvent[];
+  getEventsByType(type: string, limit?: number): TimelineEvent[];
+  getHighImpactEvents(limit?: number): TimelineEvent[];
+  createTimeline(startTime: number, endTime: number, symbols?: string[]): TimelineEvent[];
+  findVolatilityEvents(volatilityData: VolatilityDataPoint[], threshold?: number): VolatilityEventCorrelation[];
+  getMarketRegime(window?: number): MarketRegimeInfo;
+  clear(): void;
+}
+
 /**
  * Create TimelineEngine instance
- * @returns {Object} Engine methods
  */
-export function createTimelineEngine() {
-  const events = [];
-  const priceData = new Map();
+export function createTimelineEngine(): TimelineEngineInstance {
+  const events: TimelineEvent[] = [];
+  const priceData = new Map<string, PriceCapture>();
 
   /**
    * Add event to timeline
-   * @param {Object} event - Event data
-   * @param {string} event.id - Unique ID
-   * @param {string} event.type - Event type (earnings, economic, geopolitical, etc.)
-   * @param {string} event.title - Event title
-   * @param {number} event.timestamp - Unix timestamp
-   * @param {Array<string>} event.symbols - Affected symbols
-   * @param {string} event.impact - Expected impact (high, medium, low)
-   * @param {string} event.source - News source
    */
-  function addEvent(event) {
+  function addEvent(event: Omit<TimelineEvent, 'addedAt'>): void {
     events.push({
       ...event,
       addedAt: Date.now(),
@@ -31,11 +91,8 @@ export function createTimelineEngine() {
 
   /**
    * Store price snapshot at event time
-   * @param {string} symbol - Ticker symbol
-   * @param {number} timestamp - Event timestamp
-   * @param {number} price - Price at event time
    */
-  function capturePriceAtEvent(symbol, timestamp, price) {
+  function capturePriceAtEvent(symbol: string, timestamp: number, price: number): void {
     const key = `${symbol}-${timestamp}`;
     priceData.set(key, {
       symbol,
@@ -47,27 +104,22 @@ export function createTimelineEngine() {
 
   /**
    * Calculate price impact of an event
-   * @param {string} eventId - Event ID
-   * @param {string} symbol - Symbol to analyze
-   * @param {Array<Object>} priceHistory - Price history [{timestamp, price}]
-   * @param {Array<number>} windows - Time windows in minutes [immediate, short, medium]
-   * @returns {Object} Impact analysis
    */
-  function calculateImpact(eventId, symbol, priceHistory, windows = [5, 30, 60]) {
+  function calculateImpact(eventId: string, symbol: string, priceHistory: PriceHistoryPoint[], windows: number[] = [5, 30, 60]): ImpactAnalysis | null {
     const event = events.find(e => e.id === eventId);
     if (!event) return null;
-    
+
     const eventTime = event.timestamp;
     const eventPrice = priceHistory.find(p => p.timestamp >= eventTime)?.price;
-    
+
     if (!eventPrice) return null;
-    
-    const impacts = {};
-    
+
+    const impacts: Record<string, ImpactWindow> = {};
+
     windows.forEach(window => {
       const futureTime = eventTime + window * 60 * 1000;
       const futurePrice = priceHistory.find(p => p.timestamp >= futureTime)?.price;
-      
+
       if (futurePrice) {
         const change = ((futurePrice - eventPrice) / eventPrice) * 100;
         impacts[`${window}m`] = {
@@ -77,7 +129,7 @@ export function createTimelineEngine() {
         };
       }
     });
-    
+
     return {
       eventId,
       symbol,
@@ -89,13 +141,9 @@ export function createTimelineEngine() {
 
   /**
    * Get events affecting a symbol within time range
-   * @param {string} symbol - Ticker symbol
-   * @param {number} startTime - Start timestamp
-   * @param {number} endTime - End timestamp
-   * @returns {Array} Matching events
    */
-  function getEventsForSymbol(symbol, startTime, endTime) {
-    return events.filter(e => 
+  function getEventsForSymbol(symbol: string, startTime: number, endTime: number): TimelineEvent[] {
+    return events.filter(e =>
       e.symbols.includes(symbol) &&
       e.timestamp >= startTime &&
       e.timestamp <= endTime
@@ -104,11 +152,8 @@ export function createTimelineEngine() {
 
   /**
    * Get events by type
-   * @param {string} type - Event type
-   * @param {number} limit - Max results
-   * @returns {Array} Events
    */
-  function getEventsByType(type, limit = 20) {
+  function getEventsByType(type: string, limit: number = 20): TimelineEvent[] {
     return events
       .filter(e => e.type === type)
       .slice(-limit)
@@ -117,10 +162,8 @@ export function createTimelineEngine() {
 
   /**
    * Get high impact events
-   * @param {number} limit - Max results
-   * @returns {Array} High impact events
    */
-  function getHighImpactEvents(limit = 10) {
+  function getHighImpactEvents(limit: number = 10): TimelineEvent[] {
     return events
       .filter(e => e.impact === 'high')
       .slice(-limit)
@@ -129,37 +172,30 @@ export function createTimelineEngine() {
 
   /**
    * Create timeline for visualization
-   * @param {number} startTime - Start timestamp
-   * @param {number} endTime - End timestamp
-   * @param {Array<string>} symbols - Symbols to include
-   * @returns {Array} Timeline events
    */
-  function createTimeline(startTime, endTime, symbols = []) {
+  function createTimeline(startTime: number, endTime: number, symbols: string[] = []): TimelineEvent[] {
     const filtered = events.filter(e => {
       const inTimeRange = e.timestamp >= startTime && e.timestamp <= endTime;
       const hasSymbol = symbols.length === 0 || e.symbols.some(s => symbols.includes(s));
       return inTimeRange && hasSymbol;
     });
-    
+
     return filtered.sort((a, b) => a.timestamp - b.timestamp);
   }
 
   /**
    * Correlate events with volatility spikes
-   * @param {Array<Object>} volatilityData - [{timestamp, volatility}]
-   * @param {number} threshold - Volatility threshold
-   * @returns {Array} Correlated events
    */
-  function findVolatilityEvents(volatilityData, threshold = 50) {
+  function findVolatilityEvents(volatilityData: VolatilityDataPoint[], threshold: number = 50): VolatilityEventCorrelation[] {
     const spikes = volatilityData.filter(v => v.volatility > threshold);
-    const correlations = [];
-    
+    const correlations: VolatilityEventCorrelation[] = [];
+
     spikes.forEach(spike => {
       // Find events within 1 hour of volatility spike
-      const nearby = events.filter(e => 
+      const nearby = events.filter(e =>
         Math.abs(e.timestamp - spike.timestamp) < 60 * 60 * 1000
       );
-      
+
       if (nearby.length > 0) {
         correlations.push({
           timestamp: spike.timestamp,
@@ -168,32 +204,30 @@ export function createTimelineEngine() {
         });
       }
     });
-    
+
     return correlations;
   }
 
   /**
    * Get market regime based on event clustering
-   * @param {number} window - Time window in hours
-   * @returns {Object} Market regime info
    */
-  function getMarketRegime(window = 24) {
+  function getMarketRegime(window: number = 24): MarketRegimeInfo {
     const cutoff = Date.now() - window * 60 * 60 * 1000;
     const recent = events.filter(e => e.timestamp > cutoff);
-    
-    const typeCounts = {};
-    const impactCounts = { high: 0, medium: 0, low: 0 };
-    
+
+    const typeCounts: Record<string, number> = {};
+    const impactCounts: Record<string, number> = { high: 0, medium: 0, low: 0 };
+
     recent.forEach(e => {
       typeCounts[e.type] = (typeCounts[e.type] || 0) + 1;
       impactCounts[e.impact]++;
     });
-    
+
     let regime = 'normal';
     if (impactCounts.high > 3) regime = 'high_volatility';
     else if (typeCounts.geopolitical > 2) regime = 'geopolitical_risk';
     else if (typeCounts.earnings > 5) regime = 'earnings_season';
-    
+
     return {
       regime,
       eventCount: recent.length,
@@ -206,7 +240,7 @@ export function createTimelineEngine() {
   /**
    * Clear all data
    */
-  function clear() {
+  function clear(): void {
     events.length = 0;
     priceData.clear();
   }

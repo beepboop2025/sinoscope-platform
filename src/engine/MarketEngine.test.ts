@@ -11,7 +11,7 @@ vi.mock('../generators/mockEconomic', () => ({ generateMockEconomic: vi.fn().moc
 vi.mock('../generators/mockChina', () => ({ generateMockChinaIndices: vi.fn().mockReturnValue([]) }));
 
 describe('MarketEngine', () => {
-  let engine;
+  let engine: ReturnType<typeof createMarketEngine>;
 
   beforeEach(() => {
     vi.useFakeTimers();
