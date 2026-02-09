@@ -8,6 +8,19 @@ celery_app = Celery(
     "dragonscope_collector",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
+    include=[
+        "collector.tasks.forex",
+        "collector.tasks.crypto",
+        "collector.tasks.stocks",
+        "collector.tasks.bonds",
+        "collector.tasks.commodities",
+        "collector.tasks.economic",
+        "collector.tasks.news",
+        "collector.tasks.defi",
+        "collector.tasks.sentiment",
+        "collector.tasks.research",
+        "collector.tasks.china",
+    ],
 )
 
 celery_app.conf.update(
@@ -23,6 +36,3 @@ celery_app.conf.update(
     task_soft_time_limit=120,
     task_time_limit=180,
 )
-
-# Auto-discover tasks
-celery_app.autodiscover_tasks(["collector.tasks"])
