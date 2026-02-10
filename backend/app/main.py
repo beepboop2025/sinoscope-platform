@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.database import engine
 from app.logging_config import setup_logging
-from app.middleware.case_converter import CaseConverterMiddleware
+from app.middleware.case_converter import CamelCaseResponse, CaseConverterMiddleware
 from app.middleware.request_id import RequestIdMiddleware
 from app.middleware.slow_query import setup_slow_query_logging
 from app.redis import close_redis, get_redis, init_redis
@@ -53,6 +53,7 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
+    default_response_class=CamelCaseResponse,
 )
 
 # ── Prometheus metrics ───────────────────────────────────────────────────────
@@ -84,9 +85,8 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Request-ID", "Accept"],
 )
 
-# Case conversion (innermost — closest to route handlers)
-# Converts request body camelCase→snake_case, response body snake_case→camelCase
-# Excludes /api/data/* (raw external data) and /metrics (Prometheus text)
+# Case conversion — request-only middleware (camelCase→snake_case for incoming JSON)
+# Response conversion is handled by CamelCaseResponse (default_response_class)
 app.add_middleware(CaseConverterMiddleware)
 
 # ── Routes ───────────────────────────────────────────────────────────────────

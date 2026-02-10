@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.services.cache import get_cached_json
@@ -14,7 +15,7 @@ router = APIRouter()
 settings = get_settings()
 
 
-@router.get("/data/{category}")
+@router.get("/data/{category}", response_class=JSONResponse)
 async def get_market_data(category: str):
     """Get market data by category. Reads from Redis cache first, falls back to JSON files."""
     # Validate category name (prevent path traversal)

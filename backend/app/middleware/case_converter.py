@@ -1,37 +1,38 @@
-"""Middleware to convert request JSON keys camelCase→snake_case and response snake_case→camelCase.
+"""camelCase↔snake_case conversion for JSON API.
 
-Excludes:
-- /api/data/* responses (raw external API data the frontend expects as-is)
-- /metrics responses (Prometheus text format)
+Provides:
+1. CamelCaseResponse — JSONResponse subclass that converts snake_case keys to camelCase
+2. convert_request_body — dependency that converts incoming camelCase body to snake_case
+3. CaseConverterMiddleware — request-only middleware for camelCase→snake_case conversion
+
+The response conversion is done via a custom default_response_class on the FastAPI app,
+which avoids all middleware ordering conflicts with GZip.
 """
 
 import json
 import re
+from typing import Any
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response, StreamingResponse
+from fastapi.responses import JSONResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 _CAMEL_RE = re.compile(r"([A-Z])")
 _SNAKE_RE = re.compile(r"_([a-z])")
 
-# Paths whose *response* should NOT be converted (raw external data or non-JSON)
+# Paths whose response should NOT be converted
 _SKIP_RESPONSE_PREFIXES = ("/api/data/", "/metrics")
 
 
 def to_snake_case(name: str) -> str:
-    """Convert camelCase to snake_case."""
     return _CAMEL_RE.sub(lambda m: "_" + m.group(1).lower(), name).lstrip("_")
 
 
 def to_camel_case(name: str) -> str:
-    """Convert snake_case to camelCase."""
     return _SNAKE_RE.sub(lambda m: m.group(1).upper(), name)
 
 
-def convert_keys(obj: object, converter) -> object:
-    """Recursively convert all dict keys using converter function."""
+def convert_keys(obj: Any, converter) -> Any:
     if isinstance(obj, dict):
         return {converter(k): convert_keys(v, converter) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -39,57 +40,68 @@ def convert_keys(obj: object, converter) -> object:
     return obj
 
 
-class CaseConverterMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
-        # --- Request: camelCase → snake_case ---
-        content_type = request.headers.get("content-type", "")
-        if "application/json" in content_type and request.method in ("POST", "PUT", "PATCH"):
-            body = await request.body()
-            if body:
-                try:
-                    data = json.loads(body)
-                    converted = convert_keys(data, to_snake_case)
-                    # Replace the request body with converted data
-                    request._body = json.dumps(converted).encode("utf-8")
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    pass  # Not valid JSON, pass through
+class CamelCaseResponse(JSONResponse):
+    """JSONResponse that auto-converts snake_case keys to camelCase."""
 
-        response = await call_next(request)
+    def render(self, content: Any) -> bytes:
+        converted = convert_keys(content, to_camel_case)
+        return json.dumps(
+            converted,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+        ).encode("utf-8")
 
-        # --- Response: snake_case → camelCase ---
-        path = request.url.path
-        if any(path.startswith(prefix) for prefix in _SKIP_RESPONSE_PREFIXES):
-            return response
 
-        resp_content_type = response.headers.get("content-type", "")
-        if "application/json" not in resp_content_type:
-            return response
+class RawJSONResponse(JSONResponse):
+    """Standard JSONResponse with no key conversion (for /api/data/*)."""
+    pass
 
-        # Read the response body
-        body_chunks = []
-        async for chunk in response.body_iterator:
-            if isinstance(chunk, str):
-                body_chunks.append(chunk.encode("utf-8"))
-            else:
-                body_chunks.append(chunk)
-        body = b"".join(body_chunks)
 
-        if not body:
-            return response
+class CaseConverterMiddleware:
+    """Request-only ASGI middleware: converts incoming JSON body camelCase→snake_case."""
 
-        try:
-            data = json.loads(body)
-            converted = convert_keys(data, to_camel_case)
-            new_body = json.dumps(converted).encode("utf-8")
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            new_body = body
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
 
-        # Build new response preserving status and headers
-        headers = dict(response.headers)
-        headers["content-length"] = str(len(new_body))
-        return Response(
-            content=new_body,
-            status_code=response.status_code,
-            headers=headers,
-            media_type=response.media_type,
-        )
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        method = scope.get("method", "GET")
+        if method not in ("POST", "PUT", "PATCH"):
+            await self.app(scope, receive, send)
+            return
+
+        body_chunks: list[bytes] = []
+        body_complete = False
+
+        async def receive_wrapper() -> Message:
+            nonlocal body_complete
+            message = await receive()
+
+            if message.get("type") == "http.request":
+                body = message.get("body", b"")
+                more_body = message.get("more_body", False)
+                body_chunks.append(body)
+
+                if not more_body and not body_complete:
+                    body_complete = True
+                    full_body = b"".join(body_chunks)
+                    if full_body:
+                        try:
+                            data = json.loads(full_body)
+                            converted = convert_keys(data, to_snake_case)
+                            new_body = json.dumps(converted).encode("utf-8")
+                            return {
+                                "type": "http.request",
+                                "body": new_body,
+                                "more_body": False,
+                            }
+                        except (json.JSONDecodeError, UnicodeDecodeError):
+                            pass
+            return message
+
+        await self.app(scope, receive_wrapper, send)
