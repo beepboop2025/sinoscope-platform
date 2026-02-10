@@ -1,51 +1,49 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, CSSProperties } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 export interface PanelChromeProps {
   title: string;
-  icon?: ReactNode;
+  icon?: LucideIcon;
   iconColor?: string;
   children: ReactNode;
   onClose?: () => void;
-  lastUpdate?: number | null;
-  defaultCollapsed?: boolean;
+  className?: string;
+  exportable?: boolean;
+  lastUpdated?: number | null;
 }
 
 export interface DataTableColumn<T = Record<string, unknown>> {
   key: string;
   label: string;
-  sortable?: boolean;
+  style?: CSSProperties;
+  cellStyle?: CSSProperties;
   render?: (value: unknown, row: T) => ReactNode;
-  align?: 'left' | 'center' | 'right';
-  width?: string;
 }
 
 export interface DataTableProps<T = Record<string, unknown>> {
   columns: DataTableColumn<T>[];
   data: T[];
-  pageSize?: number;
-  emptyMessage?: string;
   onRowClick?: (row: T) => void;
-  stickyHeader?: boolean;
-  compact?: boolean;
 }
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface Toast {
-  id: string;
+  id: number;
   type: ToastType;
   message: string;
-  duration?: number;
+  duration: number;
 }
 
 export interface ToastContextValue {
-  addToast: (type: ToastType, message: string, duration?: number) => void;
-  removeToast: (id: string) => void;
+  addToast: (message: string, type?: ToastType, duration?: number) => number;
 }
 
+export type Theme = 'light' | 'dark';
+
 export interface ThemeContextValue {
-  isDark: boolean;
-  toggle: () => void;
+  theme: Theme;
+  toggleTheme: () => void;
 }
 
 export interface AlertConfig {
