@@ -1,13 +1,16 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--bg-0);
+  background: var(--bg-base);
   color: var(--text-1);
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-.mono { font-family: 'JetBrains Mono', monospace; }
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
 
 :focus-visible {
   outline: 2px solid var(--cyan);
@@ -32,12 +35,17 @@ body {
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 @keyframes breathe { 0%, 100% { box-shadow: 0 0 8px rgba(6,214,224,0.2); } 50% { box-shadow: 0 0 20px rgba(6,214,224,0.4); } }
 @keyframes scan-line { 0% { top: 0%; } 100% { top: 100%; } }
 
-.anim-in { animation: slide-up 0.35s ease-out both; }
-.anim-fade { animation: fade-in 0.4s ease-out both; }
+/* Diagonal shimmer for skeletons */
+@keyframes shimmer-sweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.anim-in { animation: slide-up 0.35s var(--ease-out) both; }
+.anim-fade { animation: fade-in 0.4s var(--ease-out) both; }
 .spinner { animation: spin 1s linear infinite; }
 
 /* ── Prefers reduced motion ── */

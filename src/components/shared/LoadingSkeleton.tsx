@@ -28,3 +28,19 @@ export const PanelSkeleton = memo((): ReactElement => (
   </div>
 ));
 PanelSkeleton.displayName = "PanelSkeleton";
+
+export const ChartSkeleton = memo(({ height = 200 }: { height?: number }): ReactElement => (
+  <div className="skeleton-chart" style={{ height, width: '100%' }}>
+    <div style={{ position: 'absolute', bottom: 8, left: 35, right: 10, display: 'flex', justifyContent: 'space-between' }}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="skeleton" style={{ width: 24, height: 8 }} />
+      ))}
+    </div>
+    <div style={{ position: 'absolute', top: 10, left: 5, bottom: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="skeleton" style={{ width: 28, height: 8 }} />
+      ))}
+    </div>
+  </div>
+));
+ChartSkeleton.displayName = "ChartSkeleton";

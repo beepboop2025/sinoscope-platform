@@ -1,5 +1,5 @@
-import { memo, type ReactElement } from 'react';
-import { LineChart as RLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush } from 'recharts';
+import { memo, useRef, useEffect, type ReactElement } from 'react';
+import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp, type DeepPartial, type ChartOptions } from 'lightweight-charts';
 import { CHART_COLORS } from '../../constants/colors';
 
 interface SeriesConfig {
@@ -21,53 +21,82 @@ interface LineChartProps {
   showBrush?: boolean;
 }
 
-const LineChartComponent = memo(({ data = [], series = [], height = 250, showGrid = true, showLegend = false, xKey = 'time', yDomain, formatY, showBrush = false }: LineChartProps): ReactElement | null => {
+function getCSSVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+const LineChartComponent = memo(({ data = [], series = [], height = 250, showGrid = true, xKey = 'time' }: LineChartProps): ReactElement | null => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRefs = useRef<ISeriesApi<'Line'>[]>([]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const bg = getCSSVar('--bg-1') || '#0a0f1a';
+    const text = getCSSVar('--text-3') || '#64748b';
+    const border = getCSSVar('--border-1') || 'rgba(255,255,255,0.06)';
+
+    const opts: DeepPartial<ChartOptions> = {
+      width: container.clientWidth,
+      height,
+      layout: { background: { color: bg }, textColor: text, fontFamily: 'JetBrains Mono, monospace', fontSize: 10 },
+      grid: { vertLines: { visible: showGrid, color: border }, horzLines: { visible: showGrid, color: border } },
+      rightPriceScale: { borderColor: border },
+      timeScale: { borderColor: border },
+    };
+
+    const chart = createChart(container, opts);
+    chartRef.current = chart;
+
+    // Add series
+    const refs: ISeriesApi<'Line'>[] = [];
+    series.forEach((s, i) => {
+      const lineSeries = chart.addLineSeries({
+        color: s.color || CHART_COLORS[i % CHART_COLORS.length],
+        lineWidth: (s.width || 1.5) as 1 | 2 | 3 | 4,
+      });
+      refs.push(lineSeries);
+    });
+    seriesRefs.current = refs;
+
+    const ro = new ResizeObserver(() => {
+      if (container.clientWidth > 0) {
+        chart.applyOptions({ width: container.clientWidth });
+      }
+    });
+    ro.observe(container);
+
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
+      seriesRefs.current = [];
+    };
+  }, [height, showGrid, series.length]);
+
+  // Update data
+  useEffect(() => {
+    if (!seriesRefs.current.length || !data.length) return;
+
+    series.forEach((s, i) => {
+      const ref = seriesRefs.current[i];
+      if (!ref) return;
+
+      const lwData = data.map((d, idx) => ({
+        time: idx as UTCTimestamp,
+        value: Number(d[s.key]) || 0,
+      }));
+      ref.setData(lwData);
+    });
+
+    chartRef.current?.timeScale().fitContent();
+  }, [data, series]);
+
   if (!data.length) return null;
 
-  const tooltipFormatter = (value: number | string, name: string): [string, string] => {
-    if (typeof value !== 'number') return [String(value), name];
-    if (formatY) return [formatY(value), name];
-    return [value.toLocaleString(undefined, { maximumFractionDigits: 4 }), name];
-  };
-
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <RLineChart data={data} margin={{ top: 4, right: 8, bottom: showBrush ? 2 : 4, left: 0 }}>
-        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-1)" />}
-        <XAxis dataKey={xKey} tick={{ fontSize: 9, fill: 'var(--text-4)' }} tickLine={false} axisLine={{ stroke: 'var(--border-1)' }} />
-        <YAxis domain={yDomain || ['auto', 'auto']} tick={{ fontSize: 9, fill: 'var(--text-4)' }} tickLine={false} axisLine={false} tickFormatter={formatY} width={50} />
-        <Tooltip
-          contentStyle={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-1)' }}
-          labelStyle={{ color: 'var(--text-3)', fontSize: 10 }}
-          cursor={{ stroke: 'var(--text-3)', strokeDasharray: '3 3' }}
-          formatter={tooltipFormatter}
-        />
-        {showLegend && <Legend wrapperStyle={{ fontSize: 10, color: 'var(--text-3)' }} />}
-        {series.map((s, i) => (
-          <Line
-            key={s.key}
-            type="monotone"
-            dataKey={s.key}
-            name={s.name || s.key}
-            stroke={s.color || CHART_COLORS[i % CHART_COLORS.length]}
-            strokeWidth={s.width || 1.5}
-            dot={false}
-            activeDot={{ r: 3 }}
-          />
-        ))}
-        {showBrush && data.length > 10 && (
-          <Brush
-            dataKey={xKey}
-            height={18}
-            stroke="var(--border-2)"
-            fill="var(--bg-2)"
-            travellerWidth={8}
-            tickFormatter={() => ''}
-          />
-        )}
-      </RLineChart>
-    </ResponsiveContainer>
-  );
+  return <div ref={containerRef} style={{ width: '100%', height }} />;
 });
 LineChartComponent.displayName = 'LineChartComponent';
 export default LineChartComponent;

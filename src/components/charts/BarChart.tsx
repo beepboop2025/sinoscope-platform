@@ -1,5 +1,5 @@
-import { memo, type ReactElement } from 'react';
-import { BarChart as RBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, Brush } from 'recharts';
+import { memo, useRef, useEffect, type ReactElement } from 'react';
+import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp, type DeepPartial, type ChartOptions } from 'lightweight-charts';
 import { CHART_COLORS } from '../../constants/colors';
 
 interface BarConfig {
@@ -20,41 +20,86 @@ interface BarChartProps {
   showBrush?: boolean;
 }
 
-const BarChartComponent = memo(({ data = [], bars = [], height = 250, showGrid = true, showLegend = false, xKey = 'name', colorByValue = false, formatY, showBrush = false }: BarChartProps): ReactElement | null => {
+function getCSSVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+const BarChartComponent = memo(({ data = [], bars = [], height = 250, showGrid = true, colorByValue = false }: BarChartProps): ReactElement | null => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRefs = useRef<ISeriesApi<'Histogram'>[]>([]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const bg = getCSSVar('--bg-1') || '#0a0f1a';
+    const text = getCSSVar('--text-3') || '#64748b';
+    const border = getCSSVar('--border-1') || 'rgba(255,255,255,0.06)';
+
+    const opts: DeepPartial<ChartOptions> = {
+      width: container.clientWidth,
+      height,
+      layout: { background: { color: bg }, textColor: text, fontFamily: 'JetBrains Mono, monospace', fontSize: 10 },
+      grid: { vertLines: { visible: showGrid, color: border }, horzLines: { visible: showGrid, color: border } },
+      rightPriceScale: { borderColor: border },
+      timeScale: { borderColor: border },
+    };
+
+    const chart = createChart(container, opts);
+    chartRef.current = chart;
+
+    const refs: ISeriesApi<'Histogram'>[] = [];
+    bars.forEach((b, i) => {
+      const series = chart.addHistogramSeries({
+        color: b.color || CHART_COLORS[i % CHART_COLORS.length],
+      });
+      refs.push(series);
+    });
+    seriesRefs.current = refs;
+
+    const ro = new ResizeObserver(() => {
+      if (container.clientWidth > 0) {
+        chart.applyOptions({ width: container.clientWidth });
+      }
+    });
+    ro.observe(container);
+
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
+      seriesRefs.current = [];
+    };
+  }, [height, showGrid, bars.length]);
+
+  useEffect(() => {
+    if (!seriesRefs.current.length || !data.length) return;
+
+    const green = getCSSVar('--green') || '#00DC82';
+    const red = getCSSVar('--red') || '#FF4458';
+
+    bars.forEach((b, i) => {
+      const ref = seriesRefs.current[i];
+      if (!ref) return;
+
+      const lwData = data.map((d, idx) => {
+        const val = Number(d[b.key]) || 0;
+        return {
+          time: idx as UTCTimestamp,
+          value: val,
+          ...(colorByValue ? { color: val >= 0 ? green : red } : {}),
+        };
+      });
+      ref.setData(lwData);
+    });
+
+    chartRef.current?.timeScale().fitContent();
+  }, [data, bars, colorByValue]);
+
   if (!data.length) return null;
 
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <RBarChart data={data} margin={{ top: 4, right: 8, bottom: showBrush ? 2 : 4, left: 0 }}>
-        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-1)" />}
-        <XAxis dataKey={xKey} tick={{ fontSize: 9, fill: 'var(--text-4)' }} tickLine={false} axisLine={{ stroke: 'var(--border-1)' }} />
-        <YAxis tick={{ fontSize: 9, fill: 'var(--text-4)' }} tickLine={false} axisLine={false} tickFormatter={formatY} width={50} />
-        <Tooltip
-          contentStyle={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-1)' }}
-          labelStyle={{ color: 'var(--text-3)', fontSize: 10 }}
-          cursor={{ fill: 'var(--bg-3)', opacity: 0.3 }}
-        />
-        {showLegend && <Legend wrapperStyle={{ fontSize: 10, color: 'var(--text-3)' }} />}
-        {bars.map((b, i) => (
-          <Bar key={b.key} dataKey={b.key} name={b.name || b.key} fill={b.color || CHART_COLORS[i % CHART_COLORS.length]} radius={[2, 2, 0, 0]}>
-            {colorByValue && data.map((entry, idx) => (
-              <Cell key={idx} fill={(entry[b.key] as number) >= 0 ? 'var(--green)' : 'var(--red)'} />
-            ))}
-          </Bar>
-        ))}
-        {showBrush && data.length > 10 && (
-          <Brush
-            dataKey={xKey}
-            height={18}
-            stroke="var(--border-2)"
-            fill="var(--bg-2)"
-            travellerWidth={8}
-            tickFormatter={() => ''}
-          />
-        )}
-      </RBarChart>
-    </ResponsiveContainer>
-  );
+  return <div ref={containerRef} style={{ width: '100%', height }} />;
 });
 BarChartComponent.displayName = 'BarChartComponent';
 export default BarChartComponent;

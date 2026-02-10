@@ -7,14 +7,16 @@
 
 .app-header {
   height: 48px;
-  background: var(--bg-1);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-bottom: 1px solid var(--border-1);
   display: flex;
   align-items: center;
   padding: 0 16px;
   gap: 16px;
   flex-shrink: 0;
-  z-index: 100;
+  z-index: var(--z-header);
 }
 
 .app-body {
@@ -25,20 +27,24 @@
 
 .app-footer {
   height: 28px;
-  background: var(--bg-1);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--border-1);
   display: flex;
   align-items: center;
   padding: 0 16px;
   gap: 16px;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--text-3);
   flex-shrink: 0;
 }
 
 .ticker-bar {
   height: 32px;
-  background: var(--bg-1);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-1);
   overflow: hidden;
   position: relative;
@@ -59,12 +65,12 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
 }
 
-.ticker-symbol { color: var(--text-2); font-weight: 600; }
-.ticker-price { color: var(--text-0); font-family: 'JetBrains Mono', monospace; }
-.ticker-change { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.ticker-symbol { color: var(--text-2); font-weight: var(--fw-semibold); }
+.ticker-price { color: var(--text-0); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.ticker-change { font-family: var(--font-mono); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
 .ticker-change.up { color: var(--green); }
 .ticker-change.down { color: var(--red); }
 
@@ -72,8 +78,8 @@
 .dense-table th {
   text-align: left;
   padding: 6px 10px;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-3);
@@ -85,13 +91,14 @@
 .dense-table td {
   padding: 6px 10px;
   border-bottom: 1px solid var(--border-1);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
 }
-.dense-table tr:hover td { background: var(--bg-hover); }
+.dense-table tr:hover td { background: var(--surface-2); }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
 

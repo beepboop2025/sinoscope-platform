@@ -157,4 +157,13 @@ export const PANEL_REGISTRY: Record<string, PanelRegistryEntry> = {
   candlestick: { title: 'Candlestick Chart', icon: 'CandlestickChart' },
   portfolio: { title: 'Portfolio', icon: 'Briefcase' },
   earningsCalendar: { title: 'Earnings Calendar', icon: 'CalendarCheck' },
+  fundamentals: { title: 'Fundamentals', icon: 'FileBarChart' },
+  newsFeed: { title: 'News Feed', icon: 'Rss' },
+  econCalendar: { title: 'Economic Calendar', icon: 'CalendarClock' },
+  screener: { title: 'Screener', icon: 'Filter' },
+  heatMap: { title: 'Market Heat Map', icon: 'LayoutGrid' },
+  orderBook: { title: 'Order Book', icon: 'BookOpen' },
+  indianMarket: { title: 'Indian Market', icon: 'IndianRupee' },
+  systemHealth: { title: 'System Health', icon: 'Activity' },
+  settings: { title: 'Settings', icon: 'Settings' },
 };

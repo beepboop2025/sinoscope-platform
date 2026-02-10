@@ -1,6 +1,8 @@
-import { useRef, useEffect } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import { useRef, useEffect, useMemo } from 'react';
+import { Command } from 'cmdk';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ArrowRight, Layout, Plus } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface CommandItem {
   id: string;
@@ -23,65 +25,187 @@ interface CommandBarProps {
   onClose: () => void;
 }
 
-const ICONS: Record<string, LucideIcon> = { workspace: Layout, addPanel: Plus, export: ArrowRight };
+const ICONS: Record<string, LucideIcon> = {
+  workspace: Layout,
+  addPanel: Plus,
+};
 
-export default function CommandBar({ isOpen, query, setQuery, filtered, activeIndex, setActiveIndex, execute, handleKeyDown, onClose }: CommandBarProps): React.JSX.Element | null {
+const MAX_VISIBLE = 8;
+
+function getIcon(action: string): LucideIcon {
+  return ICONS[action] || ArrowRight;
+}
+
+export default function CommandBar({
+  isOpen,
+  query,
+  setQuery,
+  filtered,
+  activeIndex,
+  setActiveIndex,
+  execute,
+  handleKeyDown,
+  onClose,
+}: CommandBarProps): React.JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
-  const listId = 'command-bar-results';
 
   useEffect(() => {
-    if (isOpen) inputRef.current?.focus();
+    if (isOpen) {
+      // Small delay to ensure the DOM is ready after animation starts
+      const raf = requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+      return () => cancelAnimationFrame(raf);
+    }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  // Group items by action type
+  const groups = useMemo(() => {
+    const workspaces: CommandItem[] = [];
+    const addPanels: CommandItem[] = [];
+    const actions: CommandItem[] = [];
+
+    for (const item of filtered) {
+      if (item.action === 'workspace') {
+        workspaces.push(item);
+      } else if (item.action === 'addPanel') {
+        addPanels.push(item);
+      } else {
+        actions.push(item);
+      }
+    }
+
+    return { workspaces, addPanels, actions };
+  }, [filtered]);
 
   return (
-    <div className="command-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Command bar">
-      <div className="command-dialog" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-        <div className="command-input-wrapper">
-          <Search size={18} color="var(--text-3)" aria-hidden="true" />
-          <input
-            ref={inputRef}
-            className="command-input"
-            value={query}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setQuery(e.target.value); setActiveIndex(0); }}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a command or search..."
-            role="combobox"
-            aria-expanded="true"
-            aria-controls={listId}
-            aria-activedescendant={filtered[activeIndex] ? `command-option-${filtered[activeIndex].id}` : undefined}
-            aria-autocomplete="list"
-            aria-label="Search commands"
-          />
-        </div>
-        <div className="command-results" role="listbox" id={listId}>
-          {filtered.map((cmd, i) => {
-            const Icon = ICONS[cmd.action] || ArrowRight;
-            return (
-              <div
-                key={cmd.id}
-                id={`command-option-${cmd.id}`}
-                className={`command-item ${i === activeIndex ? 'active' : ''}`}
-                onClick={() => execute(cmd)}
-                onMouseEnter={() => setActiveIndex(i)}
-                role="option"
-                aria-selected={i === activeIndex}
-              >
-                <Icon size={14} color="var(--text-3)" aria-hidden="true" />
-                <span className="command-item-label">{cmd.label}</span>
-                <span className="command-item-desc">{cmd.desc}</span>
-                {cmd.shortcut && <span className="command-item-shortcut">{cmd.shortcut}</span>}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="command-overlay"
+          onClick={onClose}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command bar"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <motion.div
+            className="command-dialog"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1.0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          >
+            <Command
+              shouldFilter={false}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  onClose();
+                }
+              }}
+            >
+              <div className="cmdk-input-wrapper">
+                <Search size={18} color="var(--text-3)" aria-hidden="true" />
+                <Command.Input
+                  ref={inputRef}
+                  value={query}
+                  onValueChange={(value: string) => {
+                    setQuery(value);
+                    setActiveIndex(0);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type a command or search..."
+                  aria-label="Search commands"
+                />
               </div>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-3)', fontSize: 12 }} role="option" aria-selected="false">
-              No matching commands
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+
+              <Command.List>
+                <Command.Empty>No matching commands</Command.Empty>
+
+                {groups.workspaces.length > 0 && (
+                  <Command.Group heading="Workspaces">
+                    {groups.workspaces.slice(0, MAX_VISIBLE).map((cmd, i) => {
+                      const Icon = getIcon(cmd.action);
+                      const globalIndex = filtered.indexOf(cmd);
+                      return (
+                        <Command.Item
+                          key={cmd.id}
+                          value={cmd.id}
+                          onSelect={() => execute(cmd)}
+                          onMouseEnter={() => setActiveIndex(globalIndex)}
+                          data-selected={globalIndex === activeIndex ? 'true' : undefined}
+                        >
+                          <Icon size={14} className="command-item-icon" aria-hidden="true" />
+                          <span className="command-item-label">{cmd.label}</span>
+                          <span className="command-item-desc">{cmd.desc}</span>
+                          {cmd.shortcut && (
+                            <span className="command-item-shortcut">{cmd.shortcut}</span>
+                          )}
+                        </Command.Item>
+                      );
+                    })}
+                  </Command.Group>
+                )}
+
+                {groups.addPanels.length > 0 && (
+                  <Command.Group heading="Add Panel">
+                    {groups.addPanels.slice(0, MAX_VISIBLE).map((cmd) => {
+                      const Icon = getIcon(cmd.action);
+                      const globalIndex = filtered.indexOf(cmd);
+                      return (
+                        <Command.Item
+                          key={cmd.id}
+                          value={cmd.id}
+                          onSelect={() => execute(cmd)}
+                          onMouseEnter={() => setActiveIndex(globalIndex)}
+                          data-selected={globalIndex === activeIndex ? 'true' : undefined}
+                        >
+                          <Icon size={14} className="command-item-icon" aria-hidden="true" />
+                          <span className="command-item-label">{cmd.label}</span>
+                          <span className="command-item-desc">{cmd.desc}</span>
+                          {cmd.shortcut && (
+                            <span className="command-item-shortcut">{cmd.shortcut}</span>
+                          )}
+                        </Command.Item>
+                      );
+                    })}
+                  </Command.Group>
+                )}
+
+                {groups.actions.length > 0 && (
+                  <Command.Group heading="Actions">
+                    {groups.actions.slice(0, MAX_VISIBLE).map((cmd) => {
+                      const Icon = getIcon(cmd.action);
+                      const globalIndex = filtered.indexOf(cmd);
+                      return (
+                        <Command.Item
+                          key={cmd.id}
+                          value={cmd.id}
+                          onSelect={() => execute(cmd)}
+                          onMouseEnter={() => setActiveIndex(globalIndex)}
+                          data-selected={globalIndex === activeIndex ? 'true' : undefined}
+                        >
+                          <Icon size={14} className="command-item-icon" aria-hidden="true" />
+                          <span className="command-item-label">{cmd.label}</span>
+                          <span className="command-item-desc">{cmd.desc}</span>
+                          {cmd.shortcut && (
+                            <span className="command-item-shortcut">{cmd.shortcut}</span>
+                          )}
+                        </Command.Item>
+                      );
+                    })}
+                  </Command.Group>
+                )}
+              </Command.List>
+            </Command>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

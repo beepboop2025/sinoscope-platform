@@ -4,6 +4,10 @@ import { Activity, Wifi, WifiOff, Command, Sun, Moon, Download } from 'lucide-re
 import { useTheme } from '../shared/ThemeProvider';
 import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 import { TIMEZONES, getTimeInZone } from '../../utils/time';
+import { useGamification } from '../../stores/gamification';
+import XPBar from '../shared/XPBar';
+import LevelBadge from '../shared/LevelBadge';
+import StreakFlame from '../shared/StreakFlame';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const UserMenu: ComponentType | null = CLERK_ENABLED ? lazy(() => import('../auth/UserMenu')) : null;
@@ -38,6 +42,12 @@ export default function Header({ wsStatus, onOpenCommandBar }: HeaderProps): Rea
   const isConnected = wsStatus === 'connected';
   const { theme, toggleTheme } = useTheme();
   const { canInstall, promptInstall } = useInstallPrompt();
+  const checkStreak = useGamification(s => s.checkStreak);
+
+  // Check daily streak on mount
+  useEffect(() => {
+    checkStreak();
+  }, [checkStreak]);
 
   return (
     <div className="app-header">
@@ -56,6 +66,10 @@ export default function Header({ wsStatus, onOpenCommandBar }: HeaderProps): Rea
       </nav>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} aria-label="Gamification stats">
+          <XPBar />
+          <StreakFlame />
+        </div>
         <button
           className="btn-ghost"
           onClick={onOpenCommandBar}

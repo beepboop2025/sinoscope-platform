@@ -1,17 +1,24 @@
-import { useState, useEffect, useMemo, type ReactElement } from 'react';
+import { useState, useEffect, useMemo, useRef, type ReactElement } from 'react';
 import { ArrowLeftRight, AlertCircle } from 'lucide-react';
 import { ChinaAPI } from '../../../services/api/chinaApi';
 import { CNY_MARKET } from '../../../constants/china';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import PanelChrome from '../../shared/PanelChrome';
 
 interface FXData { cnyUsd: number; cnhUsd: number; }
 interface HistoryPoint { time: string; cny: number; cnh: number; spread: number; }
 
+function getCSSVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 export default function PanelCNYTracker(): ReactElement {
   const [fxData, setFxData] = useState<FXData | null>(null);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -38,6 +45,62 @@ export default function PanelCNYTracker(): ReactElement {
     return () => clearInterval(interval);
   }, []);
 
+  // Create chart
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    const bg = getCSSVar('--bg-1') || '#0a0f1a';
+    const text = getCSSVar('--text-3') || '#64748b';
+    const border = getCSSVar('--border-1') || 'rgba(255,255,255,0.06)';
+
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: 150,
+      layout: { background: { color: bg }, textColor: text, fontFamily: 'JetBrains Mono, monospace', fontSize: 10 },
+      grid: { vertLines: { color: border }, horzLines: { color: border } },
+      rightPriceScale: { borderColor: border },
+      timeScale: { borderColor: border, visible: false },
+    });
+
+    const series = chart.addLineSeries({ lineWidth: 2 });
+    chartRef.current = chart;
+    seriesRef.current = series;
+
+    const ro = new ResizeObserver(() => {
+      if (container.clientWidth > 0) {
+        chart.applyOptions({ width: container.clientWidth });
+      }
+    });
+    ro.observe(container);
+
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    };
+  }, []);
+
+  // Update chart data
+  useEffect(() => {
+    if (!seriesRef.current || history.length <= 1) return;
+
+    const green = getCSSVar('--green') || '#00DC82';
+    const red = getCSSVar('--red') || '#FF4458';
+
+    seriesRef.current.applyOptions({
+      color: spread >= 0 ? red : green,
+    });
+
+    const lwData = history.map((d, i) => ({
+      time: i as UTCTimestamp,
+      value: d.spread,
+    }));
+    seriesRef.current.setData(lwData);
+    chartRef.current?.timeScale().fitContent();
+  }, [history]);
+
   const spread = useMemo(() => fxData ? fxData.cnhUsd - fxData.cnyUsd : 0, [fxData]);
   const spreadBps = useMemo(() => spread * 10000, [spread]);
 
@@ -58,12 +121,12 @@ export default function PanelCNYTracker(): ReactElement {
     <PanelChrome title="CNY/CNH Tracker" icon={ArrowLeftRight} iconColor="var(--cyan)">
       <div style={{ padding: 4 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--divider)' }}>
+        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border-1)' }}>
           <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4 }}>{cnyMarket.onshore.symbol} - {cnyMarket.onshore.name}</div>
           <div style={{ fontSize: 22, fontWeight: 600 }}>{fxData?.cnyUsd?.toFixed(4) || 'N/A'}</div>
           <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 4 }}>{cnyMarket.onshore.exchange}</div>
         </div>
-        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--divider)' }}>
+        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border-1)' }}>
           <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4 }}>{cnyMarket.offshore.symbol} - {cnyMarket.offshore.name}</div>
           <div style={{ fontSize: 22, fontWeight: 600 }}>{fxData?.cnhUsd?.toFixed(4) || 'N/A'}</div>
           <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 4 }}>{cnyMarket.offshore.exchange}</div>
@@ -71,7 +134,7 @@ export default function PanelCNYTracker(): ReactElement {
       </div>
 
       <div style={{ padding: 12, background: interpretation.level === 'high' ? 'var(--red-alpha)' : 'var(--surface-1)',
-        borderRadius: 8, border: `1px solid ${interpretation.level === 'high' ? 'var(--red)' : 'var(--divider)'}`, marginBottom: 16 }}>
+        borderRadius: 8, border: `1px solid ${interpretation.level === 'high' ? 'var(--red)' : 'var(--border-1)'}`, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           {Math.abs(spreadBps) > 50 ? <AlertCircle size={14} color={interpretation.color} /> : null}
           <span style={{ fontSize: 12, fontWeight: 500, color: interpretation.color }}>Spread: {spreadBps > 0 ? '+' : ''}{(Number(spreadBps) || 0).toFixed(0)} bps</span>
@@ -80,16 +143,9 @@ export default function PanelCNYTracker(): ReactElement {
       </div>
 
       {history.length > 1 && (
-        <div style={{ height: 150, marginTop: 12 }}>
+        <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8 }}>Spread History (CNH - CNY)</div>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={history}>
-              <XAxis dataKey="time" hide />
-              <YAxis domain={['auto', 'auto']} tickFormatter={(v: number) => `${(v * 10000).toFixed(0)}bps`} />
-              <ReferenceLine y={0} stroke="var(--divider)" strokeDasharray="3 3" />
-              <Line type="monotone" dataKey="spread" stroke={spread >= 0 ? 'var(--red)' : 'var(--green)'} strokeWidth={2} dot={false} animationDuration={300} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div ref={chartContainerRef} style={{ height: 150 }} />
         </div>
       )}
 

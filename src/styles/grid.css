@@ -3,22 +3,38 @@
 .react-grid-item.react-draggable-dragging { transition: none; z-index: 100; opacity: 0.9; }
 .react-grid-item.resizing { transition: none; z-index: 100; }
 .react-grid-item > div { height: 100%; }
-.react-grid-placeholder { background: var(--cyan) !important; opacity: 0.1 !important; border-radius: 8px !important; }
+.react-grid-placeholder { background: var(--cyan) !important; opacity: 0.1 !important; border-radius: var(--radius-lg) !important; }
 
 .panel {
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
-.panel:hover { border-color: var(--border-2); }
+.panel:hover { border-color: var(--border-2); box-shadow: var(--shadow-md); }
+
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
 
 .panel-titlebar {
   height: 26px;
-  background: var(--bg-3);
+  background: var(--surface-2);
   display: flex;
   align-items: center;
   padding: 0 8px;
@@ -27,12 +43,13 @@
   flex-shrink: 0;
   border-bottom: 1px solid var(--border-1);
   user-select: none;
+  position: relative;
 }
 .panel-titlebar:active { cursor: grabbing; }
 
 .panel-title {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-2);
@@ -52,11 +69,11 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--text-4);
-  transition: all 0.15s;
+  transition: all var(--duration-fast);
 }
-.panel-btn:hover { background: var(--bg-hover); color: var(--text-2); }
+.panel-btn:hover { background: var(--surface-3); color: var(--text-2); }
 
 .panel-body { flex: 1; overflow: auto; padding: 12px; }
 
@@ -66,7 +83,9 @@
   gap: 4px;
   padding: 0 8px;
   height: 34px;
-  background: var(--bg-1);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-1);
   flex-shrink: 0;
   overflow-x: auto;
@@ -74,19 +93,19 @@
 
 .workspace-tab {
   padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   cursor: pointer;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-3);
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-sans);
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all var(--duration-fast);
 }
-.workspace-tab.active { background: var(--bg-3); border-color: var(--border-2); color: var(--cyan); }
-.workspace-tab:hover:not(.active) { color: var(--text-2); background: var(--bg-2); }
+.workspace-tab.active { background: var(--surface-3); border-color: var(--border-2); color: var(--cyan); }
+.workspace-tab:hover:not(.active) { color: var(--text-2); background: var(--surface-2); }
 
 /* ── Responsive: sm (<=996px) ── */
 @media (max-width: 996px) {
@@ -100,7 +119,7 @@
 /* ── Responsive: xs / tablet (<=768px) ── */
 @media (max-width: 768px) {
   .react-grid-layout { margin: 0 2px; }
-  .panel { border-radius: 6px; }
+  .panel { border-radius: var(--radius-md); }
   .panel-body { padding: 8px; }
   .panel-titlebar {
     height: 24px;
@@ -138,7 +157,7 @@
 /* ── Responsive: mobile (<=480px) ── */
 @media (max-width: 480px) {
   .react-grid-layout { margin: 0; }
-  .panel { border-radius: 4px; }
+  .panel { border-radius: var(--radius-sm); }
   .panel-body { padding: 6px; }
   .panel-titlebar { height: 22px; padding: 0 4px; }
   .panel-title { font-size: 8px; letter-spacing: 0.03em; }

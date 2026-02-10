@@ -29,7 +29,12 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-grid-layout": "^2.2.2",
-    "recharts": "^3.7.0",
+    "sonner": "^2.0.7",
+    "framer-motion": "^11.0.0",
+    "canvas-confetti": "^1.9.0",
+    "d3-hierarchy": "^3.1.2",
+    "cmdk": "^1.0.0",
+    "zustand": "^5.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -37,6 +42,8 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/d3-hierarchy": "^3.1.7",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@types/react-grid-layout": "^1.3.6",

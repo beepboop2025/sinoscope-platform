@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { ToastProvider } from './components/shared/Toast';
 import { ThemeProvider } from './components/shared/ThemeProvider';
+import { SymbolProvider } from './contexts/SymbolContext';
 import ClerkSessionBridge from './components/auth/ClerkSessionBridge';
 import App from './App';
 import './styles/index.css';
@@ -52,9 +53,11 @@ class RootErrorBoundary extends Component<RootErrorBoundaryProps, RootErrorBound
 
 const AppTree = (
   <ThemeProvider>
-    <ToastProvider>
-      <App />
-    </ToastProvider>
+    <SymbolProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </SymbolProvider>
   </ThemeProvider>
 );
 

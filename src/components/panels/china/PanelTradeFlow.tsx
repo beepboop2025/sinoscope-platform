@@ -1,6 +1,6 @@
-import { useState, type ReactElement } from 'react';
+import { useState, useRef, useEffect, type ReactElement } from 'react';
 import { ArrowRightLeft, TrendingUp, TrendingDown, Package, Ship, Scale, Info } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
+import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import { TRADE_CATEGORIES } from '../../../constants/china';
 import PanelChrome from '../../shared/PanelChrome';
 
@@ -33,8 +33,16 @@ const DEFICIT_HISTORY: DeficitYear[] = [
   { year: '2024', deficit: 295.4, tariff: 'Current' },
 ];
 
+function getCSSVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 export default function PanelTradeFlow(): ReactElement {
   const [selectedView, setSelectedView] = useState<string>('monthly');
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const exportSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const importSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
 
   const latestMonth = TRADE_DATA[TRADE_DATA.length - 1];
   const ytdExports = TRADE_DATA.reduce((sum, d) => sum + d.exports, 0);
@@ -44,6 +52,58 @@ export default function PanelTradeFlow(): ReactElement {
   const formatBillion = (val: number): string => `$${val.toFixed(1)}B`;
   const tradeCategories = TRADE_CATEGORIES as { exports: CategoryItem[]; imports: CategoryItem[] };
 
+  // Create chart
+  useEffect(() => {
+    if (selectedView !== 'monthly') return;
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    const bg = getCSSVar('--bg-1') || '#0a0f1a';
+    const text = getCSSVar('--text-3') || '#64748b';
+    const border = getCSSVar('--border-1') || 'rgba(255,255,255,0.06)';
+    const green = getCSSVar('--green') || '#00DC82';
+    const red = getCSSVar('--red') || '#FF4458';
+
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: 180,
+      layout: { background: { color: bg }, textColor: text, fontFamily: 'JetBrains Mono, monospace', fontSize: 9 },
+      grid: { vertLines: { color: border }, horzLines: { color: border } },
+      rightPriceScale: { borderColor: border },
+      timeScale: { borderColor: border },
+    });
+
+    const exportSeries = chart.addHistogramSeries({ color: green + 'CC' });
+    const importSeries = chart.addHistogramSeries({ color: red + 'CC', priceScaleId: '' });
+    importSeries.priceScale().applyOptions({ scaleMargins: { top: 0.5, bottom: 0 } });
+
+    chartRef.current = chart;
+    exportSeriesRef.current = exportSeries;
+    importSeriesRef.current = importSeries;
+
+    // Set data
+    const exportData = TRADE_DATA.map((d, i) => ({ time: i as UTCTimestamp, value: d.exports }));
+    const importData = TRADE_DATA.map((d, i) => ({ time: i as UTCTimestamp, value: -d.imports }));
+    exportSeries.setData(exportData);
+    importSeries.setData(importData);
+    chart.timeScale().fitContent();
+
+    const ro = new ResizeObserver(() => {
+      if (container.clientWidth > 0) {
+        chart.applyOptions({ width: container.clientWidth });
+      }
+    });
+    ro.observe(container);
+
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
+      exportSeriesRef.current = null;
+      importSeriesRef.current = null;
+    };
+  }, [selectedView]);
+
   return (
     <PanelChrome title="US-China Trade Flow" icon={ArrowRightLeft} iconColor="var(--green)">
       <div style={{ padding: 4 }}>
@@ -52,7 +112,7 @@ export default function PanelTradeFlow(): ReactElement {
           {['monthly', 'categories'].map(v => (
             <button key={v} onClick={() => setSelectedView(v)} style={{
               padding: '4px 10px', fontSize: 11, borderRadius: 4, border: 'none',
-              background: selectedView === v ? 'var(--primary)' : 'var(--surface-2)',
+              background: selectedView === v ? 'var(--cyan)' : 'var(--surface-2)',
               color: selectedView === v ? 'white' : 'var(--text-2)', cursor: 'pointer', textTransform: 'capitalize',
             }}>{v === 'monthly' ? 'Monthly' : 'Categories'}</button>
           ))}
@@ -60,17 +120,17 @@ export default function PanelTradeFlow(): ReactElement {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
-        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--divider)' }}>
+        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border-1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Ship size={12} color="var(--green)" /><span style={{ fontSize: 10, color: 'var(--text-3)' }}>US Exports to China</span></div>
           <div style={{ fontSize: 18, fontWeight: 600 }}>{formatBillion(latestMonth.exports)}</div>
           <div style={{ fontSize: 10, color: 'var(--text-3)' }}>Monthly</div>
         </div>
-        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--divider)' }}>
+        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border-1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Package size={12} color="var(--red)" /><span style={{ fontSize: 10, color: 'var(--text-3)' }}>US Imports from China</span></div>
           <div style={{ fontSize: 18, fontWeight: 600 }}>{formatBillion(latestMonth.imports)}</div>
           <div style={{ fontSize: 10, color: 'var(--text-3)' }}>Monthly</div>
         </div>
-        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--divider)' }}>
+        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border-1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Scale size={12} color={ytdBalance >= 0 ? 'var(--green)' : 'var(--red)'} /><span style={{ fontSize: 10, color: 'var(--text-3)' }}>Trade Balance</span></div>
           <div style={{ fontSize: 18, fontWeight: 600, color: ytdBalance >= 0 ? 'var(--green)' : 'var(--red)' }}>{ytdBalance >= 0 ? '+' : ''}{formatBillion(ytdBalance)}</div>
           <div style={{ fontSize: 10, color: 'var(--text-3)' }}>YTD 2024</div>
@@ -79,18 +139,7 @@ export default function PanelTradeFlow(): ReactElement {
 
       {selectedView === 'monthly' && (
         <>
-          <div style={{ height: 180, marginBottom: 16 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={TRADE_DATA} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <XAxis dataKey="month" tick={{ fontSize: 9 }} interval={2} />
-                <YAxis tick={{ fontSize: 9 }} tickFormatter={(v: number) => `$${v}`} />
-                <Tooltip formatter={(value: number) => formatBillion(value)} contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--divider)', fontSize: 11 }} />
-                <ReferenceLine y={0} stroke="var(--divider)" />
-                <Bar dataKey="exports" name="US Exports" fill="var(--green)" opacity={0.8} radius={[2, 2, 0, 0]} />
-                <Bar dataKey="imports" name="US Imports" fill="var(--red)" opacity={0.8} radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <div ref={chartContainerRef} style={{ height: 180, marginBottom: 16 }} />
           <div>
             <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-2)', marginBottom: 8 }}>Annual Trade Deficit History</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
