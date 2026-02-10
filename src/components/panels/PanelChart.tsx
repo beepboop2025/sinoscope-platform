@@ -1,9 +1,10 @@
-import { memo, useState, useEffect, useCallback, type ReactElement, type ChangeEvent } from 'react';
+import { memo, useState, useEffect, useCallback, useRef, type ReactElement, type ChangeEvent } from 'react';
 import { LineChart as LineChartIcon, RefreshCw, AlertTriangle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Area, AreaChart } from 'recharts';
+import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import PanelChrome from '../shared/PanelChrome';
 import { PanelSkeleton } from '../shared/LoadingSkeleton';
 import { cacheGet, cacheSet } from '../../services/CacheManager';
+import { api } from '../../services/apiClient';
 
 interface PricePoint {
   time: string;
@@ -31,13 +32,43 @@ const RANGES: Range[] = [
   { label: '1Y', days: 365 },
 ];
 
-async function fetchChartData(symbol: string, days: number): Promise<PricePoint[] | null> {
-  const cgId = COINGECKO_IDS[symbol];
-  if (!cgId) return null;
+function getCSSVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 
-  const cacheKey = `chart_${cgId}_${days}`;
+async function fetchChartData(symbol: string, days: number): Promise<PricePoint[] | null> {
+  const cacheKey = `chart_${symbol}_${days}`;
   const cached = cacheGet(cacheKey) as PricePoint[] | undefined;
   if (cached) return cached;
+
+  // Try backend candles first (persistent TimescaleDB data)
+  try {
+    const interval = days <= 1 ? '1h' : '1d';
+    const limit = days <= 1 ? 24 : Math.min(days, 500);
+    const result = await api.getHistoryCandles(symbol, { interval, limit }) as { data?: { bucket: string; close: number }[] };
+    if (result?.data && result.data.length > 0) {
+      const prices: PricePoint[] = result.data
+        .sort((a, b) => new Date(a.bucket).getTime() - new Date(b.bucket).getTime())
+        .map((c) => {
+          const ts = new Date(c.bucket).getTime();
+          return {
+            time: days <= 1
+              ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+            close: c.close,
+            timestamp: ts,
+          };
+        });
+      cacheSet(cacheKey, prices, days <= 1 ? 60000 : 300000);
+      return prices;
+    }
+  } catch {
+    // Backend unavailable, fall through to CoinGecko
+  }
+
+  // Fall through to CoinGecko
+  const cgId = COINGECKO_IDS[symbol];
+  if (!cgId) return null;
 
   try {
     const url = `https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=usd&days=${days}`;
@@ -73,12 +104,15 @@ interface PanelChartProps {
 const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: PanelChartProps): ReactElement => {
   const [symbol, setSymbol] = useState<string>(initialSymbol);
   const [range, setRange] = useState<Range>(RANGES[2]);
-  const [chartType, setChartType] = useState<'area' | 'line'>('area');
   const [chartData, setChartData] = useState<PricePoint[]>(externalData || []);
   const [loading, setLoading] = useState<boolean>(true);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [priceChange, setPriceChange] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const areaSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -100,6 +134,71 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Create LW chart
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    const bg = getCSSVar('--bg-1') || '#0a0f1a';
+    const text = getCSSVar('--text-3') || '#64748b';
+    const border = getCSSVar('--border-1') || 'rgba(255,255,255,0.06)';
+    const crosshair = getCSSVar('--cyan') || '#06d6e0';
+
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: container.clientHeight,
+      layout: { background: { color: bg }, textColor: text, fontFamily: 'JetBrains Mono, monospace', fontSize: 10 },
+      grid: { vertLines: { color: border }, horzLines: { color: border } },
+      crosshair: { mode: 0, vertLine: { color: crosshair, width: 1, style: 2 }, horzLine: { color: crosshair, width: 1, style: 2 } },
+      rightPriceScale: { borderColor: border, scaleMargins: { top: 0.1, bottom: 0.05 } },
+      timeScale: { borderColor: border },
+    });
+
+    const areaSeries = chart.addAreaSeries({ lineWidth: 2 });
+
+    chartRef.current = chart;
+    areaSeriesRef.current = areaSeries;
+
+    const ro = new ResizeObserver(() => {
+      if (container.clientWidth > 0 && container.clientHeight > 0) {
+        chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+      }
+    });
+    ro.observe(container);
+
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
+      areaSeriesRef.current = null;
+    };
+  }, []);
+
+  // Update series data and colors
+  useEffect(() => {
+    const series = areaSeriesRef.current;
+    const chart = chartRef.current;
+    if (!series || !chartData.length) return;
+
+    const isPositive = (priceChange || 0) >= 0;
+    const green = getCSSVar('--green') || '#00DC82';
+    const red = getCSSVar('--red') || '#FF4458';
+    const lineColor = isPositive ? green : red;
+
+    series.applyOptions({
+      lineColor,
+      topColor: lineColor + '40',
+      bottomColor: lineColor + '05',
+    });
+
+    const lwData = chartData.map((d, i) => ({
+      time: i as UTCTimestamp,
+      value: d.close,
+    }));
+    series.setData(lwData);
+    chart?.timeScale().fitContent();
+  }, [chartData, priceChange]);
+
   const isPositive = (priceChange || 0) >= 0;
   const strokeColor = isPositive ? 'var(--green)' : 'var(--red)';
 
@@ -110,7 +209,7 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
           <select
             value={symbol}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => setSymbol(e.target.value)}
-            style={{ background: 'var(--bg-2)', border: '1px solid var(--border-1)', borderRadius: 4, color: 'var(--text-1)', fontSize: 10, padding: '2px 4px', fontFamily: 'var(--font-mono)' }}
+            style={{ background: 'var(--surface-2)', border: '1px solid var(--border-1)', borderRadius: 4, color: 'var(--text-1)', fontSize: 10, padding: '2px 4px', fontFamily: 'var(--font-mono)' }}
           >
             {SYMBOLS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -122,14 +221,7 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
             </button>
           ))}
 
-          {(['area', 'line'] as const).map(t => (
-            <button key={t} className="btn-ghost" onClick={() => setChartType(t)}
-              style={{ fontSize: 9, padding: '1px 5px', marginLeft: t === 'area' ? 'auto' : 0, color: chartType === t ? 'var(--text-1)' : 'var(--text-3)' }}>
-              {t.toUpperCase()}
-            </button>
-          ))}
-
-          <button className="btn-ghost" onClick={loadData} style={{ fontSize: 9, padding: '1px 4px' }}>
+          <button className="btn-ghost" onClick={loadData} style={{ fontSize: 9, padding: '1px 4px', marginLeft: 'auto' }}>
             <RefreshCw size={10} />
           </button>
         </div>
@@ -148,7 +240,7 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
           </div>
         )}
 
-        <div style={{ flex: 1, minHeight: 120 }}>
+        <div ref={chartContainerRef} style={{ flex: 1, minHeight: 120 }}>
           {error && chartData.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: 'var(--text-3)' }}>
               <AlertTriangle size={20} color="var(--amber)" />
@@ -157,35 +249,7 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
                 <RefreshCw size={10} /> Retry
               </button>
             </div>
-          ) : loading && chartData.length === 0 ? <PanelSkeleton /> : (
-            <ResponsiveContainer width="100%" height="100%">
-              {chartType === 'area' ? (
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={strokeColor} stopOpacity={0.25} />
-                      <stop offset="95%" stopColor={strokeColor} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="time" tick={{ fontSize: 8, fill: 'var(--text-3)' }} tickCount={6} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 8, fill: 'var(--text-3)' }} domain={['auto', 'auto']} width={55}
-                    tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(2)}`} />
-                  <Tooltip contentStyle={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 10 }}
-                    formatter={(v: number) => [`$${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Price']} />
-                  <Area type="monotone" dataKey="close" stroke={strokeColor} fill="url(#chartGrad)" strokeWidth={1.5} dot={false} />
-                </AreaChart>
-              ) : (
-                <LineChart data={chartData}>
-                  <XAxis dataKey="time" tick={{ fontSize: 8, fill: 'var(--text-3)' }} tickCount={6} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 8, fill: 'var(--text-3)' }} domain={['auto', 'auto']} width={55}
-                    tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(2)}`} />
-                  <Tooltip contentStyle={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 10 }}
-                    formatter={(v: number) => [`$${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Price']} />
-                  <Line type="monotone" dataKey="close" stroke={strokeColor} strokeWidth={1.5} dot={false} />
-                </LineChart>
-              )}
-            </ResponsiveContainer>
-          )}
+          ) : loading && chartData.length === 0 ? <PanelSkeleton /> : null}
         </div>
       </div>
     </PanelChrome>

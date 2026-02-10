@@ -117,4 +117,16 @@ export interface ApiClient {
   saveApiKey: (data: unknown) => Promise<unknown>;
   deleteApiKey: (id: string) => Promise<unknown>;
   getData: (category: string) => Promise<unknown>;
+
+  // History
+  getHistoryCandles: (symbol: string, params?: { interval?: string; start?: string; end?: string; limit?: number }) => Promise<unknown>;
+  getHistoryTicks: (symbol: string, params?: { start?: string; end?: string; category?: string; limit?: number }) => Promise<unknown>;
+  getHistorySymbols: (category?: string) => Promise<unknown>;
+
+  // Analytics
+  getCorrelations: (params?: { days?: number; interval?: string; symbols?: string }) => Promise<unknown>;
+  getPortfolioAnalytics: (portfolioId: string) => Promise<unknown>;
+
+  // Data Quality
+  getDataQuality: () => Promise<unknown>;
 }

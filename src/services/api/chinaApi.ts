@@ -160,6 +160,10 @@ export const ChinaAPI = {
 
   // Fetch China GDP and trade data from World Bank (free, no key)
   async fetchChinaEconomic(): Promise<ChinaEconIndicator[] | null> {
+    // Collector-first: pre-fetched China economic indicators
+    const collected = await getCollectorData('china_economic');
+    if (collected && Array.isArray(collected) && collected.length > 0) return collected as ChinaEconIndicator[];
+
     const cacheKey = 'china_economic';
     const cached = cacheGet(cacheKey);
     if (cached) return cached as ChinaEconIndicator[];

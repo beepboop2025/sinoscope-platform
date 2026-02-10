@@ -101,6 +101,10 @@ export async function fetchDefiProtocols(): Promise<DefiProtocol[] | null> {
 
 // Total TVL across all chains
 export async function fetchDefiTVL(): Promise<TVLDataPoint[] | null> {
+  // Collector-first: pre-fetched TVL history
+  const collected = await getCollectorData('defi_tvl_history');
+  if (collected && Array.isArray(collected) && collected.length > 0) return collected as TVLDataPoint[];
+
   const cacheKey = 'defi_tvl_total';
   const cached = cacheGet(cacheKey);
   if (cached) return cached as TVLDataPoint[];

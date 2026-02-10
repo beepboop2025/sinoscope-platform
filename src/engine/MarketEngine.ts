@@ -55,6 +55,7 @@ interface MarketEngineInstance {
   subscribe(fn: (snapshot: MarketEngineSnapshot) => void): () => void;
   getSnapshot(): MarketEngineSnapshot;
   updateFromWS(tick: WSTick): void;
+  updateCategory(category: string, data: unknown): void;
   fetchForex(): Promise<void>;
   fetchStocks(): Promise<void>;
   fetchCrypto(): Promise<void>;
@@ -243,6 +244,69 @@ export function createMarketEngine(): MarketEngineInstance {
     state.lastUpdate.ws = Date.now();
   }
 
+  function updateCategory(category: string, data: unknown): void {
+    try {
+      switch (category) {
+        case 'crypto_markets':
+          if (Array.isArray(data)) {
+            for (const coin of data) {
+              if (coin.symbol) {
+                state.crypto[coin.symbol.toUpperCase()] = normalizeCrypto(coin) as unknown as MarketTick;
+              }
+            }
+            state.lastUpdate.crypto = Date.now();
+            state.lastFetchTime.crypto = Date.now();
+            clearError('crypto');
+          }
+          break;
+        case 'forex':
+          if (data && typeof data === 'object' && (data as Record<string, unknown>).rates) {
+            const rates = (data as { rates: Record<string, number> }).rates;
+            for (const [currency, rate] of Object.entries(rates)) {
+              state.forex[`USD/${currency}`] = normalizeForex(`USD/${currency}`, rate);
+            }
+            state.lastUpdate.forex = Date.now();
+            state.lastFetchTime.forex = Date.now();
+            clearError('forex');
+          }
+          break;
+        case 'stocks':
+          if (Array.isArray(data)) {
+            for (const quote of data) {
+              if ((quote as { symbol?: string }).symbol) {
+                state.stocks[(quote as { symbol: string }).symbol] = normalizeTick(quote, 'stock');
+              }
+            }
+            state.lastUpdate.stocks = Date.now();
+            state.lastFetchTime.stocks = Date.now();
+            clearError('stocks');
+          }
+          break;
+        case 'bonds':
+          if (Array.isArray(data)) {
+            state.bonds = data as BondYield[];
+            state.lastUpdate.bonds = Date.now();
+            state.lastFetchTime.bonds = Date.now();
+            clearError('bonds');
+          }
+          break;
+        case 'commodities':
+          if (data && typeof data === 'object') {
+            state.commodities = data as Record<string, unknown>;
+            state.lastUpdate.commodities = Date.now();
+            state.lastFetchTime.commodities = Date.now();
+            clearError('commodities');
+          }
+          break;
+        default:
+          return; // Unknown category, skip notify
+      }
+      notify();
+    } catch (err) {
+      console.warn(`[MarketEngine] updateCategory(${category}) error`, err);
+    }
+  }
+
   function getSnapshot(): MarketEngineSnapshot {
     return {
       forex: { ...state.forex },
@@ -283,5 +347,5 @@ export function createMarketEngine(): MarketEngineInstance {
     state.intervals = [];
   }
 
-  return { start, stop, subscribe, getSnapshot, updateFromWS, fetchForex, fetchStocks, fetchCrypto, fetchBonds, fetchCommodities, fetchEconomic, fetchIndices };
+  return { start, stop, subscribe, getSnapshot, updateFromWS, updateCategory, fetchForex, fetchStocks, fetchCrypto, fetchBonds, fetchCommodities, fetchEconomic, fetchIndices };
 }

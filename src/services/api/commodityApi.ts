@@ -26,6 +26,14 @@ const COMMODITY_INDICATORS: Record<string, string> = {
 const FRED_KEY = (): string => import.meta.env.VITE_FRED_API_KEY || '';
 
 export async function fetchCommodityPrice(commodity: string): Promise<CommodityObservation[] | null> {
+  // Collector-first: backend may have pre-fetched commodity data keyed by commodity name
+  const collected = await getCollectorData('commodities');
+  if (collected && typeof collected === 'object') {
+    const commodities = collected as Record<string, unknown>;
+    const entry = commodities[commodity];
+    if (entry && Array.isArray(entry)) return entry as CommodityObservation[];
+  }
+
   const key: string = FRED_KEY();
   const seriesId: string | undefined = COMMODITY_INDICATORS[commodity];
   if (!key || !seriesId) return null;

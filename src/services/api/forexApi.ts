@@ -34,6 +34,12 @@ export async function fetchForexRates(base: string = 'USD'): Promise<ForexRates 
 }
 
 export async function fetchForexTimeseries(base: string = 'USD', symbols: string = 'CNY,EUR,GBP,JPY', days: number = 30): Promise<ForexTimeseries | null> {
+  // Collector-first: pre-fetched forex timeseries (only for USD base)
+  if (base === 'USD') {
+    const collected = await getCollectorData('forex_timeseries');
+    if (collected) return collected as ForexTimeseries;
+  }
+
   const to: string = new Date().toISOString().split('T')[0];
   const from: string = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
   const cacheKey = `forex_ts_${base}_${symbols}_${from}`;

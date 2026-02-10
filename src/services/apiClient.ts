@@ -71,4 +71,42 @@ export const api: ApiClient = {
 
   // Data (backward compat)
   getData: (category: string) => apiFetch(`/data/${category}`),
+
+  // History
+  getHistoryCandles: (symbol: string, params: { interval?: string; start?: string; end?: string; limit?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.interval) qs.set('interval', params.interval);
+    if (params.start) qs.set('start', params.start);
+    if (params.end) qs.set('end', params.end);
+    if (params.limit) qs.set('limit', String(params.limit));
+    const q = qs.toString();
+    return apiFetch(`/history/candles/${encodeURIComponent(symbol)}${q ? `?${q}` : ''}`);
+  },
+  getHistoryTicks: (symbol: string, params: { start?: string; end?: string; category?: string; limit?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.start) qs.set('start', params.start);
+    if (params.end) qs.set('end', params.end);
+    if (params.category) qs.set('category', params.category);
+    if (params.limit) qs.set('limit', String(params.limit));
+    const q = qs.toString();
+    return apiFetch(`/history/ticks/${encodeURIComponent(symbol)}${q ? `?${q}` : ''}`);
+  },
+  getHistorySymbols: (category?: string) => {
+    const q = category ? `?category=${encodeURIComponent(category)}` : '';
+    return apiFetch(`/history/symbols${q}`);
+  },
+
+  // Analytics
+  getCorrelations: (params: { days?: number; interval?: string; symbols?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.days) qs.set('days', String(params.days));
+    if (params.interval) qs.set('interval', params.interval);
+    if (params.symbols) qs.set('symbols', params.symbols);
+    const q = qs.toString();
+    return apiFetch(`/analytics/correlations${q ? `?${q}` : ''}`);
+  },
+  getPortfolioAnalytics: (portfolioId: string) => apiFetch(`/portfolios/${portfolioId}/analytics`),
+
+  // Data Quality
+  getDataQuality: () => apiFetch('/data-quality'),
 };

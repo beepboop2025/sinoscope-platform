@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type ReactElement } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, type ReactElement } from 'react';
 import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 
@@ -7,50 +7,64 @@ import CommandBar from './components/layout/CommandBar';
 import ShortcutsModal from './components/shared/ShortcutsModal';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import OfflineIndicator from './components/shared/OfflineIndicator';
+import { PanelSkeleton } from './components/shared/LoadingSkeleton';
+import { startAnimationBudgetMonitor } from './utils/animationBudget';
 
-// Panels
-import PanelForex from './components/panels/PanelForex';
-import PanelStocks from './components/panels/PanelStocks';
-import PanelCrypto from './components/panels/PanelCrypto';
-import PanelBonds from './components/panels/PanelBonds';
-import PanelCommodities from './components/panels/PanelCommodities';
-import PanelEconomic from './components/panels/PanelEconomic';
-import PanelNews from './components/panels/PanelNews';
-import PanelChart from './components/panels/PanelChart';
-import PanelCorrelation from './components/panels/PanelCorrelation';
-import PanelNetwork from './components/panels/PanelNetwork';
-import PanelTimeline from './components/panels/PanelTimeline';
-import PanelCompany from './components/panels/PanelCompany';
-import PanelAlerts from './components/panels/PanelAlerts';
-import PanelSqlQuery from './components/panels/PanelSqlQuery';
-import PanelGithubTrending from './components/panels/PanelGithubTrending';
-import PanelHuggingFace from './components/panels/PanelHuggingFace';
-import PanelSentiment from './components/panels/PanelSentiment';
-import PanelSectors from './components/panels/PanelSectors';
-import PanelWatchlist from './components/panels/PanelWatchlist';
-import PanelDefi from './components/panels/PanelDefi';
-import PanelCryptoGlobal from './components/panels/PanelCryptoGlobal';
-import PanelRedditSentiment from './components/panels/PanelRedditSentiment';
-import PanelSECFilings from './components/panels/PanelSECFilings';
-import PanelResearchPapers from './components/panels/PanelResearchPapers';
-import PanelML from './components/panels/PanelML';
-import PanelSignals from './components/panels/PanelSignals';
-import PanelCandlestick from './components/panels/PanelCandlestick';
-import PanelPortfolio from './components/panels/PanelPortfolio';
-import PanelEarningsCalendar from './components/panels/PanelEarningsCalendar';
+// Lazy-loaded panels
+const PanelForex = lazy(() => import('./components/panels/PanelForex'));
+const PanelStocks = lazy(() => import('./components/panels/PanelStocks'));
+const PanelCrypto = lazy(() => import('./components/panels/PanelCrypto'));
+const PanelBonds = lazy(() => import('./components/panels/PanelBonds'));
+const PanelCommodities = lazy(() => import('./components/panels/PanelCommodities'));
+const PanelEconomic = lazy(() => import('./components/panels/PanelEconomic'));
+const PanelNews = lazy(() => import('./components/panels/PanelNews'));
+const PanelChart = lazy(() => import('./components/panels/PanelChart'));
+const PanelCorrelation = lazy(() => import('./components/panels/PanelCorrelation'));
+const PanelNetwork = lazy(() => import('./components/panels/PanelNetwork'));
+const PanelTimeline = lazy(() => import('./components/panels/PanelTimeline'));
+const PanelCompany = lazy(() => import('./components/panels/PanelCompany'));
+const PanelAlerts = lazy(() => import('./components/panels/PanelAlerts'));
+const PanelSqlQuery = lazy(() => import('./components/panels/PanelSqlQuery'));
+const PanelGithubTrending = lazy(() => import('./components/panels/PanelGithubTrending'));
+const PanelHuggingFace = lazy(() => import('./components/panels/PanelHuggingFace'));
+const PanelSentiment = lazy(() => import('./components/panels/PanelSentiment'));
+const PanelSectors = lazy(() => import('./components/panels/PanelSectors'));
+const PanelWatchlist = lazy(() => import('./components/panels/PanelWatchlist'));
+const PanelDefi = lazy(() => import('./components/panels/PanelDefi'));
+const PanelCryptoGlobal = lazy(() => import('./components/panels/PanelCryptoGlobal'));
+const PanelRedditSentiment = lazy(() => import('./components/panels/PanelRedditSentiment'));
+const PanelSECFilings = lazy(() => import('./components/panels/PanelSECFilings'));
+const PanelResearchPapers = lazy(() => import('./components/panels/PanelResearchPapers'));
+const PanelML = lazy(() => import('./components/panels/PanelML'));
+const PanelSignals = lazy(() => import('./components/panels/PanelSignals'));
+const PanelCandlestick = lazy(() => import('./components/panels/PanelCandlestick'));
+const PanelPortfolio = lazy(() => import('./components/panels/PanelPortfolio'));
+const PanelEarningsCalendar = lazy(() => import('./components/panels/PanelEarningsCalendar'));
 
 // China panels
-import PanelChinaMarkets from './components/panels/china/PanelChinaMarkets';
-import PanelCNYTracker from './components/panels/china/PanelCNYTracker';
-import PanelPBOCWatch from './components/panels/china/PanelPBOCWatch';
-import PanelTradeFlow from './components/panels/china/PanelTradeFlow';
-import PanelBeltRoad from './components/panels/china/PanelBeltRoad';
-import PanelChinaCalendar from './components/panels/china/PanelChinaCalendar';
+const PanelChinaMarkets = lazy(() => import('./components/panels/china/PanelChinaMarkets'));
+const PanelCNYTracker = lazy(() => import('./components/panels/china/PanelCNYTracker'));
+const PanelPBOCWatch = lazy(() => import('./components/panels/china/PanelPBOCWatch'));
+const PanelTradeFlow = lazy(() => import('./components/panels/china/PanelTradeFlow'));
+const PanelBeltRoad = lazy(() => import('./components/panels/china/PanelBeltRoad'));
+const PanelChinaCalendar = lazy(() => import('./components/panels/china/PanelChinaCalendar'));
+
+// New panels
+const PanelFundamentals = lazy(() => import('./components/panels/PanelFundamentals'));
+const PanelNewsFeed = lazy(() => import('./components/panels/PanelNewsFeed'));
+const PanelEconCalendar = lazy(() => import('./components/panels/PanelEconCalendar'));
+const PanelScreener = lazy(() => import('./components/panels/PanelScreener'));
+const PanelHeatMap = lazy(() => import('./components/panels/PanelHeatMap'));
+const PanelOrderBook = lazy(() => import('./components/panels/PanelOrderBook'));
+const PanelIndianMarket = lazy(() => import('./components/panels/PanelIndianMarket'));
+const PanelSystemHealth = lazy(() => import('./components/panels/PanelSystemHealth'));
+const PanelSettings = lazy(() => import('./components/panels/PanelSettings'));
 
 // Engine & hooks
 import { createMarketEngine } from './engine/MarketEngine';
 import { useMarketData } from './hooks/useMarketData';
 import { useWebSocket } from './hooks/useWebSocket';
+import { useBackendWS } from './hooks/useBackendWS';
 import { useWorkspace } from './hooks/useWorkspace';
 import { useCommandBar } from './hooks/useCommandBar';
 import { useCorrelation } from './hooks/useCorrelation';
@@ -95,6 +109,11 @@ function App(): ReactElement {
     }
   }, []);
 
+  // Start animation budget monitor
+  useEffect(() => {
+    return startAnimationBudgetMonitor();
+  }, []);
+
   const engineRef = useRef<ReturnType<typeof createMarketEngine> | null>(null);
   const [useMock, setUseMock] = useState<boolean>(false);
   const [events, setEvents] = useState<FormattedEvent[]>([]);
@@ -110,8 +129,11 @@ function App(): ReactElement {
   // Market data from engine
   const marketData = useMarketData(engine);
 
-  // WebSocket for real-time crypto
+  // WebSocket for real-time crypto (Binance sub-second tickers)
   useWebSocket(engine, { useMock });
+
+  // Backend WebSocket for multi-category collector updates
+  useBackendWS(engine);
 
   // Workspace layout
   const workspace = useWorkspace();
@@ -375,6 +397,24 @@ function App(): ReactElement {
         return <PanelPortfolio data={marketData} />;
       case 'earningsCalendar':
         return <PanelEarningsCalendar />;
+      case 'fundamentals':
+        return <PanelFundamentals />;
+      case 'newsFeed':
+        return <PanelNewsFeed />;
+      case 'econCalendar':
+        return <PanelEconCalendar />;
+      case 'screener':
+        return <PanelScreener />;
+      case 'heatMap':
+        return <PanelHeatMap />;
+      case 'orderBook':
+        return <PanelOrderBook />;
+      case 'indianMarket':
+        return <PanelIndianMarket />;
+      case 'systemHealth':
+        return <PanelSystemHealth />;
+      case 'settings':
+        return <PanelSettings />;
       default:
         return <div style={{ padding: 16, color: 'var(--text-3)', fontSize: 12 }}>Unknown panel: {panelId}</div>;
     }
@@ -411,7 +451,9 @@ function App(): ReactElement {
             {panels.map((panelId: string) => (
               <div key={panelId}>
                 <ErrorBoundary>
-                  {renderPanel(panelId)}
+                  <Suspense fallback={<PanelSkeleton />}>
+                    {renderPanel(panelId)}
+                  </Suspense>
                 </ErrorBoundary>
               </div>
             ))}

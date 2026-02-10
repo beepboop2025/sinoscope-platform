@@ -23,9 +23,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-charts': ['recharts', 'lightweight-charts'],
+          'vendor-charts': ['lightweight-charts'],
           'vendor-data': ['alasql', 'xlsx'],
           'vendor-ui': ['lucide-react', 'react-grid-layout'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-state': ['zustand'],
+          'vendor-cmdk': ['cmdk', 'sonner'],
+          'vendor-viz': ['d3-hierarchy', 'canvas-confetti'],
         },
       },
     },
@@ -84,6 +88,27 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/health': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/api/history': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/api/analytics': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/api/data-quality': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'http://127.0.0.1:3456',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/metrics': {
         target: 'http://127.0.0.1:3456',
         changeOrigin: true,
       },

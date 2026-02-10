@@ -24,6 +24,14 @@ const TREASURY_SERIES: Record<string, string> = {
 };
 
 export async function fetchTreasuryYield(maturity: string = '10Y'): Promise<FREDObservation[] | null> {
+  // Collector-first: backend may have pre-fetched bond data keyed by maturity
+  const collected = await getCollectorData('bonds');
+  if (collected && typeof collected === 'object') {
+    const bonds = collected as Record<string, unknown>;
+    const entry = bonds[maturity];
+    if (entry && Array.isArray(entry)) return entry as FREDObservation[];
+  }
+
   const key: string = FRED_KEY();
   if (!key) return null;
   const seriesId: string | undefined = TREASURY_SERIES[maturity];
