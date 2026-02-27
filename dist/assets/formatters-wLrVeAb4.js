@@ -1,0 +1,1 @@
+const o=(r,e=2)=>{const t=Number(r)||0;return Math.abs(t)>=1e9?`${(t/1e9).toFixed(2)}B`:Math.abs(t)>=1e6?`${(t/1e6).toFixed(2)}M`:Math.abs(t)>=1e3?`${(t/1e3).toFixed(2)}K`:t.toFixed(e)},i=r=>{const e=Number(r)||0;return e>=1e9?`${(e/1e9).toFixed(1)}B`:e>=1e6?`${(e/1e6).toFixed(1)}M`:e>=1e3?`${(e/1e3).toFixed(1)}K`:e.toFixed(0)};export{o as a,i as f};
