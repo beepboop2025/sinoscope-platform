@@ -1,0 +1,330 @@
+# DragonScope Enterprise - TimescaleDB StatefulSet
+# High Availability PostgreSQL Cluster with TimescaleDB Extension
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb-primary
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: primary
+    app.kubernetes.io/part-of: dragonscope-enterprise
+    version: "15"
+spec:
+  serviceName: timescaledb-primary
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: timescaledb
+      app.kubernetes.io/component: primary
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: timescaledb
+        app.kubernetes.io/component: primary
+        app.kubernetes.io/part-of: dragonscope-enterprise
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+        prometheus.io/path: "/metrics"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - timescaledb
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: timescaledb
+          image: timescale/timescaledb-ha:pg15-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-db-credentials
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-db-credentials
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-db-credentials
+                  key: POSTGRES_DB
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: TIMESCALEDB_TELEMETRY
+              value: "off"
+          command:
+            - postgres
+            - -c
+            - max_connections=200
+            - -c
+            - shared_buffers=2GB
+            - -c
+            - effective_cache_size=6GB
+            - -c
+            - maintenance_work_mem=512MB
+            - -c
+            - checkpoint_completion_target=0.9
+            - -c
+            - wal_buffers=16MB
+            - -c
+            - default_statistics_target=100
+            - -c
+            - random_page_cost=1.1
+            - -c
+            - effective_io_concurrency=200
+            - -c
+            - work_mem=5242kB
+            - -c
+            - min_wal_size=2GB
+            - -c
+            - max_wal_size=8GB
+            - -c
+            - max_worker_processes=8
+            - -c
+            - max_parallel_workers_per_gather=4
+            - -c
+            - max_parallel_workers=8
+            - -c
+            - max_parallel_maintenance_workers=4
+            - -c
+            - synchronous_commit=remote_apply
+            - -c
+            - wal_level=replica
+            - -c
+            - hot_standby=on
+            - -c
+            - max_wal_senders=10
+            - -c
+            - max_replication_slots=10
+          resources:
+            requests:
+              cpu: "2000m"
+              memory: "4Gi"
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"
+          volumeMounts:
+            - name: timescale-data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - $(POSTGRES_USER)
+                - -d
+                - $(POSTGRES_DB)
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - $(POSTGRES_USER)
+                - -d
+                - $(POSTGRES_DB)
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:v0.15.0
+          env:
+            - name: DATA_SOURCE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-db-credentials
+                  key: DATABASE_URL
+          ports:
+            - name: metrics
+              containerPort: 9187
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+      volumes:
+        - name: timescale-data
+          persistentVolumeClaim:
+            claimName: timescale-primary-pvc
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb-replica
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: replica
+    app.kubernetes.io/part-of: dragonscope-enterprise
+spec:
+  serviceName: timescaledb-replica
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: timescaledb
+      app.kubernetes.io/component: replica
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: timescaledb
+        app.kubernetes.io/component: replica
+        app.kubernetes.io/part-of: dragonscope-enterprise
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - timescaledb
+              topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: init-replica
+          image: timescale/timescaledb-ha:pg15-latest
+          command:
+            - bash
+            - -c
+            - |
+              rm -rf /var/lib/postgresql/data/*
+              pg_basebackup -h timescaledb-primary -D /var/lib/postgresql/data \
+                -U replicator -v -P -W -X stream -R
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-db-credentials
+                  key: POSTGRES_REPLICA_PASSWORD
+          volumeMounts:
+            - name: timescale-replica-data
+              mountPath: /var/lib/postgresql/data
+      containers:
+        - name: timescaledb
+          image: timescale/timescaledb-ha:pg15-latest
+          ports:
+            - name: postgres
+              containerPort: 5432
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          volumeMounts:
+            - name: timescale-replica-data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+            initialDelaySeconds: 30
+            periodSeconds: 5
+      volumes:
+        - name: timescale-replica-data
+          persistentVolumeClaim:
+            claimName: timescale-replica-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb-primary
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: primary
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: primary
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb-replica
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: replica
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: replica
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: timescale-primary-pvc
+  namespace: dragonscope-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: gp3-encrypted
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: timescale-replica-pvc
+  namespace: dragonscope-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: gp3-encrypted

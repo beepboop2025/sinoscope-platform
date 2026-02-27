@@ -1,0 +1,319 @@
+# DragonScope Enterprise - Test Environment
+# Docker Compose configuration for running all tests
+
+version: '3.8'
+
+services:
+  # =========================================================================
+  # Core Application
+  # =========================================================================
+  api:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: test
+    container_name: dragonscope-api-test
+    ports:
+      - "8000:8000"
+    environment:
+      - DRAGONSCOPE_ENV=test
+      - DATABASE_URL=postgresql://test:test@postgres:5432/dragonscope_test
+      - REDIS_URL=redis://redis:6379/1
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - JWT_SECRET=test_secret_key
+      - DEBUG=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ../src:/app/src:ro
+      - ./fixtures:/app/fixtures:ro
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - dragonscope-test
+
+  worker:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: test
+    container_name: dragonscope-worker-test
+    environment:
+      - DRAGONSCOPE_ENV=test
+      - DATABASE_URL=postgresql://test:test@postgres:5432/dragonscope_test
+      - REDIS_URL=redis://redis:6379/1
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - MINIO_ENDPOINT=minio:9000
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    volumes:
+      - ../src:/app/src:ro
+    command: celery -A tasks worker --loglevel=info --concurrency=4
+    networks:
+      - dragonscope-test
+
+  scheduler:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: test
+    container_name: dragonscope-scheduler-test
+    environment:
+      - DRAGONSCOPE_ENV=test
+      - DATABASE_URL=postgresql://test:test@postgres:5432/dragonscope_test
+      - REDIS_URL=redis://redis:6379/1
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../src:/app/src:ro
+    command: celery -A tasks beat --loglevel=info
+    networks:
+      - dragonscope-test
+
+  # =========================================================================
+  # Databases
+  # =========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: dragonscope-postgres-test
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=dragonscope_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ./fixtures/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d dragonscope_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dragonscope-test
+
+  redis:
+    image: redis:7-alpine
+    container_name: dragonscope-redis-test
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-test-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - dragonscope-test
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: dragonscope-es-test
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9201:9200"
+    volumes:
+      - es-test-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dragonscope-test
+
+  # =========================================================================
+  # Message Queue
+  # =========================================================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: dragonscope-rabbitmq-test
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - rabbitmq-test-data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dragonscope-test
+
+  # =========================================================================
+  # Object Storage
+  # =========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: dragonscope-minio-test
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9001:9000"
+      - "9002:9001"
+    volumes:
+      - minio-test-data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dragonscope-test
+
+  createbuckets:
+    image: minio/mc
+    container_name: dragonscope-minio-init-test
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/dragonscope-test-documents;
+      /usr/bin/mc policy set public myminio/dragonscope-test-documents;
+      exit 0;
+      "
+    networks:
+      - dragonscope-test
+
+  # =========================================================================
+  # Testing Services
+  # =========================================================================
+  test-runner:
+    build:
+      context: ../
+      dockerfile: Dockerfile.test
+    container_name: dragonscope-test-runner
+    environment:
+      - DRAGONSCOPE_ENV=test
+      - DATABASE_URL=postgresql://test:test@postgres:5432/dragonscope_test
+      - REDIS_URL=redis://redis:6379/1
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - API_URL=http://api:8000
+      - PYTEST_CURRENT_TEST=1
+    volumes:
+      - ../:/app:ro
+      - ./:/app/tests:ro
+      - test-reports:/app/reports
+    depends_on:
+      - api
+      - postgres
+      - redis
+      - rabbitmq
+    command: >
+      pytest tests/ 
+        -v 
+        --tb=short 
+        --cov=src 
+        --cov-report=html:reports/coverage 
+        --cov-report=xml:reports/coverage.xml
+        --html=reports/test-report.html
+        --self-contained-html
+    networks:
+      - dragonscope-test
+
+  # =========================================================================
+  # Load Testing
+  # =========================================================================
+  locust-master:
+    image: locustio/locust
+    container_name: dragonscope-locust-master
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./load:/mnt/locust
+    command: >
+      -f /mnt/locust/locustfile.py
+      --master
+      -H http://api:8000
+    depends_on:
+      - api
+    networks:
+      - dragonscope-test
+
+  locust-worker:
+    image: locustio/locust
+    container_name: dragonscope-locust-worker
+    volumes:
+      - ./load:/mnt/locust
+    command: >
+      -f /mnt/locust/locustfile.py
+      --worker
+      --master-host locust-master
+    depends_on:
+      - locust-master
+    networks:
+      - dragonscope-test
+    deploy:
+      replicas: 4
+
+  # =========================================================================
+  # Monitoring (for testing visibility)
+  # =========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dragonscope-prometheus-test
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./fixtures/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - dragonscope-test
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dragonscope-grafana-test
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - dragonscope-test
+
+networks:
+  dragonscope-test:
+    driver: bridge
+
+volumes:
+  postgres-test-data:
+  redis-test-data:
+  es-test-data:
+  rabbitmq-test-data:
+  minio-test-data:
+  test-reports:
+  prometheus-data:
+  grafana-data:

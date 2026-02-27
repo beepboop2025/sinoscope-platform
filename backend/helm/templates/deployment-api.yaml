@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dragonscope.fullname" . }}-api
+  labels:
+    app.kubernetes.io/name: {{ include "dragonscope.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "dragonscope.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "dragonscope.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: api
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}/api:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "dragonscope.fullname" . }}-config
+            - secretRef:
+                name: {{ include "dragonscope.fullname" . }}-secret
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.api.livenessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.api.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.api.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.api.readinessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.api.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.api.readinessProbe.timeoutSeconds }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}

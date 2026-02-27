@@ -1,0 +1,107 @@
+# DragonScope Helm Chart - Default Values
+# ──────────────────────────────────────────────────────────────────
+
+# -- Global settings
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ghcr.io/dragonscope/dragonscope
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+
+# -- API service
+api:
+  replicas: 2
+  port: 3456
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  livenessProbe:
+    path: /api/health/live
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+  readinessProbe:
+    path: /api/health/ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+# -- Celery worker
+worker:
+  replicas: 2
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# -- Celery beat scheduler
+beat:
+  replicas: 1
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+# -- PostgreSQL (TimescaleDB)
+postgres:
+  enabled: true
+  image: timescale/timescaledb:latest-pg16
+  storage: 10Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# -- Redis
+redis:
+  enabled: true
+  image: redis:7-alpine
+  storage: 1Gi
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "250m"
+
+# -- Prometheus
+prometheus:
+  enabled: true
+
+# -- Grafana
+grafana:
+  enabled: true
+
+# -- Ingress
+ingress:
+  enabled: false
+  className: "nginx"
+  host: dragonscope.local
+  annotations: {}
+  tls: []
+
+# -- Environment configuration
+env:
+  API_PORT: "3456"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "info"
+  REDIS_URL: "redis://redis:6379/0"
+  DATABASE_URL: "postgresql+asyncpg://dragonscope:dragonscope@postgres:5432/dragonscope"

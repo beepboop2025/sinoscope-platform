@@ -1,0 +1,18 @@
+# DragonScope Enterprise CLI Dependencies
+click>=8.1.0
+rich>=13.0.0
+pyyaml>=6.0
+requests>=2.28.0
+tabulate>=0.9.0
+
+# Optional for enhanced functionality
+kubernetes>=26.0.0  # For K8s integration
+boto3>=1.26.0       # For AWS integration
+azure-identity>=1.12.0  # For Azure integration
+google-cloud-container>=2.17.0  # For GCP integration
+
+# Development dependencies
+pytest>=7.2.0
+pytest-cov>=4.0.0
+black>=22.0.0
+mypy>=1.0.0

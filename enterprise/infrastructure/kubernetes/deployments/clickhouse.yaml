@@ -1,0 +1,212 @@
+# DragonScope Enterprise - ClickHouse Analytics
+# High Performance Analytics Database
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clickhouse
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/component: analytics
+    app.kubernetes.io/part-of: dragonscope-enterprise
+spec:
+  serviceName: clickhouse
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse
+      app.kubernetes.io/component: analytics
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clickhouse
+        app.kubernetes.io/component: analytics
+        app.kubernetes.io/part-of: dragonscope-enterprise
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9363"
+        prometheus.io/path: "/metrics"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - clickhouse
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:23.8-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8123
+              protocol: TCP
+            - name: native
+              containerPort: 9000
+              protocol: TCP
+            - name: interserver
+              containerPort: 9009
+              protocol: TCP
+            - name: metrics
+              containerPort: 9363
+          env:
+            - name: CLICKHOUSE_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: dragonscope-clickhouse-config
+                  key: CLICKHOUSE_DB
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-clickhouse-credentials
+                  key: CLICKHOUSE_USER
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-clickhouse-credentials
+                  key: CLICKHOUSE_PASSWORD
+            - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+              value: "1"
+          resources:
+            requests:
+              cpu: "2000m"
+              memory: "4Gi"
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"
+          volumeMounts:
+            - name: clickhouse-data
+              mountPath: /var/lib/clickhouse
+            - name: clickhouse-logs
+              mountPath: /var/log/clickhouse-server
+            - name: clickhouse-config
+              mountPath: /etc/clickhouse-server/config.d
+            - name: clickhouse-users
+              mountPath: /etc/clickhouse-server/users.d
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsUser: 101
+            runAsGroup: 101
+            fsGroup: 101
+      volumes:
+        - name: clickhouse-config
+          configMap:
+            name: dragonscope-clickhouse-config
+            items:
+              - key: config.xml
+                path: config.xml
+        - name: clickhouse-users
+          secret:
+            secretName: dragonscope-clickhouse-credentials
+        - name: clickhouse-data
+          persistentVolumeClaim:
+            claimName: clickhouse-data-pvc
+        - name: clickhouse-logs
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/component: analytics
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8123
+      targetPort: 8123
+      protocol: TCP
+      name: http
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: native
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/component: analytics
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clickhouse-data-pvc
+  namespace: dragonscope-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: gp3-encrypted
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: clickhouse-backup
+  namespace: dragonscope-data
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: clickhouse-backup
+              image: clickhouse/clickhouse-server:23.8-alpine
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  clickhouse-client --host=clickhouse \
+                    --user=$(CLICKHOUSE_USER) \
+                    --password=$(CLICKHOUSE_PASSWORD) \
+                    --query="BACKUP DATABASE dragonscope_analytics TO S3('s3://dragonscope-backups/clickhouse/backup_$(date +%Y%m%d_%H%M%S)')"
+              env:
+                - name: CLICKHOUSE_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: dragonscope-clickhouse-credentials
+                      key: CLICKHOUSE_USER
+                - name: CLICKHOUSE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: dragonscope-clickhouse-credentials
+                      key: CLICKHOUSE_PASSWORD
+              resources:
+                requests:
+                  cpu: "500m"
+                  memory: "512Mi"
+                limits:
+                  cpu: "1000m"
+                  memory: "1Gi"
+          restartPolicy: OnFailure

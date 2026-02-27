@@ -1,0 +1,433 @@
+# DragonScope Enterprise - ConfigMap Definitions
+# Application and infrastructure configuration
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dragonscope-global-config
+  namespace: dragonscope-production
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: config
+data:
+  # Application Settings
+  APP_NAME: "DragonScope Enterprise"
+  APP_VERSION: "1.0.0"
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+  
+  # Timezone and Locale
+  TZ: "UTC"
+  LOCALE: "en_US.UTF-8"
+  
+  # Database Configuration
+  DB_POOL_SIZE: "20"
+  DB_POOL_TIMEOUT: "30"
+  DB_MAX_OVERFLOW: "10"
+  
+  # Cache Configuration
+  CACHE_TTL: "3600"
+  CACHE_MAX_SIZE: "10000"
+  
+  # API Configuration
+  API_RATE_LIMIT: "1000"
+  API_TIMEOUT: "30"
+  API_MAX_BODY_SIZE: "10mb"
+  
+  # Security Settings
+  CORS_ORIGINS: "https://dragonscope.io,https://app.dragonscope.io"
+  CSP_POLICY: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+  
+  # Feature Flags
+  FEATURE_ANALYTICS: "true"
+  FEATURE_ML_PIPELINE: "true"
+  FEATURE_REAL_TIME: "true"
+  FEATURE_EXPORT: "true"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dragonscope-timescale-config
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: database
+data:
+  # PostgreSQL Configuration
+  POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+  PGDATA: "/var/lib/postgresql/data/pgdata"
+  
+  # Connection Settings
+  POSTGRES_DB: "dragonscope_data"
+  POSTGRES_PORT: "5432"
+  
+  # Performance Tuning
+  POSTGRES_MAX_CONNECTIONS: "200"
+  POSTGRES_SHARED_BUFFERS: "2GB"
+  POSTGRES_EFFECTIVE_CACHE_SIZE: "6GB"
+  POSTGRES_MAINTENANCE_WORK_MEM: "512MB"
+  POSTGRES_CHECKPOINT_COMPLETION_TARGET: "0.9"
+  POSTGRES_WAL_BUFFERS: "16MB"
+  POSTGRES_DEFAULT_STATISTICS_TARGET: "100"
+  POSTGRES_RANDOM_PAGE_COST: "1.1"
+  POSTGRES_EFFECTIVE_IO_CONCURRENCY: "200"
+  POSTGRES_WORK_MEM: "5242kB"
+  POSTGRES_MIN_WAL_SIZE: "2GB"
+  POSTGRES_MAX_WAL_SIZE: "8GB"
+  POSTGRES_MAX_WORKER_PROCESSES: "8"
+  POSTGRES_MAX_PARALLEL_WORKERS_PER_GATHER: "4"
+  POSTGRES_MAX_PARALLEL_WORKERS: "8"
+  POSTGRES_MAX_PARALLEL_MAINTENANCE_WORKERS: "4"
+  
+  # Replication Settings
+  POSTGRES_WAL_LEVEL: "replica"
+  POSTGRES_HOT_STANDBY: "on"
+  POSTGRES_MAX_WAL_SENDERS: "10"
+  POSTGRES_MAX_REPLICATION_SLOTS: "10"
+  POSTGRES_SYNCHRONOUS_COMMIT: "remote_apply"
+  
+  # TimescaleDB Settings
+  TIMESCALEDB_TELEMETRY: "off"
+  TIMESCALEDB_LAST_TUNE: "version:0.14.0"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dragonscope-redis-config
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+data:
+  # Redis Configuration
+  redis.conf: |
+    # Network
+    bind 0.0.0.0
+    port 6379
+    protected-mode yes
+    
+    # General
+    daemonize no
+    supervised no
+    pidfile /var/run/redis/redis-server.pid
+    loglevel notice
+    logfile ""
+    databases 16
+    
+    # Memory Management
+    maxmemory 2gb
+    maxmemory-policy allkeys-lru
+    
+    # Persistence
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+    
+    # AOF Persistence
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    aof-use-rdb-preamble yes
+    
+    # Replication
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync no
+    repl-diskless-sync-delay 5
+    repl-ping-replica-period 10
+    repl-timeout 60
+    repl-disable-tcp-nodelay no
+    
+    # Security
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    
+    # Limits
+    maxclients 10000
+    
+    # Slow Log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    
+    # Latency Monitoring
+    latency-monitor-threshold 0
+    
+    # Event Notification
+    notify-keyspace-events ""
+    
+    # Advanced Config
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    list-max-ziplist-size -2
+    list-compress-depth 0
+    set-max-intset-entries 512
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    hll-sparse-max-bytes 3000
+    stream-node-max-bytes 4096
+    stream-node-max-entries 100
+    activerehashing yes
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    hz 10
+    dynamic-hz yes
+    aof-rewrite-incremental-fsync yes
+    rdb-save-incremental-fsync yes
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dragonscope-kafka-config
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/component: messaging
+data:
+  # Kafka Configuration
+  KAFKA_BROKER_ID: "1"
+  KAFKA_NUM_PARTITIONS: "12"
+  KAFKA_DEFAULT_REPLICATION_FACTOR: "3"
+  KAFKA_MIN_INSYNC_REPLICAS: "2"
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "2"
+  
+  # Log Retention
+  KAFKA_LOG_RETENTION_HOURS: "168"
+  KAFKA_LOG_SEGMENT_BYTES: "1073741824"
+  KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: "300000"
+  
+  # Network
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:SASL_SSL"
+  KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+  
+  # Performance
+  KAFKA_NUM_NETWORK_THREADS: "8"
+  KAFKA_NUM_IO_THREADS: "16"
+  KAFKA_SOCKET_SEND_BUFFER_BYTES: "102400"
+  KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: "102400"
+  KAFKA_SOCKET_REQUEST_MAX_BYTES: "104857600"
+  
+  # JMX
+  KAFKA_JMX_PORT: "9999"
+  
+  # Topic Management
+  KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+  KAFKA_DELETE_TOPIC_ENABLE: "true"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dragonscope-clickhouse-config
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/component: analytics
+data:
+  # ClickHouse Configuration
+  CLICKHOUSE_DB: "dragonscope_analytics"
+  CLICKHOUSE_PORT_HTTP: "8123"
+  CLICKHOUSE_PORT_NATIVE: "9000"
+  CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+  
+  # Performance
+  CLICKHOUSE_MAX_MEMORY_USAGE: "8G"
+  CLICKHOUSE_MAX_THREADS: "16"
+  CLICKHOUSE_MAX_BLOCK_SIZE: "65536"
+  
+  # Storage
+  config.xml: |
+    <?xml version="1.0"?>
+    <yandex>
+      <logger>
+        <level>information</level>
+        <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+        <size>1000M</size>
+        <count>10</count>
+      </logger>
+      
+      <http_port>8123</http_port>
+      <tcp_port>9000</tcp_port>
+      
+      <listen_host>0.0.0.0</listen_host>
+      <listen_try>1</listen_try>
+      
+      <max_connections>4096</max_connections>
+      <keep_alive_timeout>3</keep_alive_timeout>
+      
+      <max_concurrent_queries>100</max_concurrent_queries>
+      <max_server_memory_usage>0</max_server_memory_usage>
+      <max_thread_pool_size>10000</max_thread_pool_size>
+      
+      <default_profile>default</default_profile>
+      <default_database>default</default_database>
+      
+      <timezone>UTC</timezone>
+      <mlock_executable>true</mlock_executable>
+      
+      <remote_servers>
+        <dragonscope_cluster>
+          <shard>
+            <internal_replication>true</internal_replication>
+            <replica>
+              <host>clickhouse-0</host>
+              <port>9000</port>
+            </replica>
+            <replica>
+              <host>clickhouse-1</host>
+              <port>9000</port>
+            </replica>
+          </shard>
+        </dragonscope_cluster>
+      </remote_servers>
+    </yandex>
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dragonscope-minio-config
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+data:
+  # MinIO Configuration
+  MINIO_PROMETHEUS_AUTH_TYPE: "public"
+  MINIO_BROWSER: "on"
+  MINIO_COMPRESSION_ENABLE: "on"
+  MINIO_COMPRESSION_EXTENSIONS: ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.json,.xml,.html"
+  MINIO_COMPRESSION_MIME_TYPES: "application/pdf,text/*,image/*,video/*,audio/*,application/json,application/xml"
+  
+  # Distributed Mode
+  MINIO_DISTRIBUTED_MODE_ENABLED: "on"
+  
+  # Erasure Coding
+  MINIO_STORAGE_CLASS_STANDARD: "EC:2"
+  MINIO_STORAGE_CLASS_RRS: "EC:1"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dragonscope-jaeger-config
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: tracing
+data:
+  # Jaeger Configuration
+  COLLECTOR_OTLP_ENABLED: "true"
+  JAEGER_DISABLED: "false"
+  SPAN_STORAGE_TYPE: "elasticsearch"
+  ES_SERVER_URLS: "http://elasticsearch:9200"
+  ES_USERNAME: ""
+  ES_PASSWORD: ""
+  ES_INDEX_PREFIX: "jaeger"
+  ES_TAGS_AS_FIELDS_ALL: "true"
+  
+  # Sampling
+  SAMPLING_STRATEGIES_TYPE: "probabilistic"
+  SAMPLING_PARAM: "1.0"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dragonscope-grafana-datasources
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: visualization
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: false
+        jsonData:
+          timeInterval: "5s"
+          httpMethod: POST
+          manageAlerts: true
+          prometheusType: Prometheus
+          prometheusVersion: "2.48.0"
+          cacheLevel: 'High'
+          incrementalQuerying: true
+      
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki:3100
+        editable: false
+        jsonData:
+          maxLines: 1000
+          derivedFields:
+            - name: TraceID
+              matcherRegex: '"trace_id":"(.*?)"'
+              url: 'http://jaeger:16686/trace/$${__value.raw}'
+      
+      - name: Jaeger
+        type: jaeger
+        access: proxy
+        url: http://jaeger:16686
+        editable: false
+        jsonData:
+          tracesToLogs:
+            datasourceUid: 'loki'
+            tags: ['pod', 'namespace']
+            mappedTags: [{ key: 'service.name', value: 'service' }]
+            mapTagNamesEnabled: false
+            spanStartTimeShift: '1h'
+            spanEndTimeShift: '1h'
+            filterByTraceID: false
+            filterBySpanID: false
+      
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://tempo:3200
+        editable: false
+      
+      - name: ClickHouse
+        type: grafana-clickhouse-datasource
+        access: proxy
+        url: http://clickhouse:8123
+        editable: false
+        jsonData:
+          defaultDatabase: dragonscope_analytics
+          port: 8123
+          protocol: http
+      
+      - name: Redis
+        type: redis-datasource
+        access: proxy
+        url: redis://redis-cluster:6379
+        editable: false
+      
+      - name: Alertmanager
+        type: alertmanager
+        access: proxy
+        url: http://alertmanager:9093
+        editable: false
+        jsonData:
+          implementation: prometheus

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dragonscope.fullname" . }}-config
+  labels:
+    app.kubernetes.io/name: {{ include "dragonscope.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  API_PORT: {{ .Values.env.API_PORT | quote }}
+  ENVIRONMENT: {{ .Values.env.ENVIRONMENT | quote }}
+  LOG_LEVEL: {{ .Values.env.LOG_LEVEL | quote }}
+  REDIS_URL: {{ .Values.env.REDIS_URL | quote }}
+  DATABASE_URL: {{ .Values.env.DATABASE_URL | quote }}
