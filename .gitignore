@@ -6,3 +6,5 @@ node_modules
 .vite
 .vercel
 package-lock 2.json
+*.pyc
+__pycache__/
