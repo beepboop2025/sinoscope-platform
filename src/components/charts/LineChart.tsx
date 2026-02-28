@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, type ReactElement } from 'react';
-import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp, type DeepPartial, type ChartOptions } from 'lightweight-charts';
+import { createChart, LineSeries, type IChartApi, type ISeriesApi, type UTCTimestamp, type DeepPartial, type ChartOptions } from 'lightweight-charts';
 import { CHART_COLORS } from '../../constants/colors';
 
 interface SeriesConfig {
@@ -53,7 +53,7 @@ const LineChartComponent = memo(({ data = [], series = [], height = 250, showGri
     // Add series
     const refs: ISeriesApi<'Line'>[] = [];
     series.forEach((s, i) => {
-      const lineSeries = chart.addLineSeries({
+      const lineSeries = chart.addSeries(LineSeries, {
         color: s.color || CHART_COLORS[i % CHART_COLORS.length],
         lineWidth: (s.width || 1.5) as 1 | 2 | 3 | 4,
       });

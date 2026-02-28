@@ -137,6 +137,13 @@ const PanelWatchlist = memo(({ data }: WatchlistProps): ReactElement => {
           </div>
         )}
 
+        {/* Demo mode indicator */}
+        {(!data || Object.keys(data).length === 0) && (
+          <div style={{ fontSize: 9, color: 'var(--amber)', background: 'rgba(245, 158, 11, 0.1)', padding: '3px 8px', borderRadius: 4, textAlign: 'center' }}>
+            Demo Mode — Waiting for market data
+          </div>
+        )}
+
         {/* Watchlist items */}
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           {watchlist.map(sym => {

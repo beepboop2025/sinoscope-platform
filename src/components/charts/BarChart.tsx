@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, type ReactElement } from 'react';
-import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp, type DeepPartial, type ChartOptions } from 'lightweight-charts';
+import { createChart, HistogramSeries, type IChartApi, type ISeriesApi, type UTCTimestamp, type DeepPartial, type ChartOptions } from 'lightweight-charts';
 import { CHART_COLORS } from '../../constants/colors';
 
 interface BarConfig {
@@ -51,7 +51,7 @@ const BarChartComponent = memo(({ data = [], bars = [], height = 250, showGrid =
 
     const refs: ISeriesApi<'Histogram'>[] = [];
     bars.forEach((b, i) => {
-      const series = chart.addHistogramSeries({
+      const series = chart.addSeries(HistogramSeries, {
         color: b.color || CHART_COLORS[i % CHART_COLORS.length],
       });
       refs.push(series);

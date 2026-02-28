@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, type ReactElement } from 'react';
-import type { ISeriesApi, UTCTimestamp } from 'lightweight-charts';
+import { HistogramSeries, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import { useChartTheme, getAccentColors } from './useChartTheme';
 import { useChartInstance } from './useChartInstance';
 
@@ -40,7 +40,7 @@ const LWBarChart = memo(({ data, color, height = 250, showGrid = true, colorByVa
     const colors = getAccentColors();
     const barColor = color || colors.cyan;
 
-    const series = chart.addHistogramSeries({
+    const series = chart.addSeries(HistogramSeries, {
       color: barColor,
     });
     seriesRef.current = series;

@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useCallback, useRef, type ReactElement, type ChangeEvent } from 'react';
 import { LineChart as LineChartIcon, RefreshCw, AlertTriangle } from 'lucide-react';
-import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
+import { createChart, AreaSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import PanelChrome from '../shared/PanelChrome';
 import { PanelSkeleton } from '../shared/LoadingSkeleton';
 import { cacheGet, cacheSet } from '../../services/CacheManager';
@@ -154,7 +154,7 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
       timeScale: { borderColor: border },
     });
 
-    const areaSeries = chart.addAreaSeries({ lineWidth: 2 });
+    const areaSeries = chart.addSeries(AreaSeries, { lineWidth: 2 });
 
     chartRef.current = chart;
     areaSeriesRef.current = areaSeries;

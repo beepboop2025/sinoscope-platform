@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, type ReactElement } from 'react';
-import type { ISeriesApi, UTCTimestamp } from 'lightweight-charts';
+import { CandlestickSeries, HistogramSeries, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import { useChartTheme, getAccentColors } from './useChartTheme';
 import { useChartInstance } from './useChartInstance';
 
@@ -40,7 +40,7 @@ const LWCandlestick = memo(({ data, height = 300, showVolume = true }: LWCandles
 
     const colors = getAccentColors();
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: colors.green,
       downColor: colors.red,
       borderUpColor: colors.green,
@@ -51,7 +51,7 @@ const LWCandlestick = memo(({ data, height = 300, showVolume = true }: LWCandles
     candleRef.current = candleSeries;
 
     if (showVolume) {
-      const volumeSeries = chart.addHistogramSeries({
+      const volumeSeries = chart.addSeries(HistogramSeries, {
         priceFormat: { type: 'volume' },
         priceScaleId: '',
       });

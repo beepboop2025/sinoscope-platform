@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, type ReactElement } from 'react';
 import { ArrowLeftRight, AlertCircle } from 'lucide-react';
 import { ChinaAPI } from '../../../services/api/chinaApi';
 import { CNY_MARKET } from '../../../constants/china';
-import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
+import { createChart, LineSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import PanelChrome from '../../shared/PanelChrome';
 
 interface FXData { cnyUsd: number; cnhUsd: number; }
@@ -63,7 +63,7 @@ export default function PanelCNYTracker(): ReactElement {
       timeScale: { borderColor: border, visible: false },
     });
 
-    const series = chart.addLineSeries({ lineWidth: 2 });
+    const series = chart.addSeries(LineSeries, { lineWidth: 2 });
     chartRef.current = chart;
     seriesRef.current = series;
 

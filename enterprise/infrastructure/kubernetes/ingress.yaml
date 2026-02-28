@@ -1,0 +1,390 @@
+# DragonScope Enterprise - Ingress Configuration
+# NGINX Ingress Controller with TLS and Rate Limiting
+
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: dragonscope-ingress
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: k8s.io/ingress-nginx
+
+---
+# API Gateway Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dragonscope-api-ingress
+  namespace: dragonscope-production
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.dragonscope.io,https://admin.dragonscope.io"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-API-Key"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - api.dragonscope.io
+      secretName: dragonscope-api-tls
+  rules:
+    - host: api.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dragonscope-api
+                port:
+                  number: 8080
+
+---
+# Grafana Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: dragonscope-monitoring-credentials
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required - Grafana"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - grafana.dragonscope.io
+      secretName: dragonscope-grafana-tls
+  rules:
+    - host: grafana.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+
+---
+# Prometheus Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ingress
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: dragonscope-monitoring-credentials
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required - Prometheus"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - prometheus.dragonscope.io
+      secretName: dragonscope-prometheus-tls
+  rules:
+    - host: prometheus.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: 9090
+
+---
+# Alertmanager Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alertmanager-ingress
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: dragonscope-monitoring-credentials
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required - Alertmanager"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - alertmanager.dragonscope.io
+      secretName: dragonscope-alertmanager-tls
+  rules:
+    - host: alertmanager.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: alertmanager
+                port:
+                  number: 9093
+
+---
+# Jaeger Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jaeger-ingress
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: dragonscope-monitoring-credentials
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required - Jaeger"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - jaeger.dragonscope.io
+      secretName: dragonscope-jaeger-tls
+  rules:
+    - host: jaeger.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jaeger
+                port:
+                  number: 16686
+
+---
+# Kafka UI Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kafka-ui-ingress
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: kafka-ui
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: dragonscope-monitoring-credentials
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required - Kafka UI"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - kafka-ui.dragonscope.io
+      secretName: dragonscope-kafka-ui-tls
+  rules:
+    - host: kafka-ui.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kafka-ui
+                port:
+                  number: 80
+
+---
+# MinIO Console Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-console-ingress
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: dragonscope-monitoring-credentials
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required - MinIO Console"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - minio-console.dragonscope.io
+      secretName: dragonscope-minio-console-tls
+  rules:
+    - host: minio-console.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-console
+                port:
+                  number: 9001
+
+---
+# MinIO API Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-api-ingress
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: ingress
+    service-type: api
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - minio.dragonscope.io
+      secretName: dragonscope-minio-api-tls
+  rules:
+    - host: minio.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-api
+                port:
+                  number: 9000
+
+---
+# Web Application Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dragonscope-web-ingress
+  namespace: dragonscope-production
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: web
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/rate-limit: "500"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - app.dragonscope.io
+        - www.dragonscope.io
+      secretName: dragonscope-web-tls
+  rules:
+    - host: app.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dragonscope-web
+                port:
+                  number: 80
+    - host: www.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dragonscope-web
+                port:
+                  number: 80
+
+---
+# Admin Panel Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dragonscope-admin-ingress
+  namespace: dragonscope-production
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: admin
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: dragonscope-app-secrets
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required - Admin Panel"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: dragonscope-ingress
+  tls:
+    - hosts:
+        - admin.dragonscope.io
+      secretName: dragonscope-admin-tls
+  rules:
+    - host: admin.dragonscope.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dragonscope-admin
+                port:
+                  number: 80

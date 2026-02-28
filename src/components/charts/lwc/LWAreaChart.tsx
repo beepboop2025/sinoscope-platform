@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, type ReactElement } from 'react';
-import type { ISeriesApi, UTCTimestamp } from 'lightweight-charts';
+import { AreaSeries, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import { useChartTheme, getAccentColors } from './useChartTheme';
 import { useChartInstance } from './useChartInstance';
 
@@ -42,7 +42,7 @@ const LWAreaChart = memo(({ data, color, height = 250, showGrid = true }: LWArea
     const colors = getAccentColors();
     const lineColor = color || colors.cyan;
 
-    const series = chart.addAreaSeries({
+    const series = chart.addSeries(AreaSeries, {
       lineColor,
       topColor: lineColor + '40',
       bottomColor: lineColor + '05',

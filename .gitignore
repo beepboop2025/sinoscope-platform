@@ -1,36 +1,15 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
 node_modules
-dist
-dist-ssr
+server/node_modules
+.DS_Store
 *.local
 .env
 .env.*
-
-# Collector runtime data
-server/data/
-server/logs/
-
-# Python
-.venv/
-__pycache__/
+!.env.example
+.vite
+.vercel
+package-lock 2.json
 *.pyc
-.pytest_cache/
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+__pycache__/
+dist/
+release/
+*.log

@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, type ReactElement } from 'react';
-import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
+import { createChart, LineSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 
 interface YieldDataPoint {
   maturity: string;
@@ -41,11 +41,11 @@ const YieldCurve = memo(({ data = [], height = 200, prevData }: YieldCurveProps)
       timeScale: { borderColor: border },
     });
 
-    const currentSeries = chart.addLineSeries({ color: cyan, lineWidth: 2 });
+    const currentSeries = chart.addSeries(LineSeries, { color: cyan, lineWidth: 2 });
     currentRef.current = currentSeries;
 
     if (prevData) {
-      const prevSeries = chart.addLineSeries({
+      const prevSeries = chart.addSeries(LineSeries, {
         color: getCSSVar('--text-4') || '#475569',
         lineWidth: 1,
         lineStyle: 2, // Dashed

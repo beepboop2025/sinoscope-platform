@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useRef, useCallback, type ReactElement, type ChangeEvent } from 'react';
 import { CandlestickChart as CandlestickIcon, RefreshCw } from 'lucide-react';
-import { createChart, type IChartApi, type ISeriesApi } from 'lightweight-charts';
+import { createChart, CandlestickSeries, HistogramSeries, type IChartApi, type ISeriesApi } from 'lightweight-charts';
 import PanelChrome from '../shared/PanelChrome';
 import { useCandlestickData, TIMEFRAMES } from '../../hooks/useCandlestickData';
 
@@ -60,7 +60,7 @@ const PanelCandlestick = memo((): ReactElement => {
       },
     });
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: getCSSVar('--green') || '#10b981',
       downColor: getCSSVar('--red') || '#ef4444',
       borderUpColor: getCSSVar('--green') || '#10b981',
@@ -69,7 +69,7 @@ const PanelCandlestick = memo((): ReactElement => {
       wickDownColor: getCSSVar('--red') || '#ef4444',
     });
 
-    const volumeSeries = chart.addHistogramSeries({
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: '',
     });
@@ -100,7 +100,7 @@ const PanelCandlestick = memo((): ReactElement => {
 
   // Update data when it changes
   useEffect(() => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current || !data.length) return;
+    if (!candleSeriesRef.current || !volumeSeriesRef.current || !data?.length) return;
 
     const greenColor = getCSSVar('--green') || '#10b981';
     const redColor = getCSSVar('--red') || '#ef4444';
@@ -122,8 +122,8 @@ const PanelCandlestick = memo((): ReactElement => {
   }, [data, getCSSVar]);
 
   // Calculate price info from data
-  const lastCandle = data[data.length - 1] as { close: number; open: number } | undefined;
-  const firstCandle = data[0] as { close: number; open: number } | undefined;
+  const lastCandle = data?.[data.length - 1] as { close: number; open: number } | undefined;
+  const firstCandle = data?.[0] as { close: number; open: number } | undefined;
   const priceChange = lastCandle && firstCandle
     ? ((lastCandle.close - firstCandle.open) / firstCandle.open * 100)
     : 0;

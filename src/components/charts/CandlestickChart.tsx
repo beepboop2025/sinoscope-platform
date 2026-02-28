@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, type ReactElement } from 'react';
-import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp, type DeepPartial, type ChartOptions } from 'lightweight-charts';
+import { createChart, CandlestickSeries, LineSeries, type IChartApi, type ISeriesApi, type UTCTimestamp, type DeepPartial, type ChartOptions } from 'lightweight-charts';
 
 interface CandlestickDataPoint {
   time: string;
@@ -58,7 +58,7 @@ const CandlestickChart = memo(({ data = [], height = 300, overlays = [] }: Candl
     const chart = createChart(container, opts);
     chartRef.current = chart;
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: green,
       downColor: red,
       borderUpColor: green,
@@ -71,7 +71,7 @@ const CandlestickChart = memo(({ data = [], height = 300, overlays = [] }: Candl
     // Add overlay line series
     const oRefs: ISeriesApi<'Line'>[] = [];
     overlays.forEach((o, i) => {
-      const lineSeries = chart.addLineSeries({
+      const lineSeries = chart.addSeries(LineSeries, {
         color: o.color || OVERLAY_COLORS[i % OVERLAY_COLORS.length],
         lineWidth: (o.width || 1) as 1 | 2 | 3 | 4,
       });

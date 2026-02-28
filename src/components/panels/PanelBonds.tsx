@@ -1,6 +1,6 @@
 import { memo, useRef, useEffect, type ReactElement } from 'react';
 import { Landmark } from 'lucide-react';
-import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
+import { createChart, LineSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import PanelChrome from '../shared/PanelChrome';
 import { PanelSkeleton } from '../shared/LoadingSkeleton';
 import type { BondYield } from '../../types/market';
@@ -36,7 +36,7 @@ const PanelBonds = memo(({ data }: PanelBondsProps): ReactElement => {
       timeScale: { borderColor: border },
     });
 
-    const series = chart.addLineSeries({
+    const series = chart.addSeries(LineSeries, {
       color: purple,
       lineWidth: 2,
     });

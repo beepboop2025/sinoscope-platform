@@ -1,0 +1,436 @@
+# DragonScope Enterprise - CI/CD Test Workflow
+# Runs comprehensive test suite on every push and PR
+
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # ========================================================================
+  # Code Quality Checks
+  # ========================================================================
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort flake8 mypy bandit safety
+    
+    - name: Check code formatting (Black)
+      run: black --check src/ tests/
+    
+    - name: Check import order (isort)
+      run: isort --check-only src/ tests/
+    
+    - name: Lint with flake8
+      run: flake8 src/ tests/ --max-line-length=100 --extend-ignore=E203
+    
+    - name: Type check with mypy
+      run: mypy src/ --ignore-missing-imports
+
+  # ========================================================================
+  # Unit Tests
+  # ========================================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: quality
+    
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+    
+    - name: Run unit tests
+      run: |
+        pytest tests/unit/ \
+          -v \
+          --tb=short \
+          --cov=src \
+          --cov-report=xml \
+          --cov-report=html \
+          -n auto \
+          --dist=loadfile
+    
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-unit-${{ matrix.python-version }}
+        path: |
+          htmlcov/
+          coverage.xml
+    
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unit
+        name: unit-tests-py${{ matrix.python-version }}
+
+  # ========================================================================
+  # Integration Tests
+  # ========================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: dragonscope_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6380:6379
+      
+      rabbitmq:
+        image: rabbitmq:3-management
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5673:5672
+          - 15673:15672
+      
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        options: >-
+          --health-cmd "curl -f http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 9201:9200
+      
+      minio:
+        image: minio/minio
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+          - 9001:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+    
+    - name: Run integration tests
+      env:
+        TEST_DATABASE_URL: postgresql://test:test@localhost:5433/dragonscope_test
+        TEST_REDIS_URL: redis://localhost:6380/1
+        TEST_RABBITMQ_URL: amqp://guest:guest@localhost:5673/
+        TEST_ES_URL: http://localhost:9201
+        TEST_MINIO_ENDPOINT: localhost:9001
+      run: |
+        pytest tests/integration/ \
+          -v \
+          --tb=short \
+          --integration \
+          --cov=src \
+          --cov-append \
+          --cov-report=xml
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: integration
+
+  # ========================================================================
+  # E2E Tests
+  # ========================================================================
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Set up Node.js (for Playwright)
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+    
+    - name: Install Playwright
+      run: |
+        npm install -g @playwright/test
+        npx playwright install --with-deps
+    
+    - name: Start test environment
+      run: |
+        docker-compose -f tests/docker-compose.test.yml up -d
+        sleep 30  # Wait for services to be ready
+    
+    - name: Run E2E tests
+      run: |
+        pytest tests/e2e/ \
+          -v \
+          --e2e \
+          --tb=short
+    
+    - name: Run Playwright tests
+      run: |
+        cd tests/e2e/ui
+        npx playwright test
+    
+    - name: Upload Playwright report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-report
+        path: tests/e2e/ui/playwright-report/
+    
+    - name: Stop test environment
+      if: always()
+      run: docker-compose -f tests/docker-compose.test.yml down
+
+  # ========================================================================
+  # Security Scan
+  # ========================================================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Bandit security scan
+      uses: PyCQA/bandit@main
+      with:
+        args: "-r src/ -f json -o reports/bandit-report.json || true"
+    
+    - name: Run Safety check
+      run: |
+        pip install safety
+        safety check --json --output reports/safety-report.json || true
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: reports/*-report.json
+
+  # ========================================================================
+  # Load Tests
+  # ========================================================================
+  load-tests:
+    name: Load Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[load-test]')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install Locust
+      run: pip install locust
+    
+    - name: Start test environment
+      run: |
+        docker-compose -f tests/docker-compose.test.yml up -d api postgres redis
+        sleep 30
+    
+    - name: Run load tests
+      run: |
+        locust -f tests/load/locustfile.py \
+          --host http://localhost:8000 \
+          --users 100 \
+          --spawn-rate 10 \
+          --run-time 5m \
+          --headless \
+          --html reports/load-test-report.html
+    
+    - name: Upload load test report
+      uses: actions/upload-artifact@v3
+      with:
+        name: load-test-report
+        path: reports/load-test-report.html
+    
+    - name: Stop test environment
+      if: always()
+      run: docker-compose -f tests/docker-compose.test.yml down
+
+  # ========================================================================
+  # Coverage Report
+  # ========================================================================
+  coverage:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download all coverage reports
+      uses: actions/download-artifact@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: pip install coverage
+    
+    - name: Combine coverage reports
+      run: |
+        coverage combine coverage-*/coverage.xml
+        coverage report
+        coverage html -d coverage-report
+    
+    - name: Check coverage threshold
+      run: |
+        coverage report --fail-under=90
+    
+    - name: Upload combined coverage
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage-report/
+    
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        fail_ci_if_error: true
+
+  # ========================================================================
+  # Build and Push Docker Image
+  # ========================================================================
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max

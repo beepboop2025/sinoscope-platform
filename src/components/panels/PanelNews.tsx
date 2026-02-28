@@ -12,10 +12,25 @@ interface Article {
   time: number;
 }
 
+function generateMockArticles(): Article[] {
+  const now = Date.now();
+  return [
+    { id: '1', url: '#', title: 'Bitcoin Surges Past $67K as Institutional Demand Accelerates', source: 'CoinDesk', time: now - 120_000 },
+    { id: '2', url: '#', title: 'Fed Signals Potential Rate Cut in September Meeting', source: 'Reuters', time: now - 480_000 },
+    { id: '3', url: '#', title: 'Ethereum Layer 2 TVL Hits All-Time High of $45B', source: 'The Block', time: now - 900_000 },
+    { id: '4', url: '#', title: 'NVIDIA Maintains AI Chip Dominance Despite New Competition', source: 'CNBC', time: now - 1_800_000 },
+    { id: '5', url: '#', title: 'Crude Oil Falls Below $70 on Demand Concerns', source: 'Financial Times', time: now - 3_600_000 },
+    { id: '6', url: '#', title: 'Global Bond Yields Drop as Recession Fears Resurface', source: 'WSJ', time: now - 7_200_000 },
+    { id: '7', url: '#', title: 'Apple Reports Mixed Q3 Earnings, iPhone Sales Decline 2%', source: 'Bloomberg', time: now - 10_800_000 },
+    { id: '8', url: '#', title: 'Tesla Unveils Robotaxi Fleet Timeline, Shares Jump 5%', source: 'MarketWatch', time: now - 14_400_000 },
+  ];
+}
+
 const PanelNews = memo((): ReactElement => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDemo, setIsDemo] = useState<boolean>(false);
   const inFlightRef = useRef<boolean>(false);
 
   const load = useCallback(async () => {
@@ -25,10 +40,20 @@ const PanelNews = memo((): ReactElement => {
     setError(null);
     try {
       const data = await fetchFinnhubNews('general');
-      if (data) setArticles(data as Article[]);
+      if (data && data.length > 0) {
+        setArticles(data as Article[]);
+        setIsDemo(false);
+      } else {
+        // All sources returned nothing — use mock data
+        setArticles(generateMockArticles());
+        setIsDemo(true);
+      }
     } catch (err: unknown) {
       console.warn('[PanelNews]', err);
       setError((err as Error).message || 'Failed to load news');
+      // Fallback to mock on error
+      setArticles(generateMockArticles());
+      setIsDemo(true);
     } finally {
       setLoading(false);
       inFlightRef.current = false;
@@ -53,21 +78,11 @@ const PanelNews = memo((): ReactElement => {
   };
 
   return (
-    <PanelChrome title="News Feed" icon={Newspaper} iconColor="var(--cyan)">
+    <PanelChrome title={isDemo ? 'News Feed (Demo)' : 'News Feed'} icon={Newspaper} iconColor="var(--cyan)">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {error && articles.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8, color: 'var(--text-3)' }}>
-            <AlertTriangle size={20} color="var(--amber)" />
-            <span style={{ fontSize: 11, textAlign: 'center' }}>{error}</span>
-            <button className="btn-ghost" onClick={load} style={{ fontSize: 10, padding: '3px 10px', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <RefreshCw size={10} /> Retry
-            </button>
-          </div>
-        ) : articles.length === 0 && !loading && (
-          <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-3)', fontSize: 11, lineHeight: 1.6 }}>
-            No news available. Set any of these env vars for live news:<br/>
-            VITE_FINNHUB_API_KEY, VITE_NEWSDATA_API_KEY,<br/>
-            VITE_NEWSAPI_API_KEY, VITE_WORLD_NEWS_API_KEY
+        {isDemo && (
+          <div style={{ fontSize: 9, color: 'var(--amber)', background: 'rgba(245, 158, 11, 0.1)', padding: '3px 8px', borderRadius: 4, textAlign: 'center' }}>
+            Demo Mode — Set API keys in .env for live news
           </div>
         )}
         {articles.map(a => (

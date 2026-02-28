@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, type ReactElement } from 'react';
 import { ArrowRightLeft, TrendingUp, TrendingDown, Package, Ship, Scale, Info } from 'lucide-react';
-import { createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
+import { createChart, HistogramSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import { TRADE_CATEGORIES } from '../../../constants/china';
 import PanelChrome from '../../shared/PanelChrome';
 
@@ -73,8 +73,8 @@ export default function PanelTradeFlow(): ReactElement {
       timeScale: { borderColor: border },
     });
 
-    const exportSeries = chart.addHistogramSeries({ color: green + 'CC' });
-    const importSeries = chart.addHistogramSeries({ color: red + 'CC', priceScaleId: '' });
+    const exportSeries = chart.addSeries(HistogramSeries, { color: green + 'CC' });
+    const importSeries = chart.addSeries(HistogramSeries, { color: red + 'CC', priceScaleId: '' });
     importSeries.priceScale().applyOptions({ scaleMargins: { top: 0.5, bottom: 0 } });
 
     chartRef.current = chart;

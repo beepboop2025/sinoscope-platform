@@ -1,0 +1,275 @@
+# DragonScope Enterprise - Prometheus Configuration
+# Global configuration
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: dragonscope-production
+    replica: '{{.ExternalURL}}'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+      timeout: 10s
+      api_version: v2
+
+# Rule files
+rule_files:
+  - 'alerting-rules.yml'
+  - 'recording-rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Kubernetes API Server
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - default
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  # Kubernetes Nodes
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/$1/proxy/metrics
+
+  # Kubernetes Nodes - cAdvisor
+  - job_name: 'kubernetes-cadvisor'
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    metrics_path: /metrics/cadvisor
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+
+  # Kubernetes Pods
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+      - source_labels: [__meta_kubernetes_pod_phase]
+        regex: Pending|Succeeded|Failed
+        action: drop
+
+  # Kubernetes Services
+  - job_name: 'kubernetes-services'
+    kubernetes_sd_configs:
+      - role: service
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_probe]
+        action: keep
+        regex: true
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - source_labels: [__param_target]
+        target_label: instance
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_name
+
+  # Kubernetes Endpoints
+  - job_name: 'kubernetes-endpoints'
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+        action: replace
+        target_label: __scheme__
+        regex: (https?)
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        action: replace
+        target_label: kubernetes_name
+
+  # DragonScope Application Metrics
+  - job_name: 'dragonscope-api'
+    static_configs:
+      - targets:
+          - dragonscope-api.dragonscope-production.svc.cluster.local:8080
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+
+  - job_name: 'dragonscope-worker'
+    static_configs:
+      - targets:
+          - dragonscope-worker.dragonscope-production.svc.cluster.local:8080
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # TimescaleDB Exporter
+  - job_name: 'timescaledb-exporter'
+    static_configs:
+      - targets:
+          - postgres-exporter.dragonscope-data.svc.cluster.local:9187
+    scrape_interval: 30s
+
+  # Redis Exporter
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets:
+          - redis-exporter.dragonscope-data.svc.cluster.local:9121
+    scrape_interval: 30s
+
+  # Kafka Exporter
+  - job_name: 'kafka-exporter'
+    static_configs:
+      - targets:
+          - kafka-exporter.dragonscope-data.svc.cluster.local:9308
+    scrape_interval: 30s
+
+  # Node Exporter
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+          - node-exporter.dragonscope-monitoring.svc.cluster.local:9100
+    scrape_interval: 30s
+
+  # cAdvisor
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets:
+          - cadvisor.dragonscope-monitoring.svc.cluster.local:8080
+    scrape_interval: 30s
+
+  # MinIO Metrics
+  - job_name: 'minio-metrics'
+    static_configs:
+      - targets:
+          - minio.dragonscope-data.svc.cluster.local:9000
+    scrape_interval: 30s
+    metrics_path: /minio/v2/metrics/cluster
+
+  # ClickHouse Metrics
+  - job_name: 'clickhouse-metrics'
+    static_configs:
+      - targets:
+          - clickhouse.dragonscope-data.svc.cluster.local:9363
+    scrape_interval: 30s
+
+  # Loki Metrics
+  - job_name: 'loki-metrics'
+    static_configs:
+      - targets:
+          - loki.dragonscope-monitoring.svc.cluster.local:3100
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Jaeger Metrics
+  - job_name: 'jaeger-metrics'
+    static_configs:
+      - targets:
+          - jaeger.dragonscope-monitoring.svc.cluster.local:14269
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+# Remote Write (for long-term storage)
+remote_write:
+  - url: "http://thanos-receive:19291/api/v1/receive"
+    queue_config:
+      capacity: 10000
+      max_samples_per_send: 1000
+      max_shards: 200
+    write_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'go_.*'
+        action: drop
+
+# Storage configuration
+storage:
+  tsdb:
+    retention.time: 30d
+    retention.size: 50GB
+    min-block-duration: 2h
+    max-block-duration: 2h
+  wal:
+    truncation_frequency: 2h

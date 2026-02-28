@@ -5,8 +5,12 @@ import { ToastProvider } from './components/shared/Toast';
 import { ThemeProvider } from './components/shared/ThemeProvider';
 import { SymbolProvider } from './contexts/SymbolContext';
 import ClerkSessionBridge from './components/auth/ClerkSessionBridge';
+import { installGlobalErrorHandlers, reportError } from './utils/errorReporter';
 import App from './App';
 import './styles/index.css';
+
+// Install global error handlers for production monitoring
+installGlobalErrorHandlers();
 
 const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 
@@ -23,6 +27,7 @@ class RootErrorBoundary extends Component<RootErrorBoundaryProps, RootErrorBound
   static getDerivedStateFromError(error: Error): RootErrorBoundaryState { return { error }; }
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('[RootErrorBoundary]', error, info?.componentStack);
+    reportError(error, 'RootErrorBoundary');
   }
   handleReload = (): void => { window.location.reload(); };
   handleClear = (): void => {

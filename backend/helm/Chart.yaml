@@ -1,0 +1,13 @@
+apiVersion: v2
+name: dragonscope
+description: DragonScope financial market analytics platform
+type: application
+version: 0.1.0
+appVersion: "2.0.0"
+maintainers:
+  - name: DragonScope Team
+keywords:
+  - fintech
+  - analytics
+  - market-data
+  - fastapi
