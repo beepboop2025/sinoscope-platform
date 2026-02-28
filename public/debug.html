@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><title>Debug</title></head>
+<body>
+<pre id="out">Loading...</pre>
+<script type="module">
+const out = document.getElementById('out');
+const log = (msg) => { out.textContent += '\n' + msg; console.log(msg); };
+
+try {
+  log('1. Importing React...');
+  const React = await import('/src/main.jsx').catch(e => {
+    log('MAIN.JSX IMPORT ERROR: ' + e.message);
+    log('Stack: ' + e.stack);
+    return null;
+  });
+  if (React) log('2. main.jsx loaded OK');
+} catch(e) {
+  log('FATAL: ' + e.message);
+  log('Stack: ' + e.stack);
+}
+</script>
+</body>
+</html>

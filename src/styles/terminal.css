@@ -1,0 +1,31 @@
+.heatmap-grid { display: grid; gap: 2px; }
+.heatmap-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-medium);
+  border-radius: var(--radius-sm);
+  min-height: 32px;
+  transition: opacity var(--duration-fast), outline 0.1s;
+  cursor: pointer;
+}
+.heatmap-cell:hover { opacity: 0.85; outline: 1px solid var(--text-2); }
+
+.price-up { color: var(--green); }
+.price-down { color: var(--red); }
+.flash-green { animation: flash-bg-green 0.4s ease-out; }
+.flash-red { animation: flash-bg-red 0.4s ease-out; }
+
+@keyframes flash-bg-green { 0% { background: var(--green-alpha); } 100% { background: transparent; } }
+@keyframes flash-bg-red { 0% { background: var(--red-alpha); } 100% { background: transparent; } }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .heatmap-cell { min-height: 28px; font-size: 9px; }
+}
+
+@media (max-width: 480px) {
+  .heatmap-cell { min-height: 24px; font-size: 8px; }
+}

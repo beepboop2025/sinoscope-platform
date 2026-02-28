@@ -1,0 +1,90 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-base);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@keyframes pulse-glow { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+@keyframes slide-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slide-right { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 8px rgba(6,214,224,0.2); } 50% { box-shadow: 0 0 20px rgba(6,214,224,0.4); } }
+@keyframes scan-line { 0% { top: 0%; } 100% { top: 100%; } }
+
+/* Diagonal shimmer for skeletons */
+@keyframes shimmer-sweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.anim-in { animation: slide-up 0.35s var(--ease-out) both; }
+.anim-fade { animation: fade-in 0.4s var(--ease-out) both; }
+.spinner { animation: spin 1s linear infinite; }
+
+/* ── Prefers reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton { animation: none; background: var(--bg-3); }
+  .spinner { animation: none; }
+  .ticker-scroll { animation: none; }
+  .anim-in, .anim-fade { animation: none; opacity: 1; transform: none; }
+  .status-dot.live,
+  .status-dot.warn,
+  .status-dot.error { animation: none; opacity: 1; }
+  .flash-green, .flash-red { animation: none; }
+  .react-grid-item { transition: none; }
+}
+
+/* ── Touch-friendly base adjustments ── */
+@media (pointer: coarse) {
+  button, a, [role="button"], input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+/* ── Responsive: tablet base typography ── */
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  .mono { font-size: 12px; }
+}
+
+/* ── Responsive: mobile base typography ── */
+@media (max-width: 480px) {
+  body { font-size: 13px; }
+  .mono { font-size: 11px; }
+}
