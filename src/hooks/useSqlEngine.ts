@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import alasql from 'alasql';
-import { fetchGithubFinanceRepos, getMockGithubRepos } from '../services/api/githubApi';
-import { fetchFinanceModels, getMockHuggingFaceModels } from '../services/api/huggingfaceApi';
-import { fetchDefiProtocols, getMockDefiData } from '../services/api/defiLlamaApi';
-import { fetchAllFinanceSubs, getMockRedditPosts } from '../services/api/redditApi';
+import { fetchGithubFinanceRepos } from '../services/api/githubApi';
+import { fetchFinanceModels } from '../services/api/huggingfaceApi';
+import { fetchDefiProtocols } from '../services/api/defiLlamaApi';
+import { fetchAllFinanceSubs } from '../services/api/redditApi';
 
 const MAX_HISTORY = 50;
 const THROTTLE_MS = 2000;
@@ -11,12 +11,80 @@ const STORAGE_KEY = 'dragonscope_saved_queries';
 
 const BLOCKED_KEYWORDS = /^\s*(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE)\b/i;
 
-function safeNum(v) {
+interface TableInfo {
+  stocks?: number;
+  crypto?: number;
+  forex?: number;
+  bonds?: number;
+  commodities?: number;
+  indices?: number;
+  economic?: number;
+}
+
+interface HistoryEntry {
+  sql: string;
+  rowCount: number;
+  elapsed: string;
+  timestamp: number;
+  error: string | null;
+}
+
+interface SavedQuery {
+  label: string;
+  sql: string;
+  timestamp: number;
+}
+
+interface QueryResult {
+  rows?: Record<string, unknown>[];
+  columns?: string[];
+  rowCount?: number;
+  elapsed?: string;
+  error: string | null;
+}
+
+interface MarketDataRecord {
+  price?: number;
+  changePct?: number;
+  volume?: number;
+  high?: number;
+  low?: number;
+  marketCap?: number;
+  market_cap?: number;
+  rate?: number;
+  bid?: number;
+  ask?: number;
+  maturity?: string;
+  term?: string;
+  yield?: number;
+  change?: number;
+  unit?: string;
+  symbol?: string;
+  name?: string;
+  value?: number;
+  date?: string;
+}
+
+interface MarketData {
+  stocks?: Record<string, MarketDataRecord>;
+  crypto?: Record<string, MarketDataRecord>;
+  forex?: Record<string, number | MarketDataRecord>;
+  bonds?: MarketDataRecord[] | Record<string, MarketDataRecord | number>;
+  commodities?: Record<string, number | MarketDataRecord>;
+  indices?: Record<string, MarketDataRecord>;
+  economic?: Record<string, MarketDataRecord>;
+}
+
+interface SchemaTable {
+  columns: string[];
+}
+
+function safeNum(v: unknown): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
 
-const SCHEMA = {
+const SCHEMA: Record<string, SchemaTable> = {
   stocks:      { columns: ['symbol STRING', 'price NUMBER', 'changePct NUMBER', 'volume NUMBER', 'high NUMBER', 'low NUMBER', 'market STRING'] },
   crypto:      { columns: ['symbol STRING', 'price NUMBER', 'changePct NUMBER', 'volume NUMBER', 'marketCap NUMBER', 'market STRING'] },
   forex:       { columns: ['pair STRING', 'rate NUMBER', 'changePct NUMBER', 'bid NUMBER', 'ask NUMBER', 'market STRING'] },
@@ -31,7 +99,7 @@ const SCHEMA = {
   all_assets:  { columns: ['symbol STRING', 'asset_type STRING', 'price NUMBER', 'changePct NUMBER', 'volume NUMBER'] },
 };
 
-function loadSavedQueries() {
+function loadSavedQueries(): SavedQuery[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -40,24 +108,27 @@ function loadSavedQueries() {
   }
 }
 
-function persistSavedQueries(queries) {
+function persistSavedQueries(queries: SavedQuery[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(queries));
-  } catch (e) {
-    if (e?.name === 'QuotaExceededError') {
+  } catch (e: unknown) {
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
       console.warn('localStorage quota exceeded, clearing saved queries');
       localStorage.removeItem(STORAGE_KEY);
     }
   }
 }
 
-export function useSqlEngine(marketData) {
-  const dbRef = useRef(null);
-  const lastSyncRef = useRef(0);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AlaSQLDB = any;
+
+export function useSqlEngine(marketData: MarketData | null) {
+  const dbRef = useRef<AlaSQLDB>(null);
+  const lastSyncRef = useRef<number>(0);
   const [isReady, setIsReady] = useState(false);
-  const [tableInfo, setTableInfo] = useState({});
-  const [history, setHistory] = useState([]);
-  const [savedQueries, setSavedQueries] = useState(loadSavedQueries);
+  const [tableInfo, setTableInfo] = useState<TableInfo>({});
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [savedQueries, setSavedQueries] = useState<SavedQuery[]>(loadSavedQueries);
 
   // Initialize database once
   if (!dbRef.current) {
@@ -85,23 +156,24 @@ export function useSqlEngine(marketData) {
 
     async function loadResearchData() {
       const db = dbRef.current;
+      if (!db) return;
 
       // GitHub repos
       try {
-        const repos = await fetchGithubFinanceRepos() || getMockGithubRepos();
+        const repos = await fetchGithubFinanceRepos() || [];
         db.exec('DELETE FROM github_repos');
-        for (const r of repos) {
+        for (const r of repos as unknown as Array<Record<string, unknown>>) {
           db.exec('INSERT INTO github_repos VALUES (?,?,?,?,?,?)', [
-            r.name, r.stars || 0, r.forks || 0, r.language || '', (r.description || '').slice(0, 200), r.license || ''
+            r.name, r.stars || 0, r.forks || 0, r.language || '', (String(r.description || '')).slice(0, 200), r.license || ''
           ]);
         }
       } catch { /* use mock on failure */ }
 
       // HuggingFace models
       try {
-        const models = await fetchFinanceModels() || getMockHuggingFaceModels();
+        const models = await fetchFinanceModels() || [];
         db.exec('DELETE FROM hf_models');
-        for (const m of models) {
+        for (const m of models as unknown as Array<Record<string, unknown>>) {
           db.exec('INSERT INTO hf_models VALUES (?,?,?,?,?)', [
             m.name, m.pipeline || '', m.downloads || 0, m.likes || 0, m.library || ''
           ]);
@@ -110,9 +182,9 @@ export function useSqlEngine(marketData) {
 
       // DeFi protocols
       try {
-        const protos = await fetchDefiProtocols() || getMockDefiData().protocols;
+        const protos = await fetchDefiProtocols() || [];
         db.exec('DELETE FROM defi_protocols');
-        for (const p of protos) {
+        for (const p of protos as unknown as Array<Record<string, unknown>>) {
           db.exec('INSERT INTO defi_protocols VALUES (?,?,?,?,?)', [
             p.name, p.symbol || '', p.tvl || 0, p.change1d || 0, p.category || ''
           ]);
@@ -121,23 +193,23 @@ export function useSqlEngine(marketData) {
 
       // Reddit posts
       try {
-        const posts = await fetchAllFinanceSubs() || getMockRedditPosts();
+        const posts = await fetchAllFinanceSubs() || [];
         db.exec('DELETE FROM reddit_posts');
-        for (const p of posts) {
+        for (const p of posts as unknown as Array<Record<string, unknown>>) {
           db.exec('INSERT INTO reddit_posts VALUES (?,?,?,?,?)', [
-            (p.title || '').slice(0, 200), p.subreddit || '', p.score || 0, p.numComments || 0, p.flair || ''
+            (String(p.title || '')).slice(0, 200), p.subreddit || '', p.score || 0, p.numComments || 0, p.flair || ''
           ]);
         }
       } catch { /* use mock on failure */ }
     }
 
     loadResearchData().catch(err => {
-      console.warn('[useSqlEngine] loadResearchData failed:', err.message);
+      console.warn('[useSqlEngine] loadResearchData failed:', (err as Error).message);
     });
   }, []);
 
-  // Helper: upsert rows by key — delete only matching key, then insert
-  const upsertTable = useCallback((db, table, keyCol, rows) => {
+  // Helper: upsert rows by key
+  const upsertTable = useCallback((db: AlaSQLDB, table: string, keyCol: string, rows: unknown[][]) => {
     for (const row of rows) {
       db.exec(`DELETE FROM ${table} WHERE ${keyCol} = ?`, [row[0]]);
       db.exec(`INSERT INTO ${table} VALUES (${row.map(() => '?').join(',')})`, row);
@@ -152,9 +224,9 @@ export function useSqlEngine(marketData) {
     lastSyncRef.current = now;
 
     const db = dbRef.current;
-    const info = {};
+    if (!db) return;
+    const info: TableInfo = {};
 
-    // Stocks — upsert by symbol
     const stocks = marketData.stocks || {};
     const stockRows = Object.entries(stocks).map(([sym, d]) => [
       sym, safeNum(d.price), safeNum(d.changePct), safeNum(d.volume),
@@ -163,7 +235,6 @@ export function useSqlEngine(marketData) {
     upsertTable(db, 'stocks', 'symbol', stockRows);
     info.stocks = stockRows.length;
 
-    // Crypto — upsert by symbol
     const crypto = marketData.crypto || {};
     const cryptoRows = Object.entries(crypto).map(([sym, d]) => [
       sym, safeNum(d.price), safeNum(d.changePct), safeNum(d.volume),
@@ -172,39 +243,37 @@ export function useSqlEngine(marketData) {
     upsertTable(db, 'crypto', 'symbol', cryptoRows);
     info.crypto = cryptoRows.length;
 
-    // Forex — upsert by pair
     const forex = marketData.forex || {};
     const forexRows = Object.entries(forex).map(([pair, d]) => {
-      const rate = typeof d === 'number' ? d : safeNum(d.rate || d.price);
-      const chg = typeof d === 'number' ? 0 : safeNum(d.changePct);
-      const bid = typeof d === 'number' ? d : safeNum(d.bid || d.rate || d.price);
-      const ask = typeof d === 'number' ? d : safeNum(d.ask || d.rate || d.price);
+      const rec = d as number | MarketDataRecord;
+      const rate = typeof rec === 'number' ? rec : safeNum(rec.rate || rec.price);
+      const chg = typeof rec === 'number' ? 0 : safeNum(rec.changePct);
+      const bid = typeof rec === 'number' ? rec : safeNum(rec.bid || rec.rate || rec.price);
+      const ask = typeof rec === 'number' ? rec : safeNum(rec.ask || rec.rate || rec.price);
       return [pair, rate, chg, bid, ask, 'forex'];
     });
     upsertTable(db, 'forex', 'pair', forexRows);
     info.forex = forexRows.length;
 
-    // Bonds — upsert by maturity
     const bonds = marketData.bonds || [];
-    const bondArr = Array.isArray(bonds) ? bonds : Object.entries(bonds).map(([k, v]) => ({ maturity: k, ...(typeof v === 'number' ? { yield: v } : v) }));
-    const bondRows = bondArr.map(b => [
+    const bondArr = Array.isArray(bonds) ? bonds : Object.entries(bonds).map(([k, v]) => ({ maturity: k, ...(typeof v === 'number' ? { yield: v } : v as MarketDataRecord) }));
+    const bondRows = bondArr.map((b: MarketDataRecord) => [
       b.maturity || b.term || '', safeNum(b.yield || b.rate), safeNum(b.change)
     ]);
     upsertTable(db, 'bonds', 'maturity', bondRows);
     info.bonds = bondRows.length;
 
-    // Commodities — upsert by name
     const commodities = marketData.commodities || {};
     const commodityRows = Object.entries(commodities).map(([name, d]) => {
-      const price = typeof d === 'number' ? d : safeNum(d.price);
-      const chg = typeof d === 'number' ? 0 : safeNum(d.changePct);
-      const unit = typeof d === 'object' ? (d.unit || '') : '';
+      const rec = d as number | MarketDataRecord;
+      const price = typeof rec === 'number' ? rec : safeNum(rec.price);
+      const chg = typeof rec === 'number' ? 0 : safeNum(rec.changePct);
+      const unit = typeof rec === 'object' && rec !== null ? ((rec as MarketDataRecord).unit || '') : '';
       return [name, price, chg, unit, 'commodity'];
     });
     upsertTable(db, 'commodities', 'name', commodityRows);
     info.commodities = commodityRows.length;
 
-    // Indices — upsert by symbol
     const indices = marketData.indices || {};
     const indexRows = Object.entries(indices).map(([sym, d]) => [
       d.symbol || sym, d.name || sym, safeNum(d.price), safeNum(d.changePct)
@@ -212,7 +281,6 @@ export function useSqlEngine(marketData) {
     upsertTable(db, 'indices', 'symbol', indexRows);
     info.indices = indexRows.length;
 
-    // Economic indicators — upsert by indicator
     const economic = marketData.economic || {};
     const econRows = Object.entries(economic)
       .filter(([, d]) => d && typeof d === 'object')
@@ -220,7 +288,6 @@ export function useSqlEngine(marketData) {
     upsertTable(db, 'economic', 'indicator', econRows);
     info.economic = econRows.length;
 
-    // Rebuild all_assets (union table)
     db.exec('DELETE FROM all_assets');
     for (const [sym, d] of Object.entries(stocks)) {
       db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [
@@ -233,13 +300,15 @@ export function useSqlEngine(marketData) {
       ]);
     }
     for (const [pair, d] of Object.entries(forex)) {
-      const rate = typeof d === 'number' ? d : safeNum(d.rate || d.price);
-      const chg = typeof d === 'number' ? 0 : safeNum(d.changePct);
+      const rec = d as number | MarketDataRecord;
+      const rate = typeof rec === 'number' ? rec : safeNum(rec.rate || rec.price);
+      const chg = typeof rec === 'number' ? 0 : safeNum(rec.changePct);
       db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [pair, 'forex', rate, chg, 0]);
     }
     for (const [name, d] of Object.entries(commodities)) {
-      const price = typeof d === 'number' ? d : safeNum(d.price);
-      const chg = typeof d === 'number' ? 0 : safeNum(d.changePct);
+      const rec = d as number | MarketDataRecord;
+      const price = typeof rec === 'number' ? rec : safeNum(rec.price);
+      const chg = typeof rec === 'number' ? 0 : safeNum(rec.changePct);
       db.exec('INSERT INTO all_assets VALUES (?,?,?,?,?)', [name, 'commodity', price, chg, 0]);
     }
     for (const [sym, d] of Object.entries(indices)) {
@@ -252,8 +321,7 @@ export function useSqlEngine(marketData) {
     setIsReady(true);
   }, [marketData, upsertTable]);
 
-  // Execute a SQL query
-  const executeQuery = useCallback((sql) => {
+  const executeQuery = useCallback((sql: string): QueryResult => {
     const trimmed = sql.trim();
     if (!trimmed) return { error: 'Empty query' };
 
@@ -263,12 +331,12 @@ export function useSqlEngine(marketData) {
 
     const start = performance.now();
     try {
-      const result = dbRef.current.exec(trimmed);
+      const result = dbRef.current!.exec(trimmed);
       const elapsed = performance.now() - start;
-      const rows = Array.isArray(result) ? result : [];
+      const rows = Array.isArray(result) ? result as Record<string, unknown>[] : [];
       const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
-      const entry = {
+      const entry: HistoryEntry = {
         sql: trimmed,
         rowCount: rows.length,
         elapsed: elapsed.toFixed(1),
@@ -278,50 +346,46 @@ export function useSqlEngine(marketData) {
       setHistory(prev => [entry, ...prev].slice(0, MAX_HISTORY));
 
       return { rows, columns, rowCount: rows.length, elapsed: elapsed.toFixed(1), error: null };
-    } catch (err) {
+    } catch (err: unknown) {
       const elapsed = performance.now() - start;
-      const entry = {
+      const message = err instanceof Error ? err.message : String(err);
+      const entry: HistoryEntry = {
         sql: trimmed,
         rowCount: 0,
         elapsed: elapsed.toFixed(1),
         timestamp: Date.now(),
-        error: err.message,
+        error: message,
       };
       setHistory(prev => [entry, ...prev].slice(0, MAX_HISTORY));
 
-      return { rows: [], columns: [], rowCount: 0, elapsed: elapsed.toFixed(1), error: err.message };
+      return { rows: [], columns: [], rowCount: 0, elapsed: elapsed.toFixed(1), error: message };
     }
   }, []);
 
   const clearHistory = useCallback(() => setHistory([]), []);
-
-  // Schema inspection
   const getSchema = useCallback(() => SCHEMA, []);
 
-  // Save a query
-  const saveQuery = useCallback((label, sql) => {
+  const saveQuery = useCallback((label: string, sql: string) => {
     setSavedQueries(prev => {
-      const next = [{ label, sql, timestamp: Date.now() }, ...prev.filter(q => q.sql !== sql)].slice(0, 20);
+      const next = [{ label, sql, timestamp: Date.now() }, ...prev.filter((q: SavedQuery) => q.sql !== sql)].slice(0, 20);
       persistSavedQueries(next);
       return next;
     });
   }, []);
 
-  // Remove a saved query
-  const removeSavedQuery = useCallback((sql) => {
+  const removeSavedQuery = useCallback((sql: string) => {
     setSavedQueries(prev => {
-      const next = prev.filter(q => q.sql !== sql);
+      const next = prev.filter((q: SavedQuery) => q.sql !== sql);
       persistSavedQueries(next);
       return next;
     });
   }, []);
 
-  // Export results to CSV
-  const exportCsv = useCallback((columns, rows, filename = 'query_results.csv') => {
+  const exportCsv = useCallback((columns: string[], rows: Record<string, unknown>[], filename = 'query_results.csv') => {
     if (!columns.length || !rows.length) return;
     const header = columns.join(',');
     const body = rows.map(row =>
-      columns.map(col => {
+      columns.map((col: string) => {
         const val = row[col];
         if (val == null) return '';
         const str = String(val);
@@ -338,11 +402,10 @@ export function useSqlEngine(marketData) {
     URL.revokeObjectURL(url);
   }, []);
 
-  // Copy results to clipboard
-  const copyResults = useCallback((columns, rows) => {
+  const copyResults = useCallback((columns: string[], rows: Record<string, unknown>[]) => {
     if (!columns.length || !rows.length) return Promise.resolve(false);
     const header = columns.join('\t');
-    const body = rows.map(row => columns.map(col => String(row[col] ?? '')).join('\t')).join('\n');
+    const body = rows.map(row => columns.map((col: string) => String(row[col] ?? '')).join('\t')).join('\n');
     return navigator.clipboard.writeText(header + '\n' + body).then(() => true).catch(() => false);
   }, []);
 

@@ -6,8 +6,8 @@ import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 import { TIMEZONES, getTimeInZone } from '../../utils/time';
 import { useGamification } from '../../stores/gamification';
 import XPBar from '../shared/XPBar';
-import LevelBadge from '../shared/LevelBadge';
 import StreakFlame from '../shared/StreakFlame';
+import NotificationCenter from '../shared/NotificationCenter';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const UserMenu: ComponentType | null = CLERK_ENABLED ? lazy(() => import('../auth/UserMenu')) : null;
@@ -70,6 +70,7 @@ export default function Header({ wsStatus, onOpenCommandBar }: HeaderProps): Rea
           <XPBar />
           <StreakFlame />
         </div>
+        <NotificationCenter />
         <button
           className="btn-ghost"
           onClick={onOpenCommandBar}

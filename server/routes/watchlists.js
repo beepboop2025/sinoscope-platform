@@ -48,6 +48,11 @@ router.delete('/:id', async (req, res, next) => {
 
 router.delete('/:watchlistId/items/:itemId', async (req, res, next) => {
   try {
+    // Verify item belongs to user's watchlist before deleting
+    const item = await prisma.watchlistItem.findFirst({
+      where: { id: req.params.itemId, watchlist: { userId: req.userId } },
+    });
+    if (!item) return res.status(404).json({ error: 'Item not found' });
     await prisma.watchlistItem.delete({ where: { id: req.params.itemId } });
     res.status(204).end();
   } catch (err) { next(err); }

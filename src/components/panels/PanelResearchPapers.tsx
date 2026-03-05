@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement } from 'react';
 import { BookOpen, RefreshCw, ExternalLink, Tag } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchAllFinanceResearch, getMockPapers } from '../../services/api/arxivApi';
+import { fetchAllFinanceResearch } from '../../services/api/arxivApi';
 
 interface Paper {
   id: string;
@@ -35,9 +35,9 @@ const PanelResearchPapers = memo((): ReactElement => {
     setLoading(true);
     try {
       const data = await fetchAllFinanceResearch();
-      setPapers((data || getMockPapers()) as Paper[]);
+      if (data) setPapers(data as Paper[]);
     } catch {
-      setPapers(getMockPapers() as Paper[]);
+      /* no data available */
     }
     setLoading(false);
   }, []);

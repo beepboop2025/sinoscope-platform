@@ -157,4 +157,6 @@ src/
 
 ## License
 
-MIT
+Business Source License 1.1 — See [LICENSE](LICENSE) for details.
+
+Commercial use requires a valid license. Purchase at [dragonscope.io](https://dragonscope.io) or via AppSumo.

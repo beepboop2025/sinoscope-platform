@@ -1,13 +1,4 @@
-import { cacheGet, cacheSet } from '../CacheManager';
-import { canRequest, consumeToken, createRateLimiter } from '../RateLimiter';
 import { getCollectorData } from '../CollectorClient';
-import { fetchWithTimeout } from '../../utils/helpers';
-
-// SEC EDGAR: 10 requests/second, we'll be conservative
-createRateLimiter('sec', 10, 60000);
-
-const EDGAR_BASE: string = 'https://efts.sec.gov/LATEST/search-index';
-const EDGAR_FULL_TEXT: string = 'https://efts.sec.gov/LATEST/search';
 
 interface SECFiling {
   id: string;
@@ -19,101 +10,17 @@ interface SECFiling {
   url: string;
 }
 
-// Fetch recent SEC filings
-export async function fetchRecentFilings(query: string = '', forms: string[] = ['10-K', '10-Q', '8-K'], limit: number = 20): Promise<SECFiling[] | null> {
-  // Collector-first: pre-fetched SEC filings
+export async function fetchRecentFilings(_query: string = '', _forms: string[] = ['10-K', '10-Q', '8-K'], limit: number = 20): Promise<SECFiling[] | null> {
   const collected = await getCollectorData('sec_filings');
   if (collected && (collected as SECFiling[]).length > 0) return (collected as SECFiling[]).slice(0, limit);
-
-  const cacheKey = `sec_filings_${query}_${forms.join('')}`;
-  const cached = cacheGet(cacheKey);
-  if (cached) return cached as SECFiling[];
-
-  if (!canRequest('sec')) return null;
-  consumeToken('sec');
-
-  try {
-    const params = new URLSearchParams({
-      q: query || 'quarterly earnings',
-      dateRange: 'custom',
-      startdt: new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0],
-      enddt: new Date().toISOString().split('T')[0],
-      forms: forms.join(','),
-    });
-
-    const res = await fetchWithTimeout(`${EDGAR_FULL_TEXT}?${params}`, {
-      headers: { 'User-Agent': 'DragonScope research@example.com' },
-    });
-    if (!res.ok) throw new Error(`SEC EDGAR: ${res.status}`);
-    const data = await res.json() as { hits?: { hits?: { _id: string; _source?: Record<string, unknown> }[] } };
-
-    const filings: SECFiling[] = (data.hits?.hits || []).slice(0, limit).map((h: { _id: string; _source?: Record<string, unknown> }): SECFiling => {
-      const s = h._source || {};
-      return {
-        id: h._id,
-        company: ((s.display_names as string[]))?.[0] || (s.entity_name as string) || 'Unknown',
-        ticker: ((s.tickers as string[]))?.[0] || '',
-        form: (s.form_type || '') as string,
-        filed: (s.file_date || '') as string,
-        description: ((s.display_description || s.file_description || '') as string),
-        url: s.file_url ? `https://www.sec.gov/Archives/${s.file_url as string}` : '',
-      };
-    });
-
-    cacheSet(cacheKey, filings, 600000); // 10 min
-    return filings;
-  } catch (err) {
-    console.warn('[SEC EDGAR]', (err as Error).message);
-    return null;
-  }
+  return null;
 }
 
-// Fetch filings for a specific company
 export async function fetchCompanyFilings(ticker: string): Promise<SECFiling[] | null> {
-  const cacheKey = `sec_company_${ticker}`;
-  const cached = cacheGet(cacheKey);
-  if (cached) return cached as SECFiling[];
-
-  if (!canRequest('sec')) return null;
-  consumeToken('sec');
-
-  try {
-    const res = await fetchWithTimeout(`${EDGAR_FULL_TEXT}?q=%22${ticker}%22&forms=10-K,10-Q,8-K&dateRange=custom&startdt=${new Date(Date.now() - 365 * 86400000).toISOString().split('T')[0]}&enddt=${new Date().toISOString().split('T')[0]}`, {
-      headers: { 'User-Agent': 'DragonScope research@example.com' },
-    });
-    if (!res.ok) throw new Error(`SEC EDGAR company: ${res.status}`);
-    const data = await res.json() as { hits?: { hits?: { _id: string; _source?: Record<string, unknown> }[] } };
-
-    const filings: SECFiling[] = (data.hits?.hits || []).slice(0, 10).map((h: { _id: string; _source?: Record<string, unknown> }): SECFiling => {
-      const s = h._source || {};
-      return {
-        id: h._id,
-        company: ((s.display_names as string[]))?.[0] || '',
-        ticker: ticker,
-        form: (s.form_type || '') as string,
-        filed: (s.file_date || '') as string,
-        description: (s.display_description || '') as string,
-        url: s.file_url ? `https://www.sec.gov/Archives/${s.file_url as string}` : '',
-      };
-    });
-
-    cacheSet(cacheKey, filings, 600000);
-    return filings;
-  } catch (err) {
-    console.warn('[SEC EDGAR company]', (err as Error).message);
-    return null;
+  const collected = await getCollectorData('sec_filings');
+  if (collected && (collected as SECFiling[]).length > 0) {
+    const filtered = (collected as SECFiling[]).filter(f => f.ticker?.toUpperCase() === ticker.toUpperCase());
+    return filtered.length > 0 ? filtered : null;
   }
-}
-
-export function getMockFilings(): SECFiling[] {
-  return [
-    { id: '1', company: 'Apple Inc.', ticker: 'AAPL', form: '10-Q', filed: '2024-11-01', description: 'Quarterly report for Q4 2024', url: '' },
-    { id: '2', company: 'Microsoft Corporation', ticker: 'MSFT', form: '10-Q', filed: '2024-10-30', description: 'Quarterly report for fiscal Q1 2025', url: '' },
-    { id: '3', company: 'NVIDIA Corporation', ticker: 'NVDA', form: '10-K', filed: '2024-10-28', description: 'Annual report for fiscal year 2024', url: '' },
-    { id: '4', company: 'Tesla, Inc.', ticker: 'TSLA', form: '8-K', filed: '2024-10-25', description: 'Current report - quarterly earnings', url: '' },
-    { id: '5', company: 'Amazon.com, Inc.', ticker: 'AMZN', form: '10-Q', filed: '2024-10-31', description: 'Quarterly report for Q3 2024', url: '' },
-    { id: '6', company: 'Alphabet Inc.', ticker: 'GOOGL', form: '10-Q', filed: '2024-10-29', description: 'Quarterly report for Q3 2024', url: '' },
-    { id: '7', company: 'Meta Platforms, Inc.', ticker: 'META', form: '8-K', filed: '2024-10-30', description: 'Current report - earnings release', url: '' },
-    { id: '8', company: 'JPMorgan Chase & Co.', ticker: 'JPM', form: '10-Q', filed: '2024-11-05', description: 'Quarterly report for Q3 2024', url: '' },
-  ];
+  return null;
 }

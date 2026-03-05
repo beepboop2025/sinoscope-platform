@@ -11,7 +11,15 @@ interface BackendWSMessage {
 
 const RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 30000];
 const SUBSCRIBE_CATEGORIES = [
-  'crypto_markets', 'forex', 'stocks', 'bonds', 'commodities', 'news', 'fear_greed',
+  // Core market data (processed by MarketEngine.updateCategory)
+  'crypto_markets', 'forex', 'stocks', 'bonds', 'commodities',
+  // Extended categories (consumed by individual panels)
+  'news', 'fear_greed', 'sectors', 'economic', 'indices',
+  'defi_protocols', 'defi_chains', 'defi_tvl_history', 'defi_yields', 'defi_stablecoins',
+  'crypto_global', 'crypto_trending',
+  'china_indices', 'china_stocks', 'cny_rates', 'china_economic',
+  'reddit_posts', 'github_repos', 'huggingface_models',
+  'sec_filings', 'arxiv_papers',
 ];
 
 /**

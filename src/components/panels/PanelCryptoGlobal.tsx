@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement } from 'react';
 import { Globe2, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchCryptoGlobal, fetchTrendingCoins, getMockCryptoGlobal, getMockTrending } from '../../services/api/coinGeckoGlobalApi';
+import { fetchCryptoGlobal, fetchTrendingCoins } from '../../services/api/coinGeckoGlobalApi';
 
 interface CryptoGlobalData { totalMarketCap?: number; totalVolume?: number; marketCapChange24h?: number; activeCryptos?: number; btcDominance?: number; ethDominance?: number; }
 interface TrendingCoin { id: string; symbol: string; name: string; rank?: number; }
@@ -23,11 +23,10 @@ const PanelCryptoGlobal = memo((): ReactElement => {
     setLoading(true);
     try {
       const [g, t] = await Promise.all([fetchCryptoGlobal(), fetchTrendingCoins()]);
-      setGlobal((g || getMockCryptoGlobal()) as CryptoGlobalData);
-      setTrending((t || getMockTrending()) as TrendingCoin[]);
+      if (g) setGlobal(g as CryptoGlobalData);
+      if (t) setTrending(t as TrendingCoin[]);
     } catch {
-      setGlobal(getMockCryptoGlobal() as CryptoGlobalData);
-      setTrending(getMockTrending() as TrendingCoin[]);
+      /* no data available */
     }
     setLoading(false);
   }, []);

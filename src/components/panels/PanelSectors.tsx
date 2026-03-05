@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchSectorPerformance, getSectorPerformance } from '../../services/api/sentimentApi';
+import { fetchSectorPerformance } from '../../services/api/sentimentApi';
 
 interface SectorData { symbol: string; name: string; changePct: number; weekPct: number; monthPct: number; }
 
@@ -23,9 +23,8 @@ const PanelSectors = memo((): ReactElement => {
   const loadData = useCallback(async () => {
     try {
       const real = await fetchSectorPerformance();
-      if (real && (real as SectorData[]).length > 0) { setSectors(real as SectorData[]); return; }
-    } catch { /* fallback */ }
-    setSectors(getSectorPerformance() as SectorData[]);
+      if (real && (real as SectorData[]).length > 0) { setSectors(real as SectorData[]); }
+    } catch { /* no data available */ }
   }, []);
 
   useEffect(() => { loadData(); const interval = setInterval(loadData, 120000); return () => clearInterval(interval); }, [loadData]);

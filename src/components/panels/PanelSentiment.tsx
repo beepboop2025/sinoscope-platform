@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement } from 'react';
 import { Gauge, RefreshCw } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchFearGreedIndex, getMockFearGreed } from '../../services/api/sentimentApi';
+import { fetchFearGreedIndex } from '../../services/api/sentimentApi';
 
 interface FearGreedEntry { value: number; label: string; }
 
@@ -53,9 +53,9 @@ const PanelSentiment = memo((): ReactElement => {
     setLoading(true);
     try {
       const result = await fetchFearGreedIndex();
-      setData((result || getMockFearGreed()) as FearGreedEntry[]);
+      if (result) setData(result as FearGreedEntry[]);
     } catch {
-      setData(getMockFearGreed() as FearGreedEntry[]);
+      /* no data available */
     }
     setLoading(false);
   }, []);

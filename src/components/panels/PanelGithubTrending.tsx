@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement } from 'react';
 import { Github, Star, GitFork, ExternalLink, RefreshCw, Code } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchGithubFinanceRepos, getMockGithubRepos } from '../../services/api/githubApi';
+import { fetchGithubFinanceRepos } from '../../services/api/githubApi';
 
 interface GithubRepo {
   id: string;
@@ -45,9 +45,9 @@ const PanelGithubTrending = memo((): ReactElement => {
     setLoading(true);
     try {
       const data = await fetchGithubFinanceRepos();
-      setRepos((data || getMockGithubRepos()) as GithubRepo[]);
+      if (data) setRepos(data as GithubRepo[]);
     } catch {
-      setRepos(getMockGithubRepos() as GithubRepo[]);
+      /* no data available */
     }
     setLoading(false);
   }, []);

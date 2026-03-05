@@ -15,6 +15,7 @@ interface WSTick {
   low: number;
   timestamp: number;
   mock?: boolean;
+  [key: string]: string | number | boolean | undefined;
 }
 
 interface UseWebSocketOptions {

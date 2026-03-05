@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -13,7 +14,14 @@ from app.middleware.case_converter import CamelCaseResponse, CaseConverterMiddle
 from app.middleware.request_id import RequestIdMiddleware
 from app.middleware.slow_query import setup_slow_query_logging
 from app.redis import close_redis, get_redis, init_redis
-from app.routes import alerts, api_keys, data, health, history, portfolios, quality, users, watchlists, websocket
+from app.routes import (
+    alerts, api_keys, data, health, history, portfolios, quality,
+    users, watchlists, websocket,
+    # Enterprise routes
+    agents, backtest, compliance, notifications, quant, user_analytics,
+)
+from app.routes import proxy
+from app.services.redis_subscriber import start_redis_subscriber
 from app.services.websocket_manager import ws_manager
 from app.tracing import setup_tracing
 
@@ -37,10 +45,18 @@ async def lifespan(app: FastAPI):
     # Setup slow query detection
     setup_slow_query_logging(engine)
 
+    # Start Redis pub/sub → WebSocket bridge
+    subscriber_task = asyncio.create_task(start_redis_subscriber())
+
     logger.info(f"API running on port {settings.API_PORT}")
     yield
     # Shutdown — gracefully drain WebSocket connections
     logger.info("Shutting down DragonScope API...")
+    subscriber_task.cancel()
+    try:
+        await subscriber_task
+    except asyncio.CancelledError:
+        pass
     await ws_manager.stop_heartbeat()
     await ws_manager.close_all()
     await close_redis()
@@ -89,9 +105,18 @@ app.add_middleware(
 # Response conversion is handled by CamelCaseResponse (default_response_class)
 app.add_middleware(CaseConverterMiddleware)
 
+# Rate limiting (Redis-backed sliding window)
+try:
+    from app.middleware.rate_limit import RateLimitMiddleware
+    app.add_middleware(RateLimitMiddleware)
+except ImportError:
+    logger.warning("Rate limit middleware not available — skipping")
+
 # ── Routes ───────────────────────────────────────────────────────────────────
+# Core
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(data.router, prefix="/api", tags=["data"])
+app.include_router(proxy.router, prefix="/api", tags=["proxy"])
 app.include_router(history.router, prefix="/api", tags=["history"])
 app.include_router(portfolios.router, prefix="/api", tags=["portfolios"])
 app.include_router(watchlists.router, prefix="/api", tags=["watchlists"])
@@ -100,6 +125,13 @@ app.include_router(users.router, prefix="/api", tags=["users"])
 app.include_router(api_keys.router, prefix="/api", tags=["api-keys"])
 app.include_router(quality.router, prefix="/api", tags=["data-quality"])
 app.include_router(websocket.router, tags=["websocket"])
+# Enterprise
+app.include_router(notifications.router, prefix="/api", tags=["notifications"])
+app.include_router(agents.router, prefix="/api", tags=["agents"])
+app.include_router(backtest.router, prefix="/api", tags=["backtest"])
+app.include_router(compliance.router, prefix="/api", tags=["compliance"])
+app.include_router(quant.router, prefix="/api", tags=["quant"])
+app.include_router(user_analytics.router, prefix="/api", tags=["analytics"])
 
 
 # ── Global error handler ────────────────────────────────────────────────────

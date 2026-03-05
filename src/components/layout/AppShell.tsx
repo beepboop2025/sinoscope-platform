@@ -26,9 +26,11 @@ interface AppShellProps {
   wsStatus: string;
   workspace: WorkspaceController | null;
   onOpenCommandBar: () => void;
+  panelCount?: number;
+  onShowShortcuts?: () => void;
 }
 
-export default function AppShell({ children, marketData, wsStatus, workspace, onOpenCommandBar }: AppShellProps): React.JSX.Element {
+export default function AppShell({ children, marketData, wsStatus, workspace, onOpenCommandBar, panelCount, onShowShortcuts }: AppShellProps): React.JSX.Element {
   return (
     <div className="app-shell">
       <header role="banner">
@@ -55,6 +57,8 @@ export default function AppShell({ children, marketData, wsStatus, workspace, on
         <Footer
           lastUpdate={marketData?.lastUpdate?.forex || marketData?.lastUpdate?.crypto}
           wsStatus={wsStatus}
+          panelCount={panelCount}
+          onShowShortcuts={onShowShortcuts}
         />
       </footer>
     </div>

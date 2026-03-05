@@ -11,7 +11,8 @@ interface CollectorCacheEntry {
 
 const cache: Map<string, CollectorCacheEntry> = new Map();
 const CACHE_TTL: number = 10_000; // 10 seconds
-const FETCH_TIMEOUT: number = 8_000; // 8 second timeout
+const FETCH_TIMEOUT: number = 15_000; // 15 second timeout (backend may call external APIs)
+const API_BASE: string = import.meta.env.VITE_API_BASE_URL || '';
 
 export async function getCollectorData(category: string): Promise<unknown> {
   const now: number = Date.now();
@@ -23,7 +24,7 @@ export async function getCollectorData(category: string): Promise<unknown> {
   try {
     const controller = new AbortController();
     const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-    const res: Response = await fetch(`/api/data/${category}`, { signal: controller.signal });
+    const res: Response = await fetch(`${API_BASE}/api/data/${category}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) return null;
     const json: { data?: unknown } = await res.json();

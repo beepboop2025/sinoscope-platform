@@ -4,8 +4,7 @@ import { fetchStockQuotes } from '../services/api/stockApi';
 import { fetchYieldCurve } from '../services/api/bondApi';
 import { fetchAllCommodities } from '../services/api/commodityApi';
 import { normalizeTick, normalizeForex, normalizeCrypto } from '../services/DataNormalizer';
-import { generateMockEconomic } from '../generators/mockEconomic';
-import { generateMockChinaIndices } from '../generators/mockChina';
+import { getCollectorData } from '../services/CollectorClient';
 import type { MarketTick, BondYield } from '../types/market';
 
 interface ErrorRecord {
@@ -193,13 +192,14 @@ export function createMarketEngine(): MarketEngineInstance {
 
   async function fetchEconomic(): Promise<void> {
     try {
-      // Use mock data as baseline; real FRED data layered on top via econApi if keys present
-      const data = generateMockEconomic();
-      state.economic = data as Record<string, unknown>;
-      state.lastUpdate.economic = Date.now();
-      state.lastFetchTime.economic = Date.now();
-      clearError('economic');
-      notify();
+      const data = await getCollectorData('economic');
+      if (data) {
+        state.economic = data as Record<string, unknown>;
+        state.lastUpdate.economic = Date.now();
+        state.lastFetchTime.economic = Date.now();
+        clearError('economic');
+        notify();
+      }
     } catch (err: unknown) {
       console.warn('[MarketEngine] economic error', err);
       recordError('economic', err as Error);
@@ -209,24 +209,23 @@ export function createMarketEngine(): MarketEngineInstance {
 
   async function fetchIndices(): Promise<void> {
     try {
-      const data = generateMockChinaIndices();
-      // Merge global index mock data
-      const globalIndices: Record<string, { symbol: string; name: string; price: number; changePct: number }> = {
-        SPX: { symbol: 'SPX', name: 'S&P 500', price: 5250 + (Math.random() - 0.5) * 60, changePct: (Math.random() - 0.5) * 2 },
-        DJI: { symbol: 'DJI', name: 'Dow Jones', price: 39200 + (Math.random() - 0.5) * 400, changePct: (Math.random() - 0.5) * 1.5 },
-        IXIC: { symbol: 'IXIC', name: 'NASDAQ', price: 16500 + (Math.random() - 0.5) * 200, changePct: (Math.random() - 0.5) * 2.5 },
-        FTSE: { symbol: 'FTSE', name: 'FTSE 100', price: 7950 + (Math.random() - 0.5) * 80, changePct: (Math.random() - 0.5) * 1.2 },
-        DAX: { symbol: 'DAX', name: 'DAX 40', price: 18100 + (Math.random() - 0.5) * 180, changePct: (Math.random() - 0.5) * 1.5 },
-        N225: { symbol: 'N225', name: 'Nikkei 225', price: 38500 + (Math.random() - 0.5) * 400, changePct: (Math.random() - 0.5) * 2 },
-      };
-      for (const idx of data as Array<{ symbol: string; name: string; price: number; changesPercentage?: number }>) {
-        globalIndices[idx.symbol] = { symbol: idx.symbol, name: idx.name, price: idx.price, changePct: idx.changesPercentage || 0 };
+      const data = await getCollectorData('indices');
+      if (data && Array.isArray(data)) {
+        const indices: Record<string, { symbol: string; name: string; price: number; changePct: number }> = {};
+        for (const idx of data as Array<{ symbol: string; name: string; price: number; changesPercentage?: number; changePct?: number }>) {
+          indices[idx.symbol] = {
+            symbol: idx.symbol,
+            name: idx.name,
+            price: idx.price,
+            changePct: idx.changePct ?? idx.changesPercentage ?? 0,
+          };
+        }
+        state.indices = indices;
+        state.lastUpdate.indices = Date.now();
+        state.lastFetchTime.indices = Date.now();
+        clearError('indices');
+        notify();
       }
-      state.indices = globalIndices;
-      state.lastUpdate.indices = Date.now();
-      state.lastFetchTime.indices = Date.now();
-      clearError('indices');
-      notify();
     } catch (err: unknown) {
       console.warn('[MarketEngine] indices error', err);
       recordError('indices', err as Error);
@@ -298,6 +297,31 @@ export function createMarketEngine(): MarketEngineInstance {
             clearError('commodities');
           }
           break;
+        case 'economic':
+          if (data && typeof data === 'object') {
+            state.economic = data as Record<string, unknown>;
+            state.lastUpdate.economic = Date.now();
+            state.lastFetchTime.economic = Date.now();
+            clearError('economic');
+          }
+          break;
+        case 'indices':
+          if (Array.isArray(data)) {
+            const indices: Record<string, { symbol: string; name: string; price: number; changePct: number }> = {};
+            for (const idx of data as Array<{ symbol: string; name: string; price: number; changesPercentage?: number; changePct?: number }>) {
+              indices[idx.symbol] = {
+                symbol: idx.symbol,
+                name: idx.name,
+                price: idx.price,
+                changePct: idx.changePct ?? idx.changesPercentage ?? 0,
+              };
+            }
+            state.indices = indices;
+            state.lastUpdate.indices = Date.now();
+            state.lastFetchTime.indices = Date.now();
+            clearError('indices');
+          }
+          break;
         default:
           return; // Unknown category, skip notify
       }
@@ -331,14 +355,15 @@ export function createMarketEngine(): MarketEngineInstance {
     fetchEconomic();
     fetchIndices();
 
+    // Polling as safety net — primary updates arrive via WebSocket push
     state.intervals.push(
-      setInterval(fetchForex, 60000),
-      setInterval(fetchCrypto, 35000),
-      setInterval(fetchStocks, 1800000), // 30min — Alpha Vantage free tier is 25 req/day
-      setInterval(fetchBonds, 600000),
-      setInterval(fetchCommodities, 600000),
-      setInterval(fetchEconomic, 300000),  // 5 min
-      setInterval(fetchIndices, 60000),    // 1 min
+      setInterval(fetchForex, 300000),       // 5 min (was 1 min)
+      setInterval(fetchCrypto, 300000),      // 5 min (was 35s)
+      setInterval(fetchStocks, 1800000),     // 30 min
+      setInterval(fetchBonds, 600000),       // 10 min
+      setInterval(fetchCommodities, 600000), // 10 min
+      setInterval(fetchEconomic, 600000),    // 10 min (was 5 min)
+      setInterval(fetchIndices, 300000),     // 5 min (was 1 min)
     );
   }
 

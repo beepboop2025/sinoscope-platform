@@ -15,7 +15,7 @@ describe('cacheGet / cacheSet', () => {
   });
   it('returns null for expired entry', () => {
     cacheSet('exp', 'data', 1); // 1ms TTL
-    return new Promise(resolve => {
+    return new Promise<void>(resolve => {
       setTimeout(() => {
         expect(cacheGet('exp')).toBeNull();
         resolve();

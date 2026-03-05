@@ -1,85 +1,50 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock all dependencies before importing
-vi.mock('../CacheManager', () => ({
-  cacheGet: vi.fn(() => null),
-  cacheSet: vi.fn(),
-}));
-
-vi.mock('../RateLimiter', () => ({
-  canRequest: vi.fn(() => true),
-  consumeToken: vi.fn(),
-}));
-
 vi.mock('../CollectorClient', () => ({
   getCollectorData: vi.fn(() => null),
 }));
 
-vi.mock('../../utils/helpers', () => ({
-  fetchWithTimeout: vi.fn(),
-}));
-
 import { fetchFinnhubNews, fetchRSSNews } from './newsApi';
-import { fetchWithTimeout } from '../../utils/helpers';
-import { cacheGet } from '../CacheManager';
+import { getCollectorData } from '../CollectorClient';
 
-const mockFetch = fetchWithTimeout as ReturnType<typeof vi.fn>;
-const mockCacheGet = cacheGet as ReturnType<typeof vi.fn>;
+const mockGetCollector = getCollectorData as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('newsApi cascade', () => {
-  it('returns null when all sources fail and no keys are set', async () => {
-    // No env vars set, RSS also fails
-    mockFetch.mockRejectedValue(new Error('network error'));
+describe('newsApi', () => {
+  it('returns null when collector has no news data', async () => {
+    mockGetCollector.mockResolvedValue(null);
     const result = await fetchFinnhubNews('general');
     expect(result).toBeNull();
   });
 
-  it('returns cached results when available', async () => {
-    const cached = [{ id: '1', title: 'Test', source: 'Test', url: '#', time: Date.now() }];
-    mockCacheGet.mockReturnValueOnce(null).mockReturnValueOnce(cached);
+  it('returns cached results when available from collector', async () => {
+    const articles = [{ id: '1', title: 'Test', source: 'Test', url: '#', time: Date.now() }];
+    mockGetCollector.mockResolvedValue(articles);
     const result = await fetchFinnhubNews('general');
-    expect(result).toEqual(cached);
+    expect(result).toEqual(articles);
+  });
+
+  it('returns null for empty array from collector', async () => {
+    mockGetCollector.mockResolvedValue([]);
+    const result = await fetchFinnhubNews();
+    expect(result).toBeNull();
   });
 });
 
 describe('fetchRSSNews', () => {
-  it('parses RSS feed items correctly', async () => {
-    const rssResponse = {
-      ok: true,
-      json: () => Promise.resolve({
-        status: 'ok',
-        feed: { title: 'Yahoo Finance' },
-        items: [
-          { guid: 'g1', title: 'Market Update', description: '<p>Test desc</p>', link: 'https://example.com', pubDate: '2025-01-01T00:00:00Z' },
-          { guid: 'g2', title: 'Stock Rally', description: 'Another desc', link: 'https://example.com/2', pubDate: '2025-01-02T00:00:00Z' },
-        ],
-      }),
-    };
-    mockFetch.mockResolvedValue(rssResponse);
-
+  it('delegates to collector (backwards-compatible alias)', async () => {
+    const articles = [{ id: '1', title: 'RSS Item', source: 'Yahoo', url: '#', time: Date.now() }];
+    mockGetCollector.mockResolvedValue(articles);
     const result = await fetchRSSNews();
-    expect(result).not.toBeNull();
-    expect(result!.length).toBeGreaterThan(0);
-    expect(result![0].title).toBeDefined();
-    // HTML should be stripped from description
-    expect(result![0].summary).not.toContain('<p>');
+    expect(result).toEqual(articles);
+    expect(mockGetCollector).toHaveBeenCalledWith('news');
   });
 
-  it('handles RSS feed errors gracefully', async () => {
-    mockFetch.mockRejectedValue(new Error('CORS'));
-    const result = await fetchRSSNews();
-    expect(result).toBeNull();
-  });
-
-  it('skips feeds with non-ok status', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: 'error', items: [] }),
-    });
+  it('returns null when collector fails', async () => {
+    mockGetCollector.mockResolvedValue(null);
     const result = await fetchRSSNews();
     expect(result).toBeNull();
   });

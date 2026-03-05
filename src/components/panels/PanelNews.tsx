@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, memo, type ReactElement, type MouseEvent } from 'react';
-import { Newspaper, ExternalLink, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Newspaper, ExternalLink, Clock } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
+import SearchInput from '../shared/SearchInput';
 import { fetchFinnhubNews } from '../../services/api/newsApi';
 import { PanelSkeleton } from '../shared/LoadingSkeleton';
 
@@ -29,8 +30,9 @@ function generateMockArticles(): Article[] {
 const PanelNews = memo((): ReactElement => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [isDemo, setIsDemo] = useState<boolean>(false);
+  const [filter, setFilter] = useState('');
   const inFlightRef = useRef<boolean>(false);
 
   const load = useCallback(async () => {
@@ -44,14 +46,12 @@ const PanelNews = memo((): ReactElement => {
         setArticles(data as Article[]);
         setIsDemo(false);
       } else {
-        // All sources returned nothing — use mock data
         setArticles(generateMockArticles());
         setIsDemo(true);
       }
     } catch (err: unknown) {
       console.warn('[PanelNews]', err);
       setError((err as Error).message || 'Failed to load news');
-      // Fallback to mock on error
       setArticles(generateMockArticles());
       setIsDemo(true);
     } finally {
@@ -77,15 +77,30 @@ const PanelNews = memo((): ReactElement => {
     return `${Math.round(mins / 1440)}d`;
   };
 
+  const filtered = filter
+    ? articles.filter(a =>
+        a.title.toLowerCase().includes(filter.toLowerCase()) ||
+        a.source.toLowerCase().includes(filter.toLowerCase())
+      )
+    : articles;
+
   return (
     <PanelChrome title={isDemo ? 'News Feed (Demo)' : 'News Feed'} icon={Newspaper} iconColor="var(--cyan)">
+      <div style={{ marginBottom: 8 }}>
+        <SearchInput placeholder="Search articles..." onSearch={setFilter} debounceMs={200} />
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {isDemo && (
           <div style={{ fontSize: 9, color: 'var(--amber)', background: 'rgba(245, 158, 11, 0.1)', padding: '3px 8px', borderRadius: 4, textAlign: 'center' }}>
             Demo Mode — Set API keys in .env for live news
           </div>
         )}
-        {articles.map(a => (
+        {filtered.length === 0 && filter && (
+          <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-4)', fontSize: 11 }}>
+            No articles matching "{filter}"
+          </div>
+        )}
+        {filtered.map(a => (
           <a
             key={a.id || a.url}
             href={a.url}

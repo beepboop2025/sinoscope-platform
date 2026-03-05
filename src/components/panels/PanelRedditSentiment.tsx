@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement } from 'react';
 import { MessageCircle, RefreshCw, ArrowUp, ExternalLink } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchAllFinanceSubs, analyzeSentiment, getMockRedditPosts } from '../../services/api/redditApi';
+import { fetchAllFinanceSubs, analyzeSentiment } from '../../services/api/redditApi';
 
 interface RedditPost {
   id: string;
@@ -52,13 +52,13 @@ const PanelRedditSentiment = memo((): ReactElement => {
     setLoading(true);
     try {
       const data = await fetchAllFinanceSubs();
-      const p = (data || getMockRedditPosts()) as RedditPost[];
-      setPosts(p);
-      setSentiment(analyzeSentiment(p) as SentimentResult);
+      if (data) {
+        const p = data as RedditPost[];
+        setPosts(p);
+        setSentiment(analyzeSentiment(p) as SentimentResult);
+      }
     } catch {
-      const p = getMockRedditPosts() as RedditPost[];
-      setPosts(p);
-      setSentiment(analyzeSentiment(p) as SentimentResult);
+      /* no data available */
     }
     setLoading(false);
   }, []);

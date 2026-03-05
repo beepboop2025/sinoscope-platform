@@ -59,11 +59,13 @@ async def require_auth(
     request: Request,
     session: AsyncSession = Depends(get_db),
 ) -> AuthUser:
-    """Verify Clerk JWT and resolve user. Dev mode if no CLERK_SECRET_KEY."""
-    # Dev mode
+    """Verify Clerk JWT and resolve user. Dev mode if no CLERK_SECRET_KEY and DEBUG=true."""
+    # Dev mode — only when DEBUG is explicitly enabled AND no CLERK_SECRET_KEY
     if not settings.CLERK_SECRET_KEY:
-        user = await _resolve_user(session, "dev-user", "dev@localhost")
-        return AuthUser(user_id=user.id, clerk_id="dev-user", email="dev@localhost")
+        if settings.DEBUG:
+            user = await _resolve_user(session, "dev-user", "dev@localhost")
+            return AuthUser(user_id=user.id, clerk_id="dev-user", email="dev@localhost")
+        raise HTTPException(status_code=401, detail="Authentication not configured")
 
     # Production: verify JWT
     auth_header = request.headers.get("authorization", "")
@@ -117,8 +119,10 @@ async def optional_auth(
 ) -> AuthUser | None:
     """Optional auth — returns None if no valid token."""
     if not settings.CLERK_SECRET_KEY:
-        user = await _resolve_user(session, "dev-user", "dev@localhost")
-        return AuthUser(user_id=user.id, clerk_id="dev-user", email="dev@localhost")
+        if settings.DEBUG:
+            user = await _resolve_user(session, "dev-user", "dev@localhost")
+            return AuthUser(user_id=user.id, clerk_id="dev-user", email="dev@localhost")
+        return None
 
     auth_header = request.headers.get("authorization", "")
     if not auth_header.startswith("Bearer "):

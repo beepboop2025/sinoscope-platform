@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement } from 'react';
 import { Layers, RefreshCw, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchDefiProtocols, fetchChainTVL, getMockDefiData } from '../../services/api/defiLlamaApi';
+import { fetchDefiProtocols, fetchChainTVL } from '../../services/api/defiLlamaApi';
 
 interface DefiProtocol { name: string; tvl: number; change1d?: number; category?: string; chains?: string[]; }
 interface ChainTVL { name: string; tvl: number; }
@@ -22,15 +22,14 @@ const PanelDefi = memo((): ReactElement => {
 
   const loadData = useCallback(async () => {
     setLoading(true); setPartialError(null);
-    const mock = getMockDefiData() as { protocols: DefiProtocol[]; chains: ChainTVL[] };
     const [pResult, cResult] = await Promise.allSettled([fetchDefiProtocols(), fetchChainTVL()]);
     const pOk = pResult.status === 'fulfilled' && pResult.value;
     const cOk = cResult.status === 'fulfilled' && cResult.value;
-    setProtocols((pOk ? pResult.value : mock.protocols) as DefiProtocol[]);
-    setChains((cOk ? cResult.value : mock.chains) as ChainTVL[]);
-    if (!pOk && !cOk) setPartialError('Both protocol and chain data failed to load \u2014 showing mock data');
-    else if (!pOk) setPartialError('Protocol data unavailable \u2014 showing mock protocols');
-    else if (!cOk) setPartialError('Chain data unavailable \u2014 showing mock chains');
+    if (pOk) setProtocols(pResult.value as DefiProtocol[]);
+    if (cOk) setChains(cResult.value as ChainTVL[]);
+    if (!pOk && !cOk) setPartialError('Both protocol and chain data failed to load');
+    else if (!pOk) setPartialError('Protocol data unavailable');
+    else if (!cOk) setPartialError('Chain data unavailable');
     setLoading(false);
   }, []);
 

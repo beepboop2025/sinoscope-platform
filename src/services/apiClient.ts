@@ -6,7 +6,7 @@ declare global {
   }
 }
 
-const API_BASE: string = '/api';
+const API_BASE: string = (import.meta.env.VITE_API_BASE_URL || '') + '/api';
 
 async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<unknown> {
   const { method = 'GET', body, headers: extraHeaders = {} } = options;
@@ -27,7 +27,7 @@ async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<un
   const res: Response = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
-    ...(body && { body: JSON.stringify(body) }),
+    ...(body ? { body: JSON.stringify(body) } : {}),
   });
 
   if (res.status === 204) return null;

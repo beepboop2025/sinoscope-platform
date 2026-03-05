@@ -21,6 +21,16 @@ router.post('/', async (req, res, next) => {
     if (!symbol || !condition || threshold == null) {
       return res.status(400).json({ error: 'symbol, condition, and threshold required' });
     }
+    const VALID_CONDITIONS = ['above', 'below', 'crosses_above', 'crosses_below'];
+    if (!VALID_CONDITIONS.includes(condition)) {
+      return res.status(400).json({ error: `Invalid condition. Must be one of: ${VALID_CONDITIONS.join(', ')}` });
+    }
+    if (typeof symbol !== 'string' || symbol.length > 20 || !/^[A-Za-z0-9/._-]+$/.test(symbol)) {
+      return res.status(400).json({ error: 'Invalid symbol format' });
+    }
+    if (isNaN(Number(threshold))) {
+      return res.status(400).json({ error: 'threshold must be a number' });
+    }
     const alert = await prisma.alert.create({
       data: {
         userId: req.userId,

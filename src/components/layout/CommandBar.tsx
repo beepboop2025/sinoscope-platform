@@ -1,7 +1,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { Command } from 'cmdk';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowRight, Layout, Plus } from 'lucide-react';
+import { Search, ArrowRight, Layout, Plus, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface CommandItem {
@@ -32,7 +32,8 @@ const ICONS: Record<string, LucideIcon> = {
 
 const MAX_VISIBLE = 8;
 
-function getIcon(action: string): LucideIcon {
+function getIcon(action: string, id: string): LucideIcon {
+  if (id.startsWith('data_')) return TrendingUp;
   return ICONS[action] || ArrowRight;
 }
 
@@ -51,7 +52,6 @@ export default function CommandBar({
 
   useEffect(() => {
     if (isOpen) {
-      // Small delay to ensure the DOM is ready after animation starts
       const raf = requestAnimationFrame(() => {
         inputRef.current?.focus();
       });
@@ -64,9 +64,12 @@ export default function CommandBar({
     const workspaces: CommandItem[] = [];
     const addPanels: CommandItem[] = [];
     const actions: CommandItem[] = [];
+    const marketData: CommandItem[] = [];
 
     for (const item of filtered) {
-      if (item.action === 'workspace') {
+      if (item.id.startsWith('data_')) {
+        marketData.push(item);
+      } else if (item.action === 'workspace') {
         workspaces.push(item);
       } else if (item.action === 'addPanel') {
         addPanels.push(item);
@@ -75,8 +78,37 @@ export default function CommandBar({
       }
     }
 
-    return { workspaces, addPanels, actions };
+    return { workspaces, addPanels, actions, marketData };
   }, [filtered]);
+
+  const renderGroup = (heading: string, items: CommandItem[], max: number = MAX_VISIBLE) => {
+    if (items.length === 0) return null;
+    return (
+      <Command.Group heading={heading}>
+        {items.slice(0, max).map((cmd) => {
+          const Icon = getIcon(cmd.action, cmd.id);
+          const globalIndex = filtered.indexOf(cmd);
+          const isDataItem = cmd.id.startsWith('data_');
+          return (
+            <Command.Item
+              key={cmd.id}
+              value={cmd.id}
+              onSelect={() => execute(cmd)}
+              onMouseEnter={() => setActiveIndex(globalIndex)}
+              data-selected={globalIndex === activeIndex ? 'true' : undefined}
+            >
+              <Icon size={14} className="command-item-icon" aria-hidden="true" color={isDataItem ? 'var(--cyan)' : undefined} />
+              <span className="command-item-label">{cmd.label}</span>
+              <span className="command-item-desc">{cmd.desc}</span>
+              {cmd.shortcut && (
+                <span className="command-item-shortcut">{cmd.shortcut}</span>
+              )}
+            </Command.Item>
+          );
+        })}
+      </Command.Group>
+    );
+  };
 
   return (
     <AnimatePresence>
@@ -119,88 +151,19 @@ export default function CommandBar({
                     setActiveIndex(0);
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type a command or search..."
-                  aria-label="Search commands"
+                  placeholder="Type a command or search symbols..."
+                  aria-label="Search commands and market data"
                 />
               </div>
 
               <Command.List>
-                <Command.Empty>No matching commands</Command.Empty>
+                <Command.Empty>No matching commands or symbols</Command.Empty>
 
-                {groups.workspaces.length > 0 && (
-                  <Command.Group heading="Workspaces">
-                    {groups.workspaces.slice(0, MAX_VISIBLE).map((cmd, i) => {
-                      const Icon = getIcon(cmd.action);
-                      const globalIndex = filtered.indexOf(cmd);
-                      return (
-                        <Command.Item
-                          key={cmd.id}
-                          value={cmd.id}
-                          onSelect={() => execute(cmd)}
-                          onMouseEnter={() => setActiveIndex(globalIndex)}
-                          data-selected={globalIndex === activeIndex ? 'true' : undefined}
-                        >
-                          <Icon size={14} className="command-item-icon" aria-hidden="true" />
-                          <span className="command-item-label">{cmd.label}</span>
-                          <span className="command-item-desc">{cmd.desc}</span>
-                          {cmd.shortcut && (
-                            <span className="command-item-shortcut">{cmd.shortcut}</span>
-                          )}
-                        </Command.Item>
-                      );
-                    })}
-                  </Command.Group>
-                )}
-
-                {groups.addPanels.length > 0 && (
-                  <Command.Group heading="Add Panel">
-                    {groups.addPanels.slice(0, MAX_VISIBLE).map((cmd) => {
-                      const Icon = getIcon(cmd.action);
-                      const globalIndex = filtered.indexOf(cmd);
-                      return (
-                        <Command.Item
-                          key={cmd.id}
-                          value={cmd.id}
-                          onSelect={() => execute(cmd)}
-                          onMouseEnter={() => setActiveIndex(globalIndex)}
-                          data-selected={globalIndex === activeIndex ? 'true' : undefined}
-                        >
-                          <Icon size={14} className="command-item-icon" aria-hidden="true" />
-                          <span className="command-item-label">{cmd.label}</span>
-                          <span className="command-item-desc">{cmd.desc}</span>
-                          {cmd.shortcut && (
-                            <span className="command-item-shortcut">{cmd.shortcut}</span>
-                          )}
-                        </Command.Item>
-                      );
-                    })}
-                  </Command.Group>
-                )}
-
-                {groups.actions.length > 0 && (
-                  <Command.Group heading="Actions">
-                    {groups.actions.slice(0, MAX_VISIBLE).map((cmd) => {
-                      const Icon = getIcon(cmd.action);
-                      const globalIndex = filtered.indexOf(cmd);
-                      return (
-                        <Command.Item
-                          key={cmd.id}
-                          value={cmd.id}
-                          onSelect={() => execute(cmd)}
-                          onMouseEnter={() => setActiveIndex(globalIndex)}
-                          data-selected={globalIndex === activeIndex ? 'true' : undefined}
-                        >
-                          <Icon size={14} className="command-item-icon" aria-hidden="true" />
-                          <span className="command-item-label">{cmd.label}</span>
-                          <span className="command-item-desc">{cmd.desc}</span>
-                          {cmd.shortcut && (
-                            <span className="command-item-shortcut">{cmd.shortcut}</span>
-                          )}
-                        </Command.Item>
-                      );
-                    })}
-                  </Command.Group>
-                )}
+                {/* Market data results appear first when searching */}
+                {renderGroup('Market Data', groups.marketData, 6)}
+                {renderGroup('Workspaces', groups.workspaces)}
+                {renderGroup('Add Panel', groups.addPanels)}
+                {renderGroup('Actions', groups.actions)}
               </Command.List>
             </Command>
           </motion.div>

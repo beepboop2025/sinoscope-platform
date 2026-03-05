@@ -148,6 +148,77 @@ body::before {
   }
 }
 
+/* Panel hover glow effect */
+.panel {
+  transition: border-color var(--duration-normal), box-shadow var(--duration-normal);
+}
+.panel:hover {
+  border-color: var(--border-2);
+  box-shadow: 0 0 24px rgba(6, 214, 224, 0.06), var(--shadow-sm);
+}
+
+/* Grid drag effects */
+.react-grid-item.react-draggable-dragging {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(6, 214, 224, 0.1) !important;
+  z-index: 100 !important;
+  opacity: 0.92;
+}
+.react-grid-item.react-grid-placeholder {
+  background: var(--cyan-alpha) !important;
+  border: 1px dashed var(--cyan) !important;
+  border-radius: var(--radius-lg) !important;
+  opacity: 0.3;
+}
+
+/* Table row hover highlight */
+.dense-table tbody tr {
+  transition: background var(--duration-fast);
+}
+.dense-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+/* Badge pulse for live indicators */
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.badge-live {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* Custom scrollbar for panels */
+.panel-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+.panel-body::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.panel-body::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 3px;
+}
+.panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-4);
+}
+
+/* Panel focus ring for keyboard navigation */
+.panel:focus-within {
+  outline: 1px solid var(--cyan-alpha);
+  outline-offset: -1px;
+}
+
+/* Notification badge animation */
+@keyframes notif-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body::before {
     animation: none;
@@ -160,5 +231,14 @@ body::before {
   }
   .symbol-linked {
     animation: none;
+  }
+  .badge-live {
+    animation: none;
+  }
+  .panel:hover {
+    box-shadow: var(--shadow-sm);
+  }
+  .react-grid-item.react-draggable-dragging {
+    box-shadow: var(--shadow-md) !important;
   }
 }

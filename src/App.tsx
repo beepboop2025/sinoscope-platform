@@ -5,6 +5,7 @@ import 'react-grid-layout/css/styles.css';
 import AppShell from './components/layout/AppShell';
 import CommandBar from './components/layout/CommandBar';
 import ShortcutsModal from './components/shared/ShortcutsModal';
+import WelcomeModal from './components/shared/WelcomeModal';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import OfflineIndicator from './components/shared/OfflineIndicator';
 import { PanelSkeleton } from './components/shared/LoadingSkeleton';
@@ -88,11 +89,6 @@ interface FormattedEvent {
   timestamp: number;
   impact: string;
   regime: string;
-}
-
-interface CommandAction {
-  action: string;
-  target: string;
 }
 
 const CORRELATION_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'BTC', 'ETH', 'SOL'];
@@ -309,15 +305,15 @@ function App(): ReactElement {
   }, [marketData]);
 
   // Command bar
-  const handleCommand = useCallback((cmd: CommandAction) => {
-    if (cmd.action === 'workspace') {
+  const handleCommand = useCallback((cmd: { action: string; target?: string }) => {
+    if (cmd.action === 'workspace' && cmd.target) {
       switchWorkspace(cmd.target);
-    } else if (cmd.action === 'addPanel') {
+    } else if (cmd.action === 'addPanel' && cmd.target) {
       addPanelToWorkspace(cmd.target);
     }
   }, [switchWorkspace, addPanelToWorkspace]);
 
-  const commandBar = useCommandBar({ onCommand: handleCommand });
+  const commandBar = useCommandBar({ onCommand: handleCommand, marketData });
 
   // Layout change
   const handleLayoutChange = useCallback((layout: unknown[]) => {
@@ -431,6 +427,8 @@ function App(): ReactElement {
       wsStatus={useMock ? 'mock' : 'live'}
       workspace={workspace}
       onOpenCommandBar={() => commandBar.setIsOpen(true)}
+      panelCount={panels.length}
+      onShowShortcuts={() => commandBar.setShowShortcuts(true)}
     >
       <div ref={gridRef}>
         {gridMounted && containerWidth > 0 && (
@@ -474,6 +472,7 @@ function App(): ReactElement {
       />
       <ShortcutsModal isOpen={commandBar.showShortcuts} onClose={() => commandBar.setShowShortcuts(false)} />
       <OfflineIndicator />
+      <WelcomeModal />
     </AppShell>
   );
 }

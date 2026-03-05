@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement, type ComponentType } from 'react';
 import { Brain, Download, Heart, RefreshCw, Tag, ExternalLink, AlertTriangle, WifiOff, ShieldAlert, type LucideProps } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchFinanceModels, getMockHuggingFaceModels } from '../../services/api/huggingfaceApi';
+import { fetchFinanceModels } from '../../services/api/huggingfaceApi';
 
 interface HFModel {
   id: string;
@@ -65,13 +65,11 @@ const PanelHuggingFace = memo((): ReactElement => {
       if (data) {
         setModels(data as HFModel[]);
       } else {
-        setModels(getMockHuggingFaceModels() as HFModel[]);
         setUsingMock(true);
       }
     } catch (err) {
       const info = classifyError(err);
       setErrorInfo(info);
-      setModels(getMockHuggingFaceModels() as HFModel[]);
       setUsingMock(true);
     }
     setLoading(false);

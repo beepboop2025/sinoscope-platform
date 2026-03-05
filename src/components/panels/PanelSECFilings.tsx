@@ -1,7 +1,7 @@
 import { memo, useState, useEffect, useCallback, type ReactElement } from 'react';
 import { FileText, RefreshCw, ExternalLink } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
-import { fetchRecentFilings, getMockFilings } from '../../services/api/secEdgarApi';
+import { fetchRecentFilings } from '../../services/api/secEdgarApi';
 
 interface Filing {
   id: string;
@@ -30,9 +30,9 @@ const PanelSECFilings = memo((): ReactElement => {
     setLoading(true);
     try {
       const data = await fetchRecentFilings();
-      setFilings((data || getMockFilings()) as Filing[]);
+      if (data) setFilings(data as Filing[]);
     } catch {
-      setFilings(getMockFilings() as Filing[]);
+      /* no data available */
     }
     setLoading(false);
   }, []);

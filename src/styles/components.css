@@ -34,6 +34,7 @@
   font-family: var(--font-sans);
 }
 .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(6,214,224,0.25); }
+.btn-primary:active { transform: translateY(0) scale(0.97); box-shadow: 0 2px 8px rgba(6,214,224,0.15); transition-duration: 50ms; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .btn-ghost {
@@ -51,6 +52,7 @@
   font-family: var(--font-sans);
 }
 .btn-ghost:hover:not(:disabled) { border-color: var(--border-2); color: var(--text-1); background: var(--surface-2); }
+.btn-ghost:active:not(:disabled) { transform: scale(0.96); transition-duration: 50ms; }
 .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .badge {

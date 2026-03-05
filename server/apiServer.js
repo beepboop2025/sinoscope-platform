@@ -18,13 +18,17 @@ import watchlistRoutes from './routes/watchlists.js';
 import alertRoutes from './routes/alerts.js';
 import userRoutes from './routes/users.js';
 import apiKeyRoutes from './routes/apiKeys.js';
+import licenseRoutes from './routes/license.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3456;
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: ['http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:3456', 'http://127.0.0.1:3456'], credentials: true }));
+app.use(cors({
+  origin: (process.env.CORS_ORIGINS || 'http://localhost:5174,http://127.0.0.1:5174').split(',').map(s => s.trim()),
+  credentials: true,
+}));
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 
@@ -48,6 +52,7 @@ app.use('/api/watchlists', watchlistRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/api-keys', apiKeyRoutes);
+app.use('/api/license', licenseRoutes);
 
 // Backward compatibility: serve /{category}.json like old dataServer
 app.get('/:file', (req, res, next) => {

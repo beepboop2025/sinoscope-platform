@@ -35,15 +35,5 @@ export function getTokens(provider: string): number {
   return b.tokens;
 }
 
-// Initialize default rate limits
-createRateLimiter('frankfurter', 30, 60000);
-createRateLimiter('coingecko', 25, 60000);
-createRateLimiter('fmp', 240, 86400000);
-createRateLimiter('fred', 100, 60000);
-createRateLimiter('finnhub', 55, 60000);
-createRateLimiter('gnews', 90, 86400000);
-createRateLimiter('yahoo', 50, 60000);
-createRateLimiter('alphavantage', 24, 86400000);
-createRateLimiter('newsdata', 15, 86400000);       // ~500/month ≈ 15/day
-createRateLimiter('newsapiorg', 90, 86400000);      // 100 calls/day
-createRateLimiter('worldnews', 50, 86400000);       // free tier
+// Simple backend request throttle — the backend handles per-provider rate limits
+createRateLimiter('backend', 200, 60000);

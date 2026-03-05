@@ -116,7 +116,7 @@ export function normalizeCrypto(data: RawCryptoData): NormalizedCrypto {
 
 export function normalizeOHLC(data: RawOHLCData): NormalizedOHLC {
   return {
-    time: data.t || data.date || data.timestamp,
+    time: data.t || data.date || data.timestamp || 0,
     open: Number(data.o ?? data.open ?? 0),
     high: Number(data.h ?? data.high ?? 0),
     low: Number(data.l ?? data.low ?? 0),

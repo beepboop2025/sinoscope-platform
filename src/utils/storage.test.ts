@@ -32,6 +32,6 @@ describe('storageWrite', () => {
   beforeEach(() => { localStorage.clear(); });
   it('writes and returns true', () => {
     expect(storageWrite('key', { a: 1 })).toBe(true);
-    expect(JSON.parse(localStorage.getItem('key'))).toEqual({ a: 1 });
+    expect(JSON.parse(localStorage.getItem('key')!)).toEqual({ a: 1 });
   });
 });

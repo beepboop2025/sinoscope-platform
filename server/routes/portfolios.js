@@ -75,6 +75,11 @@ router.post('/:id/holdings', async (req, res, next) => {
 // DELETE /api/portfolios/:portfolioId/holdings/:holdingId
 router.delete('/:portfolioId/holdings/:holdingId', async (req, res, next) => {
   try {
+    // Verify holding belongs to user's portfolio before deleting
+    const holding = await prisma.holding.findFirst({
+      where: { id: req.params.holdingId, portfolio: { userId: req.userId } },
+    });
+    if (!holding) return res.status(404).json({ error: 'Holding not found' });
     await prisma.holding.delete({ where: { id: req.params.holdingId } });
     res.status(204).end();
   } catch (err) { next(err); }

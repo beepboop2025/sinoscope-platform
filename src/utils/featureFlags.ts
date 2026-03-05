@@ -1,49 +1,31 @@
 /**
- * Feature flags driven by environment variables.
- * Shows which features are available based on configured API keys.
+ * Feature flags for DragonScope.
+ * With the enterprise backend, all data features are available
+ * as long as the backend is reachable.
  */
 
 interface FeatureFlags {
-  /** Real-time stock data via Alpha Vantage / FMP / Finnhub */
-  hasStockData: boolean;
-  /** FRED API for bonds, economic data, commodities */
-  hasFredData: boolean;
-  /** Live news from any news provider */
-  hasNewsKeys: boolean;
-  /** Real-time WebSocket via Finnhub */
-  hasFinnhubWS: boolean;
   /** Clerk authentication */
   hasAuth: boolean;
-  /** Overall: true if any API key is configured */
+  /** Backend API URL is configured (production mode) */
+  hasBackendUrl: boolean;
+  /** Overall: always true in enterprise mode (backend provides all data) */
   isLiveMode: boolean;
 }
 
 export function getFeatureFlags(): FeatureFlags {
   const env = import.meta.env;
-
-  const hasStockData = !!(env.VITE_ALPHA_VANTAGE_API_KEY || env.VITE_FMP_API_KEY || env.VITE_FINNHUB_API_KEY);
-  const hasFredData = !!env.VITE_FRED_API_KEY;
-  const hasNewsKeys = !!(
-    env.VITE_FINNHUB_API_KEY ||
-    env.VITE_NEWSDATA_API_KEY ||
-    env.VITE_NEWSAPI_API_KEY ||
-    env.VITE_WORLD_NEWS_API_KEY ||
-    env.VITE_GNEWS_API_KEY
-  );
-  const hasFinnhubWS = !!env.VITE_FINNHUB_API_KEY;
   const hasAuth = !!env.VITE_CLERK_PUBLISHABLE_KEY;
+  const hasBackendUrl = !!env.VITE_API_BASE_URL;
 
   return {
-    hasStockData,
-    hasFredData,
-    hasNewsKeys,
-    hasFinnhubWS,
     hasAuth,
-    isLiveMode: hasStockData || hasFredData || hasNewsKeys,
+    hasBackendUrl,
+    isLiveMode: true, // Enterprise mode: backend always provides data
   };
 }
 
-/** Check if running in demo mode (no API keys configured) */
+/** Check if running in demo mode — always false in enterprise mode */
 export function isDemoMode(): boolean {
-  return !getFeatureFlags().isLiveMode;
+  return false;
 }

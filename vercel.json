@@ -22,9 +22,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/fred/(.*)", "destination": "/api/fred" },
-    { "source": "/api/yahoo/(.*)", "destination": "/api/yahoo" },
-    { "source": "/api/rss/(.*)", "destination": "/api/rss" },
+    { "source": "/api/:path*", "destination": "${BACKEND_URL}/api/:path*" },
+    { "source": "/ws/:path*", "destination": "${BACKEND_URL}/ws/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

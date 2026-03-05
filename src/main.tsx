@@ -5,6 +5,8 @@ import { ToastProvider } from './components/shared/Toast';
 import { ThemeProvider } from './components/shared/ThemeProvider';
 import { SymbolProvider } from './contexts/SymbolContext';
 import ClerkSessionBridge from './components/auth/ClerkSessionBridge';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import LicenseGate from './components/auth/LicenseGate';
 import { installGlobalErrorHandlers, reportError } from './utils/errorReporter';
 import App from './App';
 import './styles/index.css';
@@ -57,13 +59,15 @@ class RootErrorBoundary extends Component<RootErrorBoundaryProps, RootErrorBound
 }
 
 const AppTree = (
-  <ThemeProvider>
-    <SymbolProvider>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
-    </SymbolProvider>
-  </ThemeProvider>
+  <LicenseGate>
+    <ThemeProvider>
+      <SymbolProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </SymbolProvider>
+    </ThemeProvider>
+  </LicenseGate>
 );
 
 createRoot(document.getElementById('root')!).render(
@@ -72,7 +76,9 @@ createRoot(document.getElementById('root')!).render(
       {CLERK_KEY ? (
         <ClerkProvider publishableKey={CLERK_KEY}>
           <ClerkSessionBridge>
-            {AppTree}
+            <ProtectedRoute>
+              {AppTree}
+            </ProtectedRoute>
           </ClerkSessionBridge>
         </ClerkProvider>
       ) : (

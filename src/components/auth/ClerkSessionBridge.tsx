@@ -11,9 +11,9 @@ export default function ClerkSessionBridge({ children }: ClerkSessionBridgeProps
   const { session } = useSession();
   const { user } = useUser();
 
-  // Expose session for apiClient to attach JWT tokens
+  // Expose minimal token getter for apiClient (not the full session object)
   useEffect(() => {
-    window.__clerk_session = session || null;
+    window.__clerk_session = session ? { getToken: () => session.getToken() } : null;
     return () => { window.__clerk_session = null; };
   }, [session]);
 
