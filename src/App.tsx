@@ -316,8 +316,8 @@ function App(): ReactElement {
   const commandBar = useCommandBar({ onCommand: handleCommand, marketData });
 
   // Layout change
-  const handleLayoutChange = useCallback((layout: unknown[]) => {
-    updateLayout(activeId, layout as import('./types').LayoutItem[]);
+  const handleLayoutChange = useCallback((layout: readonly import('./types').LayoutItem[]) => {
+    updateLayout(activeId, [...layout]);
   }, [updateLayout, activeId]);
 
   // Render a panel by its id
@@ -334,13 +334,13 @@ function App(): ReactElement {
       case 'commodities':
         return <PanelCommodities data={marketData?.commodities} />;
       case 'economic':
-        return <PanelEconomic data={marketData?.economic} />;
+        return <PanelEconomic data={marketData?.economic as any} />;
       case 'news':
         return <PanelNews />;
       case 'chart':
         return <PanelChart symbol="BTC" />;
       case 'correlation':
-        return <PanelCorrelation matrix={corrMatrix} symbols={CORRELATION_SYMBOLS} window={corrWindow} onWindowChange={setCorrWindow} />;
+        return <PanelCorrelation matrix={corrMatrix ?? undefined} symbols={CORRELATION_SYMBOLS} window={corrWindow} onWindowChange={setCorrWindow} />;
       case 'network':
         return <PanelNetwork pairs={networkPairs} symbols={networkSymbols} />;
       case 'timeline':
@@ -348,7 +348,7 @@ function App(): ReactElement {
       case 'company':
         return <PanelCompany />;
       case 'alerts':
-        return <PanelAlerts alerts={alerts} marketData={marketData} mlState={mlEngine} patternEvents={patternEngine.events} technicalSignals={technicals.signals} />;
+        return <PanelAlerts alerts={alerts as any} marketData={marketData as any} mlState={mlEngine as any} patternEvents={patternEngine.events as any} technicalSignals={technicals.signals as any} />;
       case 'chinaMarkets':
         return <PanelChinaMarkets />;
       case 'cnyTracker':
@@ -372,7 +372,7 @@ function App(): ReactElement {
       case 'sectors':
         return <PanelSectors />;
       case 'watchlist':
-        return <PanelWatchlist data={marketData} />;
+        return <PanelWatchlist data={marketData as any} />;
       case 'defi':
         return <PanelDefi />;
       case 'cryptoGlobal':
@@ -384,13 +384,13 @@ function App(): ReactElement {
       case 'researchPapers':
         return <PanelResearchPapers />;
       case 'mlDashboard':
-        return <PanelML mlState={mlEngine} onRetrain={mlEngine.forceRetrain} onReset={mlEngine.reset} />;
+        return <PanelML mlState={mlEngine as any} onRetrain={mlEngine.forceRetrain} onReset={mlEngine.reset} />;
       case 'signals':
-        return <PanelSignals mlState={mlEngine} />;
+        return <PanelSignals mlState={mlEngine as any} />;
       case 'candlestick':
         return <PanelCandlestick />;
       case 'portfolio':
-        return <PanelPortfolio data={marketData} />;
+        return <PanelPortfolio data={marketData as any} />;
       case 'earningsCalendar':
         return <PanelEarningsCalendar />;
       case 'fundamentals':
@@ -425,7 +425,7 @@ function App(): ReactElement {
     <AppShell
       marketData={marketData}
       wsStatus={useMock ? 'mock' : 'live'}
-      workspace={workspace}
+      workspace={workspace as any}
       onOpenCommandBar={() => commandBar.setIsOpen(true)}
       panelCount={panels.length}
       onShowShortcuts={() => commandBar.setShowShortcuts(true)}
@@ -439,11 +439,8 @@ function App(): ReactElement {
             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
             cols={{ lg: 12, md: 10, sm: 6, xs: 4 }}
             rowHeight={60}
-            isDraggable
-            isResizable
-            compactType="vertical"
-            onLayoutChange={handleLayoutChange}
-            draggableHandle=".panel-titlebar"
+            dragConfig={{ enabled: true, bounded: false, handle: '.panel-titlebar' }}
+            onLayoutChange={handleLayoutChange as any}
             margin={[8, 8]}
           >
             {panels.map((panelId: string) => (
@@ -463,7 +460,7 @@ function App(): ReactElement {
         isOpen={commandBar.isOpen}
         query={commandBar.query}
         setQuery={commandBar.setQuery}
-        filtered={commandBar.filtered}
+        filtered={commandBar.filtered as any}
         activeIndex={commandBar.activeIndex}
         setActiveIndex={commandBar.setActiveIndex}
         execute={commandBar.execute}

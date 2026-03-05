@@ -22,8 +22,8 @@ export default function PanelChinaMarkets({ apiKey }: PanelChinaMarketsProps): R
       setLoading(true);
       try {
         const [idxData, stockData] = await Promise.all([
-          ChinaAPI.fetchChinaIndices(apiKey),
-          ChinaAPI.fetchChinaStocks(apiKey),
+          ChinaAPI.fetchChinaIndices(),
+          ChinaAPI.fetchChinaStocks(),
         ]);
         setIndices(idxData as IndexData[]);
         setStocks(stockData as StockData[]);

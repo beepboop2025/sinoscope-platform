@@ -105,7 +105,7 @@ const PanelCandlestick = memo((): ReactElement => {
     const greenColor = getCSSVar('--green') || '#10b981';
     const redColor = getCSSVar('--red') || '#ef4444';
 
-    candleSeriesRef.current.setData(data);
+    candleSeriesRef.current.setData(data as any);
 
     const volumeData = data.map((d: { time: unknown; volume: number; close: number; open: number }) => ({
       time: d.time,
@@ -114,7 +114,7 @@ const PanelCandlestick = memo((): ReactElement => {
         ? greenColor + '40'
         : redColor + '40',
     }));
-    volumeSeriesRef.current.setData(volumeData);
+    volumeSeriesRef.current.setData(volumeData as any);
 
     if (chartRef.current) {
       chartRef.current.timeScale().fitContent();

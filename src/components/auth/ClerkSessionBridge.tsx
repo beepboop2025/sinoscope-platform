@@ -13,8 +13,8 @@ export default function ClerkSessionBridge({ children }: ClerkSessionBridgeProps
 
   // Expose minimal token getter for apiClient (not the full session object)
   useEffect(() => {
-    window.__clerk_session = session ? { getToken: () => session.getToken() } : null;
-    return () => { window.__clerk_session = null; };
+    window.__clerk_session = session ? { getToken: () => session.getToken() } : undefined;
+    return () => { window.__clerk_session = undefined; };
   }, [session]);
 
   // Auto-sync user to backend on sign-in

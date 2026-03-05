@@ -137,7 +137,7 @@ function PanelEconCalendar(): ReactElement {
 
   if (loading) {
     return (
-      <PanelChrome title="Economic Calendar" icon={<CalendarClock size={14} />}>
+      <PanelChrome title="Economic Calendar" icon={CalendarClock}>
         <PanelSkeleton />
       </PanelChrome>
     );
@@ -154,7 +154,7 @@ function PanelEconCalendar(): ReactElement {
   }
 
   return (
-    <PanelChrome title="Economic Calendar" icon={<CalendarClock size={14} />} subtitle={`${filtered.length} events`}>
+    <PanelChrome title="Economic Calendar" icon={CalendarClock} subtitle={`${filtered.length} events`}>
       <div style={{ padding: '8px 12px', overflowY: 'auto', height: '100%' }}>
         {/* Filters */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>

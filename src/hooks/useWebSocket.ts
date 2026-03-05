@@ -15,7 +15,6 @@ interface WSTick {
   low: number;
   timestamp: number;
   mock?: boolean;
-  [key: string]: string | number | boolean | undefined;
 }
 
 interface UseWebSocketOptions {
@@ -32,7 +31,7 @@ export function useWebSocket(engine: MarketEngineInstance | null, { useMock = fa
     const ticks = { ...tickBuffer.current };
     tickBuffer.current = {};
     for (const tick of Object.values(ticks)) {
-      engine.updateFromWS(tick);
+      engine.updateFromWS(tick as unknown as Parameters<typeof engine.updateFromWS>[0]);
     }
   }, [engine]);
 

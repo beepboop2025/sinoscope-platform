@@ -8,14 +8,14 @@ interface QueryResult {
   columns: string[];
   rows: Record<string, unknown>[];
   rowCount: number;
-  elapsed: number;
+  elapsed: string | undefined;
   error?: string;
 }
 
 interface HistoryEntry {
   sql: string;
   rowCount: number;
-  elapsed: number;
+  elapsed: string;
   error?: string;
 }
 
@@ -129,7 +129,7 @@ const PanelSqlQuery = memo(({ data }: { data?: unknown }): ReactElement => {
     executeQuery, isReady, tableInfo, history, clearHistory,
     getSchema, savedQueries, saveQuery, removeSavedQuery,
     exportCsv, copyResults,
-  } = useSqlEngine(data);
+  } = useSqlEngine(data as Record<string, unknown> | null);
 
   const [sql, setSql] = useState<string>('SELECT * FROM all_assets ORDER BY changePct DESC LIMIT 10');
   const [result, setResult] = useState<QueryResult | null>(null);

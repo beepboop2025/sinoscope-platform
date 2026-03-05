@@ -109,8 +109,9 @@ const PanelPortfolio = memo(({ data: marketData }: { data?: MarketData }): React
   }, [activeId, addHolding]);
 
   const holdings = (activePortfolio as Portfolio | undefined)?.holdings || [];
-  const totals = calculateTotalValue(holdings, marketData) as { totalValue: number; totalPnL: number; totalPnLPct: number };
-  const allocation = calculateAllocation(holdings, marketData) as AllocationEntry[];
+  const typedHoldings = holdings as unknown as { symbol: string; quantity: number; avgCost: number; assetType: 'stock' | 'crypto' | 'etf' }[];
+  const totals = calculateTotalValue(typedHoldings, marketData as never) as { totalValue: number; totalPnL: number; totalPnLPct: number };
+  const allocation = calculateAllocation(typedHoldings, marketData as never) as AllocationEntry[];
 
   return (
     <PanelChrome title="Portfolio" icon={Briefcase} iconColor="var(--green)">
@@ -135,7 +136,7 @@ const PanelPortfolio = memo(({ data: marketData }: { data?: MarketData }): React
             <Plus size={10} />
           </button>
           {activePortfolio && (
-            <button className="btn-ghost" onClick={() => deletePortfolio(activeId)} style={{ padding: '2px 5px', fontSize: 9, color: 'var(--text-4)' }} title="Delete portfolio">
+            <button className="btn-ghost" onClick={() => deletePortfolio(activeId || '')} style={{ padding: '2px 5px', fontSize: 9, color: 'var(--text-4)' }} title="Delete portfolio">
               <Trash2 size={10} />
             </button>
           )}
@@ -206,7 +207,7 @@ const PanelPortfolio = memo(({ data: marketData }: { data?: MarketData }): React
               <tbody>
                 {holdings.map(h => {
                   const price = getHoldingPrice(h, marketData);
-                  const { currentValue, pnl, pnlPct } = calculateHoldingPnL(h, price) as { currentValue: number; pnl: number; pnlPct: number };
+                  const { currentValue, pnl, pnlPct } = calculateHoldingPnL(h as unknown as { symbol: string; quantity: number; avgCost: number; assetType: 'stock' | 'crypto' | 'etf' }, price) as { currentValue: number; pnl: number; pnlPct: number };
                   return (
                     <tr key={h.id}>
                       <td>
@@ -220,7 +221,7 @@ const PanelPortfolio = memo(({ data: marketData }: { data?: MarketData }): React
                         {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)} ({pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%)
                       </td>
                       <td>
-                        <button className="btn-ghost" onClick={() => removeHolding(activeId, h.id)} style={{ padding: '1px 3px' }}>
+                        <button className="btn-ghost" onClick={() => removeHolding(activeId || '', h.id)} style={{ padding: '1px 3px' }}>
                           <Trash2 size={9} color="var(--text-4)" />
                         </button>
                       </td>

@@ -45,7 +45,7 @@ const PanelGithubTrending = memo((): ReactElement => {
     setLoading(true);
     try {
       const data = await fetchGithubFinanceRepos();
-      if (data) setRepos(data as GithubRepo[]);
+      if (data) setRepos(data as unknown as GithubRepo[]);
     } catch {
       /* no data available */
     }

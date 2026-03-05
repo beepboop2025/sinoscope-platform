@@ -133,7 +133,7 @@ export default function PanelChinaCalendar(): ReactElement {
       <div style={{ marginTop: 16, padding: 12, background: 'var(--surface-2)', borderRadius: 8 }}>
         <div style={{ fontSize: 11, fontWeight: 500, marginBottom: 8, color: 'var(--text-2)' }}>Release Schedule Reference</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
-          {(CHINA_CALENDAR as Array<{ indicator: string; releaseDay: string }>).slice(0, 6).map((item, idx) => (
+          {(CHINA_CALENDAR as unknown as Array<{ indicator: string; releaseDay: string }>).slice(0, 6).map((item, idx) => (
             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
               <span style={{ color: 'var(--text-3)' }}>{item.indicator}</span><span>{item.releaseDay}</span>
             </div>

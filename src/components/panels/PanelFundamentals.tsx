@@ -111,7 +111,7 @@ function PanelFundamentals(): ReactElement {
 
   if (loading || !data) {
     return (
-      <PanelChrome title="Fundamentals" icon={<FileBarChart size={14} />}>
+      <PanelChrome title="Fundamentals" icon={FileBarChart}>
         <PanelSkeleton />
       </PanelChrome>
     );
@@ -130,7 +130,7 @@ function PanelFundamentals(): ReactElement {
   );
 
   return (
-    <PanelChrome title="Fundamentals" icon={<FileBarChart size={14} />} subtitle={data.symbol}>
+    <PanelChrome title="Fundamentals" icon={FileBarChart} subtitle={data.symbol}>
       <div style={{ padding: '8px 12px', overflowY: 'auto', height: '100%' }}>
         {/* Symbol Selector */}
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>

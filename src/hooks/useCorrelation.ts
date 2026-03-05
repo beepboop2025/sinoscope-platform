@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createCorrelationEngine } from '../engine/CorrelationEngine';
-import type { MarketSnapshot, CorrelatedPair } from '../types';
+import type { MarketSnapshot } from '../types';
 
 type CorrelationEngineInstance = ReturnType<typeof createCorrelationEngine>;
 
@@ -52,16 +52,23 @@ function seedHistoricalPrices(engine: CorrelationEngineInstance, symbols: string
   }
 }
 
+interface CorrelationPairResult {
+  symbol1: string;
+  symbol2: string;
+  correlation: number;
+  relationship: 'positive' | 'negative';
+}
+
 interface UseCorrelationReturn {
-  matrix: number[][] | null;
-  pairs: CorrelatedPair[];
+  matrix: Record<string, Record<string, number>> | null;
+  pairs: CorrelationPairResult[];
 }
 
 export function useCorrelation(marketData: MarketSnapshot | null, symbols: string[], window: number = 30): UseCorrelationReturn {
   const engineRef = useRef<CorrelationEngineInstance | null>(null);
   const seededRef = useRef<boolean>(false);
-  const [matrix, setMatrix] = useState<number[][] | null>(null);
-  const [pairs, setPairs] = useState<CorrelatedPair[]>([]);
+  const [matrix, setMatrix] = useState<Record<string, Record<string, number>> | null>(null);
+  const [pairs, setPairs] = useState<CorrelationPairResult[]>([]);
 
   // Create engine and seed on first use
   if (!engineRef.current) {

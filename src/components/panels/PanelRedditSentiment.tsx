@@ -53,9 +53,9 @@ const PanelRedditSentiment = memo((): ReactElement => {
     try {
       const data = await fetchAllFinanceSubs();
       if (data) {
-        const p = data as RedditPost[];
+        const p = data as unknown as RedditPost[];
         setPosts(p);
-        setSentiment(analyzeSentiment(p) as SentimentResult);
+        setSentiment(analyzeSentiment(p as never) as SentimentResult);
       }
     } catch {
       /* no data available */

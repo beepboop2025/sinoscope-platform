@@ -24,7 +24,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-charts': ['lightweight-charts'],
-          'vendor-data': ['alasql', 'xlsx'],
+          'vendor-data': ['alasql'],
           'vendor-ui': ['lucide-react', 'react-grid-layout'],
           'vendor-motion': ['framer-motion'],
           'vendor-state': ['zustand'],

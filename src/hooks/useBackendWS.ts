@@ -36,6 +36,7 @@ export function useBackendWS(engine: MarketEngineInstance | null): void {
 
   useEffect(() => {
     if (!engine) return;
+    const eng = engine;
 
     function connect() {
       if (intentionalClose.current) return;
@@ -65,7 +66,7 @@ export function useBackendWS(engine: MarketEngineInstance | null): void {
         try {
           const msg: BackendWSMessage = JSON.parse(event.data);
           if (msg.type === 'update' && msg.category && msg.data) {
-            engine.updateCategory(msg.category, msg.data);
+            eng.updateCategory(msg.category, msg.data);
           }
           // Heartbeat and subscribed messages are silently ignored
         } catch {

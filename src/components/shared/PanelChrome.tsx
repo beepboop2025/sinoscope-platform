@@ -35,7 +35,7 @@ function freshnessStatus(ts: number | null | undefined): string {
 
 export interface PanelChromeProps {
   title: string;
-  icon?: LucideIcon;
+  icon?: LucideIcon | React.ComponentType<{ size?: number; color?: string }>;
   iconColor?: string;
   children: ReactNode;
   onClose?: () => void;
@@ -45,6 +45,8 @@ export interface PanelChromeProps {
   staggerIndex?: number;
   linked?: boolean;
   onToggleLink?: () => void;
+  subtitle?: string;
+  panelId?: string;
 }
 
 const PanelChrome = memo(({

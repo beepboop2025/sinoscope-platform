@@ -204,14 +204,14 @@ function PanelHeatMap(): ReactElement {
 
   if (loading) {
     return (
-      <PanelChrome title="Market Heat Map" icon={<LayoutGrid size={14} />}>
+      <PanelChrome title="Market Heat Map" icon={LayoutGrid}>
         <PanelSkeleton />
       </PanelChrome>
     );
   }
 
   return (
-    <PanelChrome title="Market Heat Map" icon={<LayoutGrid size={14} />} subtitle={`${items.length} stocks`}>
+    <PanelChrome title="Market Heat Map" icon={LayoutGrid} subtitle={`${items.length} stocks`}>
       <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
         {nodes.map(node => {
           const isSmall = node.w < 60 || node.h < 35;

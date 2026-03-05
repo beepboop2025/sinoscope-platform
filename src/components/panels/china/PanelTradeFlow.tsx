@@ -50,7 +50,7 @@ export default function PanelTradeFlow(): ReactElement {
   const ytdBalance = ytdExports - ytdImports;
 
   const formatBillion = (val: number): string => `$${val.toFixed(1)}B`;
-  const tradeCategories = TRADE_CATEGORIES as { exports: CategoryItem[]; imports: CategoryItem[] };
+  const tradeCategories = TRADE_CATEGORIES as unknown as { exports: CategoryItem[]; imports: CategoryItem[] };
 
   // Create chart
   useEffect(() => {

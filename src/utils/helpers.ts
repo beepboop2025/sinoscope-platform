@@ -3,7 +3,7 @@ export const createId = (prefix: string = 'ds'): string => `${prefix}_${Date.now
 
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
-export const debounce = <T extends (...args: unknown[]) => void>(fn: T, ms: number): ((...args: Parameters<T>) => void) => {
+export const debounce = <T extends (...args: any[]) => void>(fn: T, ms: number): ((...args: Parameters<T>) => void) => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return (...args: Parameters<T>) => {
     clearTimeout(timer);
@@ -11,7 +11,7 @@ export const debounce = <T extends (...args: unknown[]) => void>(fn: T, ms: numb
   };
 };
 
-export const throttle = <T extends (...args: unknown[]) => void>(fn: T, ms: number): ((...args: Parameters<T>) => void) => {
+export const throttle = <T extends (...args: any[]) => void>(fn: T, ms: number): ((...args: Parameters<T>) => void) => {
   let last = 0;
   return (...args: Parameters<T>) => {
     const now = Date.now();

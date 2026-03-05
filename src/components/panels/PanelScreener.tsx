@@ -125,7 +125,7 @@ function PanelScreener(): ReactElement {
 
   if (loading) {
     return (
-      <PanelChrome title="Screener" icon={<Filter size={14} />}>
+      <PanelChrome title="Screener" icon={Filter}>
         <PanelSkeleton />
       </PanelChrome>
     );
@@ -147,7 +147,7 @@ function PanelScreener(): ReactElement {
   );
 
   return (
-    <PanelChrome title="Screener" icon={<Filter size={14} />} subtitle={`${filtered.length} assets`}>
+    <PanelChrome title="Screener" icon={Filter} subtitle={`${filtered.length} assets`}>
       <div style={{ padding: '8px 12px', overflowY: 'auto', height: '100%' }}>
         {/* Controls */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>

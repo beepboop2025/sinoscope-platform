@@ -13,6 +13,7 @@ export interface MarketTick {
   market: MarketType;
   mock?: boolean;
   name?: string;
+  [key: string]: unknown;
 }
 
 export interface CryptoAsset {
@@ -123,8 +124,9 @@ export interface MarketSnapshot {
   commodities: Record<string, CommodityData>;
   economic: Record<string, EconomicDataPoint[]>;
   indices: Record<string, IndexData>;
-  errors: Record<string, string>;
-  lastUpdate: number;
+  errors: Record<string, unknown>;
+  lastUpdate: Record<string, number>;
+  lastFetchTime: Record<string, number>;
 }
 
 export interface StockSymbol {

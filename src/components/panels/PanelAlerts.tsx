@@ -255,7 +255,7 @@ const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState, pa
   // Evaluate custom alert configs
   useEffect(() => {
     if (!marketData) return;
-    const triggered = alertConfig.evaluateAlerts(marketData) as Alert[];
+    const triggered = alertConfig.evaluateAlerts(marketData as never) as Alert[];
     if (triggered.length > 0) {
       const prev = prevRef.current;
       const newOnes = triggered.filter(t => !prev[t.id]);
@@ -346,7 +346,7 @@ const PanelAlerts = memo(({ alerts: externalAlerts = [], marketData, mlState, pa
       <AlertConfigModal
         isOpen={showAlertConfig}
         onClose={() => setShowAlertConfig(false)}
-        onAdd={alertConfig.addConfig}
+        onAdd={alertConfig.addConfig as (config: { symbol: string; condition: string; threshold: string }) => void}
       />
     </PanelChrome>
   );
