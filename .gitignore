@@ -5,6 +5,8 @@ server/node_modules
 .env
 .env.*
 !.env.example
+secrets.local.yaml
+**/secrets.local.yaml
 .vite
 .vercel
 package-lock 2.json

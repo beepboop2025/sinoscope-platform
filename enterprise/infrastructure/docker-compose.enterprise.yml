@@ -375,7 +375,7 @@ services:
       KAFKA_CLUSTERS_0_READONLY: "false"
       AUTH_TYPE: "LOGIN_FORM"
       SPRING_SECURITY_USER_NAME: ${KAFKA_UI_USER:-admin}
-      SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD:-dragonscope123}
+      SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD:?KAFKA_UI_PASSWORD must be set}
     networks:
       - dragonscope-backend
       - dragonscope-dmz
@@ -400,7 +400,7 @@ services:
     hostname: timescale-primary
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-dragonscope}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dragonscope_secure_2024}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: dragonscope_data
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
@@ -461,7 +461,7 @@ services:
         condition: service_healthy
     environment:
       PGUSER: ${POSTGRES_REPLICA_USER:-replicator}
-      PGPASSWORD: ${POSTGRES_REPLICA_PASSWORD:-replica_secure_2024}
+      PGPASSWORD: ${POSTGRES_REPLICA_PASSWORD:?POSTGRES_REPLICA_PASSWORD must be set}
     volumes:
       - timescale-replica-1-data:/var/lib/postgresql/data
     networks:
@@ -503,7 +503,7 @@ services:
         condition: service_healthy
     environment:
       PGUSER: ${POSTGRES_REPLICA_USER:-replicator}
-      PGPASSWORD: ${POSTGRES_REPLICA_PASSWORD:-replica_secure_2024}
+      PGPASSWORD: ${POSTGRES_REPLICA_PASSWORD:?POSTGRES_REPLICA_PASSWORD must be set}
     volumes:
       - timescale-replica-2-data:/var/lib/postgresql/data
     networks:
@@ -545,7 +545,7 @@ services:
     depends_on:
       - timescale-primary
     environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD:-dragonscope_secure_2024}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       PGUSER: ${POSTGRES_USER:-dragonscope}
       PGHOST: timescale-primary
       PGDATABASE: dragonscope_data
@@ -782,7 +782,7 @@ services:
     environment:
       CLICKHOUSE_DB: dragonscope_analytics
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse_secure_2024}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     volumes:
       - clickhouse-data:/var/lib/clickhouse
@@ -824,7 +824,7 @@ services:
     hostname: minio-1
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_secure_2024}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
       MINIO_DISTRIBUTED_MODE_ENABLED: "on"
       MINIO_PROMETHEUS_AUTH_TYPE: public
     volumes:
@@ -859,7 +859,7 @@ services:
     hostname: minio-2
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_secure_2024}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
       MINIO_DISTRIBUTED_MODE_ENABLED: "on"
     volumes:
       - minio-data-3:/data1
@@ -889,7 +889,7 @@ services:
     hostname: minio-3
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_secure_2024}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
       MINIO_DISTRIBUTED_MODE_ENABLED: "on"
     volumes:
       - minio-data-1:/data1
@@ -919,7 +919,7 @@ services:
     hostname: minio-4
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_secure_2024}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
       MINIO_DISTRIBUTED_MODE_ENABLED: "on"
     volumes:
       - minio-data-3:/data1
@@ -1020,7 +1020,7 @@ services:
     hostname: grafana
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-dragonscope2024}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3000}
       GF_AUTH_ANONYMOUS_ENABLED: "false"
@@ -1236,7 +1236,7 @@ services:
     container_name: dragonscope-postgres-exporter
     hostname: postgres-exporter
     environment:
-      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-dragonscope}:${POSTGRES_PASSWORD:-dragonscope_secure_2024}@timescale-primary:5432/dragonscope_data?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-dragonscope}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@timescale-primary:5432/dragonscope_data?sslmode=disable
     networks:
       - dragonscope-monitoring
       - dragonscope-backend
