@@ -1,108 +1,81 @@
-<p align="center">
-  <img src="public/favicon.svg" width="80" height="80" alt="DragonScope Logo" />
-</p>
+# DragonScope
 
-<h1 align="center">DragonScope</h1>
+**The open-source Bloomberg terminal. 40+ panels, 17 data sources, in-browser ML, real-time WebSocket feeds — for free.**
 
-<p align="center">
-  <strong>Bloomberg-style financial terminal for indie traders and analysts</strong>
-</p>
+![React](https://img.shields.io/badge/React-19-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
+![Vite](https://img.shields.io/badge/Vite-7-purple.svg)
+![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
+![License](https://img.shields.io/badge/License-BSL_1.1-orange.svg)
 
-<p align="center">
-  Real-time market data from 17+ sources &bull; 45 customizable panels &bull; In-browser ML signals &bull; SQL query engine &bull; Zero backend required
-</p>
-
-<p align="center">
-  <a href="https://dragonscope.io">Website</a> &bull;
-  <a href="https://appsumo.com">Get on AppSumo</a> &bull;
-  <a href="#quick-start">Quick Start</a> &bull;
-  <a href="#workspaces">Workspaces</a>
-</p>
+<!-- Add screenshot or demo GIF here -->
+> Replace this with a screenshot of the Overview workspace showing multiple panels
 
 ---
 
-![Overview Dashboard](screenshots/overview.png)
+## Why DragonScope?
 
-## Why DragonScope
+Bloomberg Terminal costs **$24,000/year**. DragonScope gives you a multi-market financial terminal with real-time data, in-browser ML, a SQL query engine, and 40+ configurable panels — running in your browser, backed by 17 data sources.
 
-Most financial dashboards either cost $24,000/yr (Bloomberg) or give you one asset class at a time. DragonScope puts **stocks, crypto, forex, bonds, commodities, DeFi, and research** in a single terminal with drag-and-drop layouts, in-browser machine learning, and a built-in SQL engine — all running client-side with no mandatory backend.
+**Free for personal use.** Built for quant traders, financial analysts, and indie traders who want institutional-grade tooling without the institutional price tag.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Workspaces](#workspaces)
+- [Architecture](#architecture)
+- [Data Sources](#data-sources)
+- [ML System](#ml-system)
+- [SQL Engine](#sql-engine)
+- [Tech Stack](#tech-stack)
+- [Deployment](#deployment)
+- [Configuration](#configuration)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ## Features
 
-### 45 Panels Across Every Asset Class
+| | Feature | Description |
+|---|---------|-------------|
+| :bar_chart: | **40+ Interactive Panels** | Stocks, crypto, forex, bonds, commodities, DeFi, research, sentiment — all draggable and resizable |
+| :zap: | **Real-Time WebSocket** | Sub-second Binance crypto tickers, live rate streaming |
+| :brain: | **In-Browser ML** | 4 neural net models (price prediction, anomaly detection, regime classification, signal generation) |
+| :mag: | **SQL Query Engine** | AlaSQL with 12 tables, 18 presets, CSV/XLSX export, schema browser |
+| :dragon: | **China Focus** | 6 dedicated panels: SSE/HSI/CSI indices, CNY tracker, PBOC watch, Belt & Road |
+| :globe_with_meridians: | **17 Data Sources** | CoinGecko, Binance WS, Alpha Vantage, FRED, Finnhub, DeFi Llama, SEC EDGAR, Reddit, arXiv, and more |
+| :desktop_computer: | **9 Workspaces** | Pre-configured layouts for Overview, China, Cross-Market, Forex, Fixed Income, Research, Sentiment, DeFi, ML |
+| :keyboard: | **Command Bar** | Cmd+K to search panels, workspaces, and commands |
+| :package: | **Desktop App** | Electron build for macOS |
+| :whale: | **Full-Stack Docker** | TimescaleDB, Redis, Celery, FastAPI backend — one command to deploy |
+| :shield: | **ReadyState Integration** | Personal readiness panel — 73-item checklist with live market threat analysis ([ReadyState](https://github.com/beepboop2025/ReadyState)) |
 
-| Category | Panels | Data Sources |
-|----------|--------|--------------|
-| **Forex** | Live rates, price charts, economic data | Frankfurter (free, no key) |
-| **Stocks** | Quotes, candlestick charts, fundamentals, screener, earnings calendar, heat map | Alpha Vantage, FMP, Finnhub |
-| **Crypto** | Live tickers, price charts, global stats, order book | CoinGecko + Binance WebSocket |
-| **Fixed Income** | US Treasury yield curve, economic indicators | FRED API |
-| **Commodities** | Prices across metals, energy, agriculture | World Bank |
-| **DeFi** | Protocol TVL rankings, chain breakdown, yields | DeFi Llama |
-| **China Focus** | SSE/HSI/CSI 300, CNY tracker, PBOC watch, Belt & Road, trade flows | Custom APIs |
-| **India** | Indian market panel | Custom APIs |
-| **Sentiment** | Fear & Greed Index, sector ETF heatmap, Reddit (WSB/crypto/stocks) | alternative.me, Reddit JSON |
-| **Research** | GitHub finance repos, HuggingFace models, arXiv papers, SEC EDGAR filings | GitHub, HuggingFace, arXiv, SEC |
-| **News** | 6-source fallback chain with auto-failover | Finnhub, NewsData, NewsAPI, WorldNewsAPI, GNews, Yahoo RSS |
-| **Tools** | SQL query engine, correlation matrix, network graph, event timeline, portfolio tracker, watchlist, alerts, system health, settings | In-browser engines |
+---
 
-### In-Browser Machine Learning
+## ReadyState Integration
 
-No cloud APIs, no data leaving your machine. DragonScope trains and runs 4 neural network models entirely in the browser:
+DragonScope includes a built-in **Readiness Panel** that embeds [ReadyState](https://github.com/beepboop2025/ReadyState) — a personal resilience dashboard.
 
-- **Price Predictor** — Direction classification (up/down) using a feedforward neural net
-- **Anomaly Detector** — Z-score anomaly detection with severity levels
-- **Market Regime Classifier** — Bull/bear/sideways classification
-- **Signal Generator** — Composite buy/sell/hold signals combining all models
+**What it does:**
+- Scores your personal preparedness across 6 life domains (Financial, Supplies, Digital, Health, Skills, Network)
+- Computes a market-driven **Threat Level** using live DragonScope data (yield curve, unemployment, inflation, Fear & Greed)
+- Calculates **Effective Risk** = Threat × (1 − Readiness/100) — showing how your preparation reduces real-world risk
+- SVG gauge and radar chart visualizations, interactive checklist with localStorage sync
 
-20 features per prediction: 12 per-asset (RSI, MACD, Bollinger Bands, momentum, volatility, trend strength) + 8 cross-market features. Auto-trains every 60s, predictions every 5s.
+**To add the panel:** Press `Cmd+K` → search "Readiness" → click to add.
 
-![Cross-Market Analysis](screenshots/cross-market.png)
+Checklist state syncs with the standalone ReadyState app via `localStorage` — run both apps and your data stays in sync.
 
-### SQL Query Engine
-
-Query your market data with SQL, powered by AlaSQL running entirely in the browser:
-
-```sql
-SELECT symbol, price, changePct FROM all_assets
-WHERE changePct > 2 ORDER BY changePct DESC LIMIT 20
-```
-
-- Schema browser with 12 tables (stocks, crypto, forex, bonds, commodities, indices, economic, and more)
-- Saved queries with localStorage persistence
-- CSV and Excel (XLSX) export
-- Column sorting, copy to clipboard
-- 18 built-in query presets
-
-### Cross-Market Analysis
-
-- **Correlation Matrix** — Heatmap of rolling correlations across any asset combination
-- **Network Graph** — Visual force-directed graph of correlated asset pairs
-- **Event Timeline** — Tracks significant price moves, system events, and regime changes
-
-![China Focus](screenshots/china-focus.png)
-
-## Workspaces
-
-9 pre-configured workspaces with keyboard shortcuts. All panels are draggable and resizable.
-
-| Key | Workspace | What's Inside |
-|-----|-----------|---------------|
-| `1` | Overview | Forex, Stocks, Crypto, Bonds, Commodities, News, Candlestick, Portfolio |
-| `2` | China Focus | China Markets, CNY Tracker, PBOC Watch, Trade Flow, Calendar |
-| `3` | Cross-Market | Correlation, Network Graph, Timeline, SQL Query |
-| `4` | Forex | Forex Rates, Price Chart, Economic Data |
-| `5` | Fixed Income | Bonds, Economic Data, News |
-| `6` | Research | GitHub, HuggingFace, arXiv, SEC Filings, Earnings Calendar, SQL |
-| `7` | Sentiment | Fear & Greed, Sectors, Watchlist, Reddit, News |
-| `8` | DeFi & Crypto | DeFi TVL, Crypto Global, Crypto Markets, Reddit |
-| `9` | ML Analytics | ML Dashboard, Trading Signals, Stocks, Crypto, Sentiment |
-
-Custom workspaces can be created via the command bar (`Cmd+K`).
-
-![Forex Workspace](screenshots/forex.png)
+---
 
 ## Quick Start
+
+### Frontend Only (No Backend Required)
 
 ```bash
 git clone https://github.com/beepboop2025/DragonScope.git
@@ -111,156 +84,221 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5174`. Enter your license code to activate.
+Opens at `http://localhost:5174`. Works immediately with free-tier APIs — no keys required.
 
-> The app works without any API keys — it uses free public APIs and falls back to mock data automatically.
-
-### Optional: API Keys
-
-Create a `.env` file to unlock premium data sources:
-
-```env
-# Authentication (optional — app works without Clerk)
-VITE_CLERK_PUBLISHABLE_KEY=
-
-# Stock data
-VITE_FINNHUB_API_KEY=
-VITE_FMP_API_KEY=
-VITE_ALPHA_VANTAGE_API_KEY=
-
-# Economic data
-VITE_FRED_API_KEY=
-
-# News
-VITE_NEWSDATA_API_KEY=
-VITE_NEWSAPI_API_KEY=
-VITE_WORLD_NEWS_API_KEY=
-VITE_GNEWS_API_KEY=
-```
-
-### Production Build
-
-```bash
-npm run build     # Outputs to dist/
-npm run preview   # Preview production build locally
-```
-
-### Full-Stack (Docker)
+### Full Stack (Backend + Database)
 
 ```bash
 docker compose up --build
 ```
 
-Starts TimescaleDB, Redis, FastAPI backend, Celery workers, and Nginx frontend on port 80.
+Launches TimescaleDB, Redis, FastAPI, Celery workers, and Nginx on port 80.
 
-### Desktop App (Electron)
+### Desktop App
 
 ```bash
-npm run electron:dev     # Dev mode
-npm run electron:build   # Build .dmg for macOS
+npm run electron:dev    # Development
+npm run electron:build  # Build macOS .dmg
 ```
+
+---
+
+## Workspaces
+
+Press `1`-`9` to switch workspaces, or use `Cmd+K`:
+
+| Key | Workspace | Panels |
+|:---:|-----------|--------|
+| `1` | **Overview** | Forex, Stocks, Crypto, Bonds, Commodities, News, Candlestick, Portfolio |
+| `2` | **China Focus** | SSE/HSI/CSI, CNY Tracker, PBOC Watch, Trade Flow, Calendar |
+| `3` | **Cross-Market** | Correlation Matrix, Network Graph, Timeline, SQL Query |
+| `4` | **Forex** | Forex Rates, Price Charts, Economic Indicators |
+| `5` | **Fixed Income** | Bond Yields, Economic Data, Market News |
+| `6` | **Research** | GitHub Trending, HuggingFace Models, arXiv Papers, SEC Filings, Earnings |
+| `7` | **Sentiment** | Fear & Greed, Sector Performance, Reddit Sentiment, Watchlist |
+| `8` | **DeFi & Crypto** | DeFi TVL Rankings, Crypto Global, Live Tickers, Reddit |
+| `9` | **ML Analytics** | Training Dashboard, Buy/Sell Signals, Market Data |
+
+All panels are **draggable and resizable**. Layouts persist in localStorage.
+
+---
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Browser
+        A[React 19 + TypeScript] --> B[40+ Lazy-Loaded Panels]
+        A --> C[MarketEngine]
+        A --> D[ML Engine - 4 Neural Nets]
+        A --> E[AlaSQL - 12 Tables]
+        A --> F[Binance WebSocket]
+    end
+
+    subgraph Backend
+        G[FastAPI] --> H[25+ Route Modules]
+        G --> I[Celery Workers]
+        I --> J[Data Collectors]
+    end
+
+    subgraph Storage
+        K[(TimescaleDB)] --> G
+        L[(Redis)] --> G
+        L --> I
+    end
+
+    A -->|REST + WS| G
+    F -->|wss://| M[Binance]
+    C -->|HTTP| N[CoinGecko / FRED / etc.]
+```
+
+**Frontend**: React SPA with Zustand state, react-grid-layout for drag-drop panels, Lightweight Charts for candlesticks, and a custom neural network implementation (zero external ML dependencies).
+
+**Backend**: FastAPI with 25+ route modules, Celery for background data collection, TimescaleDB for time-series storage with automatic compression, Redis for caching and rate limiting.
+
+---
+
+## Data Sources
+
+| Source | Data | API Key |
+|--------|------|:-------:|
+| Frankfurter | Forex rates | No |
+| CoinGecko | Crypto prices, charts, global stats | No |
+| Binance WebSocket | Real-time crypto tickers | No |
+| World Bank | Economic indicators, commodity prices | No |
+| alternative.me | Fear & Greed Index | No |
+| DeFi Llama | Protocol TVL, chain data, yields | No |
+| GitHub API | Finance/trading repos | No |
+| HuggingFace API | Financial ML models | No |
+| SEC EDGAR | Real-time SEC filings | No |
+| arXiv | Quantitative finance papers | No |
+| Reddit JSON | WSB, r/crypto, r/stocks | No |
+| Alpha Vantage | Stock quotes, time series | Optional |
+| FMP | Company profiles, fundamentals | Optional |
+| Finnhub | Stock quotes, financial news | Optional |
+| FRED | Treasury yields, economic data | Optional |
+| NewsData.io | News articles | Optional |
+| NewsAPI.org | News articles | Optional |
+
+Most features work without any API keys. Optional keys unlock premium data quality.
+
+---
+
+## ML System
+
+Custom neural network running entirely in the browser — no server, no Python, no TensorFlow.
+
+### 4 Models
+
+| Model | Purpose | Method |
+|-------|---------|--------|
+| PricePredictor | Up/down classification | 3-layer feedforward net |
+| AnomalyDetector | Unusual market behavior | Z-score detection |
+| MarketRegimeClassifier | Bull/bear/sideways | Pattern classification |
+| SignalGenerator | Buy/sell/hold signals | Composite of all models |
+
+### 20 Features Per Prediction
+
+- **12 per-asset**: RSI, MACD, Bollinger Bands, momentum, volatility, trend strength
+- **8 cross-market**: VIX proxy, sector correlation, market regime, momentum aggregates
+
+Auto-trains every 60s, generates predictions every 5s.
+
+---
+
+## SQL Engine
+
+Built-in AlaSQL query engine with 12 tables:
+
+```sql
+SELECT symbol, price, change_24h, volume
+FROM crypto WHERE change_24h > 5
+ORDER BY volume DESC
+```
+
+**Tables**: stocks, crypto, forex, bonds, commodities, indices, economic, defi_protocols, github_repos, hf_models, reddit_posts, all_assets
+
+**Features**: Schema browser, 18 query presets, saved queries, CSV/XLSX export, column sorting, copy to clipboard.
+
+---
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
-| **Framework** | React 19, TypeScript, Vite 7 |
-| **State** | Zustand |
-| **Layout** | react-grid-layout (drag & drop, responsive breakpoints) |
-| **Charts** | Lightweight Charts (candlestick, area, bar), custom SVG charts |
-| **SQL** | AlaSQL (in-browser) |
-| **ML** | Custom neural network engine (zero dependencies) |
-| **Animation** | Framer Motion |
-| **Command Bar** | cmdk |
-| **Icons** | Lucide React |
-| **Auth** | Clerk (optional) |
-| **Notifications** | Sonner |
-| **Export** | xlsx (lazy-loaded) |
-| **WebSocket** | Binance real-time crypto tickers |
-| **Backend** | FastAPI (Python), Celery, TimescaleDB, Redis |
-| **Server** | Express.js (Node.js), Prisma, SQLite |
-| **Infra** | Docker Compose, Nginx, Helm charts |
-| **Desktop** | Electron |
-| **Deployment** | Vercel (frontend), Docker (full-stack) |
-
-## Data Sources
-
-| Source | Data | Auth Required |
-|--------|------|:---:|
-| Frankfurter | Forex rates | No |
-| CoinGecko | Crypto prices, charts, global stats | No |
-| Binance WebSocket | Real-time crypto tickers (sub-second) | No |
-| World Bank | Economic indicators, commodity prices | No |
-| alternative.me | Fear & Greed Index | No |
-| DeFi Llama | DeFi protocol TVL, chains, yields | No |
-| GitHub API | Finance/trading repositories | No |
-| HuggingFace API | Financial ML models | No |
-| SEC EDGAR | Real-time SEC filings | No |
-| arXiv | Quantitative finance research papers | No |
-| Reddit JSON | WSB, r/crypto, r/stocks posts | No |
-| Alpha Vantage | Stock quotes, time series | Yes (free tier) |
-| FMP | Stock quotes, company profiles | Yes (free tier) |
-| Finnhub | Stock quotes, financial news | Yes (free tier) |
-| FRED | US Treasury yields, economic data | Yes (free tier) |
-| NewsData.io | News articles | Yes (free tier) |
-| NewsAPI.org | News articles | Yes (free tier) |
-
-All paid-key sources have automatic fallbacks to free alternatives or mock data.
-
-## Architecture
-
-```
-dragonscope/
-├── src/
-│   ├── components/
-│   │   ├── layout/          # AppShell, CommandBar, Header, Footer, WorkspaceTabs
-│   │   ├── panels/          # 39 panel components (lazy-loaded)
-│   │   ├── panels/china/    # 6 China-specific panels
-│   │   ├── shared/          # PanelChrome, ErrorBoundary, Toast, LoadingSkeleton, etc.
-│   │   ├── charts/          # 9 chart primitives + 4 lightweight-charts wrappers
-│   │   └── auth/            # Clerk integration, license gate, API key manager
-│   ├── services/
-│   │   ├── api/             # 16 API service modules with cache + rate limiting
-│   │   └── websocket/       # Binance stream, mock stream, WebSocket manager
-│   ├── hooks/               # 16 custom React hooks
-│   ├── engine/              # Market, Correlation, Technical, Pattern, Timeline engines
-│   ├── ml/                  # NeuralNet, FeatureEngine, 4 ML models, MLEngine orchestrator
-│   ├── stores/              # Zustand stores (gamification, notifications, settings)
-│   ├── generators/          # Mock data generators (forex, stocks, crypto, economic)
-│   ├── constants/           # Workspaces, API endpoints, symbols, commands, colors
-│   ├── contexts/            # SymbolContext (cross-panel symbol linking)
-│   ├── types/               # 11 TypeScript type definition files
-│   ├── utils/               # Formatters, math, correlation, storage, export, motion
-│   └── styles/              # CSS with custom properties (dark terminal theme)
-├── server/                  # Node.js Express API (Prisma + SQLite)
-├── backend/                 # Python FastAPI backend (TimescaleDB + Redis + Celery)
-├── enterprise/              # Enterprise tier (microservices, Kubernetes, Terraform)
-├── electron/                # Electron desktop app wrapper
-├── scripts/                 # License code generator, install/uninstall scripts
-└── docker-compose.yml       # Full-stack deployment
-```
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+K` / `Ctrl+K` | Open command bar |
-| `1`–`9` | Switch workspace |
-| `Cmd+S` | Save current layout |
-| `?` | Show shortcuts modal |
-
-## License
-
-**Business Source License 1.1** — See [LICENSE](LICENSE) for full terms.
-
-- Personal and non-commercial use is free
-- Commercial use requires a valid license
-- Purchase at [dragonscope.io](https://dragonscope.io) or via [AppSumo](https://appsumo.com)
-- Converts to Apache 2.0 on the Change Date (2030-03-06)
+|-------|-----------|
+| Frontend | React 19, TypeScript, Vite 7, Zustand |
+| Panels | react-grid-layout, Lightweight Charts, Recharts |
+| ML | Custom NeuralNet.ts (zero dependencies) |
+| SQL | AlaSQL (in-memory) |
+| Real-Time | Binance WebSocket |
+| Backend | FastAPI, Celery, Uvicorn |
+| Database | TimescaleDB (PostgreSQL + time-series) |
+| Cache | Redis 7 |
+| Desktop | Electron 35 |
+| Deploy | Docker Compose, Nginx, Vercel (frontend) |
 
 ---
 
-<p align="center">
-  Built with React 19 &bull; TypeScript &bull; Vite 7<br/>
-  <sub>45 panels &bull; 17 data sources &bull; 4 ML models &bull; 0 required API keys</sub>
-</p>
+## Deployment
+
+### Vercel (Frontend Only)
+
+```bash
+npm run build
+# Connect to Vercel for auto-deploy
+```
+
+### Docker Compose (Full Stack)
+
+```bash
+docker compose up --build
+# Launches: TimescaleDB, Redis, FastAPI, Celery, Nginx
+```
+
+### Electron (Desktop)
+
+```bash
+npm run electron:build  # Produces macOS .dmg
+```
+
+---
+
+## Configuration
+
+Frontend works out of the box. For the full backend:
+
+| Variable | Required | Description |
+|----------|:--------:|-------------|
+| `DATABASE_URL` | Backend | TimescaleDB connection string |
+| `REDIS_URL` | Backend | Redis connection string |
+| `VITE_CLERK_PUBLISHABLE_KEY` | No | Optional Clerk auth |
+| `FRED_API_KEY` | No | US Treasury yields |
+| `ALPHA_VANTAGE_API_KEY` | No | Stock data |
+| `FINNHUB_API_KEY` | No | Financial news |
+
+---
+
+## Roadmap
+
+- [ ] Options chain panel with Greeks visualization
+- [ ] AI-powered natural language market queries
+- [ ] Multi-user workspaces with real-time collaboration
+- [ ] Mobile-responsive layout for tablet trading
+- [ ] Plugin system for custom panels and data sources
+
+---
+
+## Contributing
+
+PRs welcome for bug fixes and new panels. Each panel is a self-contained lazy-loaded component in `src/components/panels/`.
+
+To add a new panel:
+1. Create `PanelYourFeature.tsx` in `src/components/panels/`
+2. Add lazy import in `App.tsx`
+3. Register in workspace constants
+
+---
+
+## License
+
+**Business Source License 1.1** — Free for personal and non-commercial use. Commercial use requires a license. Converts to Apache 2.0 on 2030-03-06.

@@ -77,6 +77,26 @@ services:
     depends_on:
       - api
 
+  # ── ReadyState Integration ─────────────────────────────
+  # Personal resilience dashboard — shares infrastructure
+  # Requires ReadyState repo alongside DragonScope:
+  #   ../ReadyState  (or set READYSTATE_DIR env var)
+  readystate:
+    build:
+      context: ${READYSTATE_DIR:-../ReadyState}
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - READYSTATE_DATABASE_URL=postgresql+asyncpg://dragonscope:dragonscope@postgres:5432/readystate
+      - READYSTATE_CORS_ORIGINS=http://localhost:5173,http://localhost:80
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:

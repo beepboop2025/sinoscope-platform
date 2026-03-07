@@ -166,4 +166,5 @@ export const PANEL_REGISTRY: Record<string, PanelRegistryEntry> = {
   indianMarket: { title: 'Indian Market', icon: 'IndianRupee' },
   systemHealth: { title: 'System Health', icon: 'Activity' },
   settings: { title: 'Settings', icon: 'Settings' },
+  readiness: { title: 'Readiness', icon: 'Shield' },
 };

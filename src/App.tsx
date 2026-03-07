@@ -60,6 +60,7 @@ const PanelOrderBook = lazy(() => import('./components/panels/PanelOrderBook'));
 const PanelIndianMarket = lazy(() => import('./components/panels/PanelIndianMarket'));
 const PanelSystemHealth = lazy(() => import('./components/panels/PanelSystemHealth'));
 const PanelSettings = lazy(() => import('./components/panels/PanelSettings'));
+const PanelReadiness = lazy(() => import('./components/panels/PanelReadiness'));
 
 // Engine & hooks
 import { createMarketEngine } from './engine/MarketEngine';
@@ -411,6 +412,8 @@ function App(): ReactElement {
         return <PanelSystemHealth />;
       case 'settings':
         return <PanelSettings />;
+      case 'readiness':
+        return <PanelReadiness data={marketData} />;
       default:
         return <div style={{ padding: 16, color: 'var(--text-3)', fontSize: 12 }}>Unknown panel: {panelId}</div>;
     }

@@ -49,5 +49,6 @@ export const COMMANDS: readonly CommandEntry[] = [
   { id: 'add_indianMarket', label: 'Add Indian Market', desc: 'Add Nifty/Sensex/INR panel', action: 'addPanel', target: 'indianMarket' },
   { id: 'add_systemHealth', label: 'Add System Health', desc: 'Add system health dashboard', action: 'addPanel', target: 'systemHealth' },
   { id: 'add_settings', label: 'Add Settings', desc: 'Add settings panel', action: 'addPanel', target: 'settings' },
+  { id: 'add_readiness', label: 'Add Readiness Panel', desc: 'Personal readiness assessment with market threat analysis', action: 'addPanel', target: 'readiness' },
   { id: 'export', label: 'Export Data', desc: 'Export current data as JSON', action: 'export' },
 ] as const;
