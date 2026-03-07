@@ -321,6 +321,15 @@ export class MLEngine {
     this.train();
   }
 
+  // Destroy engine and release resources
+  destroy(): void {
+    this.listeners.clear();
+    this.trackedSymbols.clear();
+    this.buffer.clear();
+    this.predictions = {};
+    this.latestMarketData = null;
+  }
+
   // Reset all models
   reset(): void {
     this.buffer.clear();

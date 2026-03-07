@@ -414,7 +414,7 @@ function App(): ReactElement {
       default:
         return <div style={{ padding: 16, color: 'var(--text-3)', fontSize: 12 }}>Unknown panel: {panelId}</div>;
     }
-  }, [marketData, corrMatrix, corrPairs, networkPairs, networkSymbols, events, alerts, patternEngine.events, technicals.signals]);
+  }, [marketData, corrMatrix, corrPairs, corrWindow, setCorrWindow, networkPairs, networkSymbols, events, alerts, patternEngine.events, technicals.signals, mlEngine]);
 
   const layout = activeWorkspace?.layout || [];
   const panels = activeWorkspace?.panels || [];

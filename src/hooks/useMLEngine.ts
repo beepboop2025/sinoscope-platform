@@ -34,25 +34,39 @@ interface UseMLEngineReturn extends MLEngineState {
   isReady: boolean;
 }
 
-// Singleton ML engine instance
+// Singleton ML engine instance — shared across all hook consumers
 let engineInstance: MLEngine | null = null;
+let refCount = 0;
 
 function getEngine(): MLEngine {
   if (!engineInstance) {
     engineInstance = new MLEngine();
   }
+  refCount++;
   return engineInstance;
+}
+
+function releaseEngine(): void {
+  refCount--;
+  if (refCount <= 0 && engineInstance) {
+    engineInstance.destroy();
+    engineInstance = null;
+    refCount = 0;
+  }
 }
 
 export function useMLEngine(marketData: MarketSnapshot | null): UseMLEngineReturn {
   const engineRef = useRef<MLEngine>(getEngine());
   const [state, setState] = useState<MLEngineState>(() => engineRef.current.getState());
 
-  // Subscribe to engine updates
+  // Subscribe to engine updates and release on unmount
   useEffect(() => {
     const engine = engineRef.current;
     const unsub = engine.subscribe(setState);
-    return unsub;
+    return () => {
+      unsub();
+      releaseEngine();
+    };
   }, []);
 
   // Feed market data to engine

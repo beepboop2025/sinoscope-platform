@@ -41,6 +41,12 @@ export function useBackendWS(engine: MarketEngineInstance | null): void {
     function connect() {
       if (intentionalClose.current) return;
 
+      // Close any existing connection before creating a new one
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch { /* ignore */ }
+        wsRef.current = null;
+      }
+
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const url = `${protocol}//${window.location.host}/ws/market-data`;
 

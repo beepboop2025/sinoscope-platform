@@ -64,6 +64,10 @@ interface MarketEngineInstance {
   fetchIndices(): Promise<void>;
 }
 
+const MAX_LISTENERS = 100;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 3000;
+
 export function createMarketEngine(): MarketEngineInstance {
   const state: MarketState = {
     forex: {},
@@ -89,18 +93,41 @@ export function createMarketEngine(): MarketEngineInstance {
   }
 
   function notify(): void {
+    const snapshot = getSnapshot();
     for (const fn of state.listeners) {
-      try { fn(getSnapshot()); } catch (e) { console.warn('[MarketEngine] listener error', e); }
+      try { fn(snapshot); } catch (e) { console.warn('[MarketEngine] listener error', e); }
     }
   }
 
   function subscribe(fn: (snapshot: MarketEngineSnapshot) => void): () => void {
+    if (state.listeners.size >= MAX_LISTENERS) {
+      console.warn(`[MarketEngine] Max listener limit (${MAX_LISTENERS}) reached, rejecting subscribe`);
+      return () => {};
+    }
     state.listeners.add(fn);
     return () => state.listeners.delete(fn);
   }
 
+  /** Retry wrapper: retries a fetch function up to MAX_RETRIES times with delay */
+  async function withRetry(fn: () => Promise<void>, source: string): Promise<void> {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await fn();
+        return;
+      } catch (err: unknown) {
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        } else {
+          console.warn(`[MarketEngine] ${source} failed after ${MAX_RETRIES + 1} attempts`, err);
+          recordError(source, err as Error);
+          notify();
+        }
+      }
+    }
+  }
+
   async function fetchForex(): Promise<void> {
-    try {
+    await withRetry(async () => {
       const data = await fetchForexRates('USD');
       if (data?.rates) {
         for (const [currency, rate] of Object.entries(data.rates)) {
@@ -111,15 +138,11 @@ export function createMarketEngine(): MarketEngineInstance {
         clearError('forex');
         notify();
       }
-    } catch (err: unknown) {
-      console.warn('[MarketEngine] forex error', err);
-      recordError('forex', err as Error);
-      notify();
-    }
+    }, 'forex');
   }
 
   async function fetchStocks(): Promise<void> {
-    try {
+    await withRetry(async () => {
       const data = await fetchStockQuotes(['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA']);
       if (data) {
         for (const quote of data) {
@@ -130,15 +153,11 @@ export function createMarketEngine(): MarketEngineInstance {
         clearError('stocks');
         notify();
       }
-    } catch (err: unknown) {
-      console.warn('[MarketEngine] stocks error', err);
-      recordError('stocks', err as Error);
-      notify();
-    }
+    }, 'stocks');
   }
 
   async function fetchCrypto(): Promise<void> {
-    try {
+    await withRetry(async () => {
       const data = await fetchCryptoMarkets('usd', 10);
       if (data) {
         for (const coin of data) {
@@ -149,15 +168,11 @@ export function createMarketEngine(): MarketEngineInstance {
         clearError('crypto');
         notify();
       }
-    } catch (err: unknown) {
-      console.warn('[MarketEngine] crypto error', err);
-      recordError('crypto', err as Error);
-      notify();
-    }
+    }, 'crypto');
   }
 
   async function fetchBonds(): Promise<void> {
-    try {
+    await withRetry(async () => {
       const data = await fetchYieldCurve();
       if (data) {
         state.bonds = data;
@@ -166,15 +181,11 @@ export function createMarketEngine(): MarketEngineInstance {
         clearError('bonds');
         notify();
       }
-    } catch (err: unknown) {
-      console.warn('[MarketEngine] bonds error', err);
-      recordError('bonds', err as Error);
-      notify();
-    }
+    }, 'bonds');
   }
 
   async function fetchCommodities(): Promise<void> {
-    try {
+    await withRetry(async () => {
       const data = await fetchAllCommodities();
       if (data) {
         state.commodities = data as Record<string, unknown>;
@@ -183,15 +194,11 @@ export function createMarketEngine(): MarketEngineInstance {
         clearError('commodities');
         notify();
       }
-    } catch (err: unknown) {
-      console.warn('[MarketEngine] commodities error', err);
-      recordError('commodities', err as Error);
-      notify();
-    }
+    }, 'commodities');
   }
 
   async function fetchEconomic(): Promise<void> {
-    try {
+    await withRetry(async () => {
       const data = await getCollectorData('economic');
       if (data) {
         state.economic = data as Record<string, unknown>;
@@ -200,15 +207,11 @@ export function createMarketEngine(): MarketEngineInstance {
         clearError('economic');
         notify();
       }
-    } catch (err: unknown) {
-      console.warn('[MarketEngine] economic error', err);
-      recordError('economic', err as Error);
-      notify();
-    }
+    }, 'economic');
   }
 
   async function fetchIndices(): Promise<void> {
-    try {
+    await withRetry(async () => {
       const data = await getCollectorData('indices');
       if (data && Array.isArray(data)) {
         const indices: Record<string, { symbol: string; name: string; price: number; changePct: number }> = {};
@@ -226,11 +229,7 @@ export function createMarketEngine(): MarketEngineInstance {
         clearError('indices');
         notify();
       }
-    } catch (err: unknown) {
-      console.warn('[MarketEngine] indices error', err);
-      recordError('indices', err as Error);
-      notify();
-    }
+    }, 'indices');
   }
 
   function updateFromWS(tick: WSTick): void {
@@ -370,6 +369,7 @@ export function createMarketEngine(): MarketEngineInstance {
   function stop(): void {
     for (const id of state.intervals) clearInterval(id);
     state.intervals = [];
+    state.listeners.clear();
   }
 
   return { start, stop, subscribe, getSnapshot, updateFromWS, updateCategory, fetchForex, fetchStocks, fetchCrypto, fetchBonds, fetchCommodities, fetchEconomic, fetchIndices };

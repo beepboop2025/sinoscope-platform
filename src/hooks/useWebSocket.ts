@@ -25,6 +25,7 @@ export function useWebSocket(engine: MarketEngineInstance | null, { useMock = fa
   const tickBuffer = useRef<Record<string, WSTick>>({});
   const flushTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const fellBackToMock = useRef(false);
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flushTicks = useCallback((): void => {
     if (!engine) return;
@@ -42,6 +43,7 @@ export function useWebSocket(engine: MarketEngineInstance | null, { useMock = fa
       tickBuffer.current[tick.symbol] = tick;
     };
 
+    // Start flush timer for both mock and real modes
     flushTimer.current = setInterval(flushTicks, 1000);
     fellBackToMock.current = false;
 
@@ -52,7 +54,7 @@ export function useWebSocket(engine: MarketEngineInstance | null, { useMock = fa
       subscribeBinanceTickers(pairs, onTick);
 
       // Auto-fallback: if no real ticks arrive within 3s, switch to mock
-      const fallbackTimer = setTimeout(() => {
+      fallbackTimerRef.current = setTimeout(() => {
         if (Object.keys(tickBuffer.current).length === 0 && !fellBackToMock.current) {
           console.info('[WS] No ticks received in 3s, falling back to mock stream');
           fellBackToMock.current = true;
@@ -60,22 +62,26 @@ export function useWebSocket(engine: MarketEngineInstance | null, { useMock = fa
           startMockStream(onTick);
         }
       }, 3000);
-
-      return () => {
-        clearTimeout(fallbackTimer);
-        clearInterval(flushTimer.current!);
-        if (fellBackToMock.current) {
-          stopMockStream();
-        } else {
-          unsubscribeBinance();
-        }
-      };
     }
 
+    // Unified cleanup for both mock and real modes
     return () => {
-      clearInterval(flushTimer.current!);
-      if (useMock) {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+      if (flushTimer.current) {
+        clearInterval(flushTimer.current);
+        flushTimer.current = null;
+      }
+
+      if (useMock || fellBackToMock.current) {
         stopMockStream();
+      }
+      if (!useMock) {
+        // Always unsubscribe Binance when we started in real mode,
+        // even if we fell back to mock (idempotent call)
+        unsubscribeBinance();
       }
     };
   }, [engine, useMock, flushTicks]);

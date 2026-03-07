@@ -72,12 +72,31 @@ interface TimelineEngineInstance {
   clear(): void;
 }
 
+const MAX_EVENTS = 5000;
+const MAX_PRICE_CAPTURES = 10000;
+const PRICE_DATA_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 /**
  * Create TimelineEngine instance
  */
 export function createTimelineEngine(): TimelineEngineInstance {
   const events: TimelineEvent[] = [];
   const priceData = new Map<string, PriceCapture>();
+
+  /** Prune old events and price data when limits are exceeded */
+  function pruneIfNeeded(): void {
+    if (events.length > MAX_EVENTS) {
+      events.splice(0, events.length - MAX_EVENTS);
+    }
+    if (priceData.size > MAX_PRICE_CAPTURES) {
+      const cutoff = Date.now() - PRICE_DATA_TTL_MS;
+      for (const [key, capture] of priceData) {
+        if (capture.capturedAt < cutoff) {
+          priceData.delete(key);
+        }
+      }
+    }
+  }
 
   /**
    * Add event to timeline
@@ -87,6 +106,7 @@ export function createTimelineEngine(): TimelineEngineInstance {
       ...event,
       addedAt: Date.now(),
     });
+    pruneIfNeeded();
   }
 
   /**

@@ -49,6 +49,7 @@ export default function CommandBar({
   onClose,
 }: CommandBarProps): React.JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -58,6 +59,17 @@ export default function CommandBar({
       return () => cancelAnimationFrame(raf);
     }
   }, [isOpen]);
+
+  // Auto-scroll the active item into view during keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
+    const container = listRef.current;
+    if (!container) return;
+    const selected = container.querySelector('[data-selected="true"]');
+    if (selected) {
+      selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [activeIndex, isOpen]);
 
   // Group items by action type
   const groups = useMemo(() => {
@@ -156,7 +168,7 @@ export default function CommandBar({
                 />
               </div>
 
-              <Command.List>
+              <Command.List ref={listRef}>
                 <Command.Empty>No matching commands or symbols</Command.Empty>
 
                 {/* Market data results appear first when searching */}
