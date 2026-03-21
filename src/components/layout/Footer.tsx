@@ -1,7 +1,8 @@
-import { memo, useState, type ReactElement } from 'react';
-import { HelpCircle, Monitor, Database, Wifi, WifiOff, ChevronUp } from 'lucide-react';
+import { memo, useState, useEffect, type ReactElement } from 'react';
+import { HelpCircle, Monitor, Database, Wifi, WifiOff, ChevronUp, AlertCircle } from 'lucide-react';
 import { getTokens } from '../../services/RateLimiter';
 import { cacheStats } from '../../services/CacheManager';
+import { getRecentErrorCount, onErrorCountChange } from '../../utils/errorReporter';
 
 function computeFreshness(lastUpdate: number | null | undefined): string {
   if (!lastUpdate) return 'N/A';
@@ -15,10 +16,18 @@ interface FooterProps {
   onShowShortcuts?: () => void;
 }
 
+const IS_DEV = import.meta.env.DEV;
+
 const Footer = memo<FooterProps>(({ lastUpdate, wsStatus, panelCount = 0, onShowShortcuts }): ReactElement => {
   const stats = cacheStats();
   const freshness = computeFreshness(lastUpdate);
   const [showApiDetail, setShowApiDetail] = useState(false);
+  const [errorCount, setErrorCount] = useState(() => getRecentErrorCount());
+
+  useEffect(() => {
+    if (!IS_DEV) return;
+    return onErrorCountChange(setErrorCount);
+  }, []);
 
   const frankfurterTokens = getTokens('frankfurter');
   const coingeckoTokens = getTokens('coingecko');
@@ -66,6 +75,8 @@ const Footer = memo<FooterProps>(({ lastUpdate, wsStatus, panelCount = 0, onShow
             display: 'flex', alignItems: 'center', gap: 3, padding: 0, fontSize: 'inherit', fontFamily: 'inherit',
           }}
           title="API rate limit tokens (click for details)"
+          aria-label="Toggle API rate limit details"
+          aria-expanded={showApiDetail}
         >
           API
           <ChevronUp size={8} style={{ transform: showApiDetail ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
@@ -103,6 +114,20 @@ const Footer = memo<FooterProps>(({ lastUpdate, wsStatus, panelCount = 0, onShow
         )}
       </span>
 
+      {/* Dev-mode error counter */}
+      {IS_DEV && errorCount > 0 && (
+        <>
+          <span style={{ color: 'var(--border-3)' }}>|</span>
+          <span
+            style={{ display: 'flex', alignItems: 'center', gap: 3, color: errorCount >= 5 ? 'var(--red)' : 'var(--amber)' }}
+            title={`${errorCount} error${errorCount !== 1 ? 's' : ''} in the last 5 minutes`}
+          >
+            <AlertCircle size={10} aria-hidden="true" />
+            {errorCount} err{errorCount !== 1 ? 's' : ''}/5min
+          </span>
+        </>
+      )}
+
       {/* Right section */}
       <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
         {onShowShortcuts && (
@@ -113,8 +138,9 @@ const Footer = memo<FooterProps>(({ lastUpdate, wsStatus, panelCount = 0, onShow
               display: 'flex', alignItems: 'center', gap: 3, padding: 0, fontSize: 'inherit', fontFamily: 'inherit',
             }}
             title="Keyboard shortcuts (Ctrl+?)"
+            aria-label="Show keyboard shortcuts"
           >
-            <HelpCircle size={11} />
+            <HelpCircle size={11} aria-hidden="true" />
             <span>Help</span>
           </button>
         )}

@@ -82,7 +82,9 @@ export function useAlertConfig(): UseAlertConfigReturn {
   const removeConfig = useCallback(async (id: string): Promise<void> => {
     try {
       await api.deleteAlert(id);
-    } catch { /* local-only fallback */ }
+    } catch (err) {
+      console.warn('[useAlertConfig] deleteAlert API failed, using local fallback:', err);
+    }
     setConfigs(prev => prev.filter(c => c.id !== id));
   }, []);
 
@@ -92,7 +94,9 @@ export function useAlertConfig(): UseAlertConfigReturn {
     const newActive = !config.isActive;
     try {
       await api.updateAlert(id, { isActive: newActive });
-    } catch { /* local-only fallback */ }
+    } catch (err) {
+      console.warn('[useAlertConfig] toggleAlert API failed, using local fallback:', err);
+    }
     setConfigs(prev => prev.map(c => c.id === id ? { ...c, isActive: newActive } : c));
   }, [configs]);
 

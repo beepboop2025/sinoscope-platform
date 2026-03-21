@@ -4,6 +4,11 @@ These endpoints serve data that the Celery collector does NOT pre-fetch:
 individual stock profiles, coin details, historical prices, candles, etc.
 Each endpoint checks Redis cache first, fetches from the external API on
 cache miss using server-side API keys, caches the result, and returns JSON.
+
+Cache-Control policy:
+- Real-time data (quotes, candles): no-cache (revalidate every request)
+- Semi-static data (profiles, coin details): max-age=300 (5 min)
+- Static reference data (earnings calendar, world bank): max-age=3600 (1 hour)
 """
 
 import logging
@@ -12,6 +17,7 @@ from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.services.cache import get_cached_json, set_cached_json
@@ -21,6 +27,26 @@ router = APIRouter(prefix="/proxy")
 settings = get_settings()
 
 FETCH_TIMEOUT = 15.0
+
+
+def _cached_response(data: dict | list, max_age: int = 0) -> JSONResponse:
+    """Return a JSON response with appropriate Cache-Control headers.
+
+    Args:
+        data: The response payload.
+        max_age: Cache duration in seconds.
+            0 = no-cache (real-time data)
+            300 = 5 minutes (semi-static: profiles, details)
+            3600 = 1 hour (static reference: earnings, world bank)
+    """
+    if max_age <= 0:
+        cache_control = "no-cache, no-store, must-revalidate"
+    else:
+        cache_control = f"public, max-age={max_age}, stale-while-revalidate={max_age // 2}"
+    return JSONResponse(
+        content=data,
+        headers={"Cache-Control": cache_control},
+    )
 
 
 async def _fetch_json(url: str, headers: dict | None = None) -> dict | list | None:
@@ -51,7 +77,7 @@ async def get_stock_profile(symbol: str):
     cache_key = f"proxy:stock_profile:{symbol}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=300)
 
     key = settings.FMP_API_KEY
     if not key:
@@ -63,7 +89,7 @@ async def get_stock_profile(symbol: str):
 
     result = data[0] if isinstance(data, list) and data else data
     await set_cached_json(cache_key, result, ttl=300)  # 5 min
-    return result
+    return _cached_response(result, max_age=300)  # semi-static
 
 
 # ── Coin Detail (CoinGecko) ───────────────────────────────────────────────
@@ -77,7 +103,7 @@ async def get_coin_detail(coin_id: str):
     cache_key = f"proxy:coin_detail:{coin_id}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=300)
 
     data = await _fetch_json(f"https://api.coingecko.com/api/v3/coins/{coin_id}")
     if not data:
@@ -101,7 +127,7 @@ async def get_coin_detail(coin_id: str):
         },
     }
     await set_cached_json(cache_key, result, ttl=120)  # 2 min
-    return result
+    return _cached_response(result, max_age=300)  # semi-static
 
 
 # ── Historical Prices (FMP) ───────────────────────────────────────────────
@@ -112,7 +138,7 @@ async def get_historical_prices(symbol: str):
     cache_key = f"proxy:historical:{symbol}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=300)
 
     key = settings.FMP_API_KEY
     if not key:
@@ -125,7 +151,7 @@ async def get_historical_prices(symbol: str):
     historical = data.get("historical", [])
     result = [{"date": d["date"], "open": d["open"], "high": d["high"], "low": d["low"], "close": d["close"], "volume": d["volume"]} for d in historical[:365]]
     await set_cached_json(cache_key, result, ttl=300)  # 5 min
-    return result
+    return _cached_response(result, max_age=300)
 
 
 # ── Candles (Finnhub) ─────────────────────────────────────────────────────
@@ -141,7 +167,7 @@ async def get_candles(
     cache_key = f"proxy:candles:{symbol}:{resolution}:{from_ts}:{to_ts}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=0)  # real-time
 
     key = settings.FINNHUB_API_KEY
     if not key:
@@ -158,7 +184,7 @@ async def get_candles(
         for i in range(len(data["t"]))
     ]
     await set_cached_json(cache_key, result, ttl=60)  # 1 min
-    return result
+    return _cached_response(result, max_age=0)  # real-time
 
 
 # ── Market Movers (FMP) ───────────────────────────────────────────────────
@@ -171,7 +197,7 @@ async def get_market_movers(mover_type: str):
     cache_key = f"proxy:movers:{mover_type}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=300)
 
     key = settings.FMP_API_KEY
     if not key:
@@ -182,7 +208,7 @@ async def get_market_movers(mover_type: str):
         raise HTTPException(status_code=502, detail="Upstream API error")
 
     await set_cached_json(cache_key, data, ttl=120)  # 2 min
-    return data
+    return _cached_response(data, max_age=300)
 
 
 # ── Earnings Calendar (Finnhub) ───────────────────────────────────────────
@@ -198,7 +224,7 @@ async def get_earnings(
     cache_key = f"proxy:earnings:{from_date}:{to_date}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=3600)
 
     key = settings.FINNHUB_API_KEY
     if not key:
@@ -210,7 +236,7 @@ async def get_earnings(
 
     result = data.get("earningsCalendar", [])
     await set_cached_json(cache_key, result, ttl=3600)  # 1 hour
-    return result
+    return _cached_response(result, max_age=3600)  # static reference
 
 
 # ── Treasury Yield (FRED) ─────────────────────────────────────────────────
@@ -229,7 +255,7 @@ async def get_yield(maturity: str):
     cache_key = f"proxy:yield:{maturity}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=300)
 
     key = settings.FRED_API_KEY
     if not key:
@@ -243,7 +269,7 @@ async def get_yield(maturity: str):
 
     result = data.get("observations", [])
     await set_cached_json(cache_key, result, ttl=600)  # 10 min
-    return result
+    return _cached_response(result, max_age=300)
 
 
 # ── Commodity (FRED) ──────────────────────────────────────────────────────
@@ -261,7 +287,7 @@ async def get_commodity(name: str):
     cache_key = f"proxy:commodity:{name}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=300)
 
     key = settings.FRED_API_KEY
     if not key:
@@ -275,7 +301,7 @@ async def get_commodity(name: str):
 
     result = data.get("observations", [])
     await set_cached_json(cache_key, result, ttl=600)  # 10 min
-    return result
+    return _cached_response(result, max_age=300)
 
 
 # ── Economic Indicator (FRED) ─────────────────────────────────────────────
@@ -295,7 +321,7 @@ async def get_econ_indicator(indicator: str):
     cache_key = f"proxy:econ:{indicator}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=300)
 
     key = settings.FRED_API_KEY
     if not key:
@@ -309,7 +335,7 @@ async def get_econ_indicator(indicator: str):
 
     result = data.get("observations", [])
     await set_cached_json(cache_key, result, ttl=600)  # 10 min
-    return result
+    return _cached_response(result, max_age=300)
 
 
 # ── World Bank Indicator ──────────────────────────────────────────────────
@@ -324,7 +350,7 @@ async def get_worldbank(country: str, indicator: str):
     cache_key = f"proxy:worldbank:{country}:{indicator}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=3600)
 
     data = await _fetch_json(
         f"https://api.worldbank.org/v2/country/{country}/indicator/{indicator}?format=json&per_page=50"
@@ -334,7 +360,7 @@ async def get_worldbank(country: str, indicator: str):
 
     result = data[1] if len(data) > 1 else data
     await set_cached_json(cache_key, result, ttl=21600)  # 6 hours
-    return result
+    return _cached_response(result, max_age=3600)  # static reference
 
 
 # ── Finnhub Quote (single stock) ──────────────────────────────────────────
@@ -345,7 +371,7 @@ async def get_finnhub_quote(symbol: str):
     cache_key = f"proxy:finnhub_quote:{symbol}"
     cached = await get_cached_json(cache_key)
     if cached:
-        return cached
+        return _cached_response(cached, max_age=0)  # real-time
 
     key = settings.FINNHUB_API_KEY
     if not key:
@@ -366,4 +392,4 @@ async def get_finnhub_quote(symbol: str):
         "prevClose": data.get("pc", 0),
     }
     await set_cached_json(cache_key, result, ttl=15)  # 15 sec
-    return result
+    return _cached_response(result, max_age=0)  # real-time

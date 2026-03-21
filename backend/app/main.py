@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import traceback
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -72,7 +73,9 @@ app = FastAPI(
     default_response_class=CamelCaseResponse,
 )
 
-# ── Prometheus metrics ───────────────────────────────────────────────────────
+# ── Prometheus metrics (optional but recommended) ────────────────────────────
+# Install with: pip install prometheus-fastapi-instrumentator
+# When installed, exposes /metrics endpoint for Prometheus scraping.
 try:
     from prometheus_fastapi_instrumentator import Instrumentator
     Instrumentator(
@@ -80,8 +83,12 @@ try:
         should_ignore_untemplated=True,
         excluded_handlers=["/metrics", "/docs", "/redoc", "/openapi.json"],
     ).instrument(app).expose(app, endpoint="/metrics")
+    logger.info("Prometheus metrics enabled at /metrics")
 except ImportError:
-    logger.warning("prometheus-fastapi-instrumentator not installed — /metrics disabled")
+    logger.warning(
+        "prometheus-fastapi-instrumentator not installed — /metrics endpoint disabled. "
+        "Install it with: pip install prometheus-fastapi-instrumentator"
+    )
 
 
 # ── Middleware (order matters — outermost first) ─────────────────────────────
@@ -137,8 +144,13 @@ app.include_router(user_analytics.router, prefix="/api", tags=["analytics"])
 # ── Global error handler ────────────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"[API Error] {request.method} {request.url.path}: {exc}")
+    # Always log the full stack trace server-side for diagnosis
+    logger.error(
+        f"[API Error] {request.method} {request.url.path}: {exc}\n"
+        f"{traceback.format_exc()}"
+    )
+    # Never leak stack traces to clients, even in DEBUG mode
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal server error" if not settings.DEBUG else str(exc)},
+        content={"error": "Internal server error"},
     )

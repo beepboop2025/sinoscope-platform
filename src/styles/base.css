@@ -67,6 +67,9 @@ body {
   .status-dot.error { animation: none; opacity: 1; }
   .flash-green, .flash-red { animation: none; }
   .react-grid-item { transition: none; }
+  .panel-body > * { animation: none; }
+  .card:hover { transform: none; }
+  .skeleton-row { animation: none; background: var(--bg-3); }
 }
 
 /* ── Touch-friendly base adjustments ── */

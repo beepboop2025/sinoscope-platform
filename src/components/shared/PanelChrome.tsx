@@ -84,7 +84,7 @@ const PanelChrome = memo(({
   const dotColor = freshnessColor(lastUpdated);
 
   const content = (
-    <div className={`panel ${className}`} role="region" aria-label={title}>
+    <div className={`panel ${className}`} role="region" aria-label={title} aria-live={lastUpdated ? 'polite' : undefined}>
       <div className="panel-titlebar">
         {Icon && <Icon size={12} color={iconColor} aria-hidden="true" />}
         <span className="panel-title">{title}</span>

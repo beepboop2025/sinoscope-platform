@@ -209,6 +209,7 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
           <select
             value={symbol}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => setSymbol(e.target.value)}
+            aria-label="Select cryptocurrency symbol"
             style={{ background: 'var(--surface-2)', border: '1px solid var(--border-1)', borderRadius: 4, color: 'var(--text-1)', fontSize: 10, padding: '2px 4px', fontFamily: 'var(--font-mono)' }}
           >
             {SYMBOLS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -221,8 +222,8 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
             </button>
           ))}
 
-          <button className="btn-ghost" onClick={loadData} style={{ fontSize: 9, padding: '1px 4px', marginLeft: 'auto' }}>
-            <RefreshCw size={10} />
+          <button className="btn-ghost" onClick={loadData} aria-label="Refresh chart data" style={{ fontSize: 9, padding: '1px 4px', marginLeft: 'auto' }}>
+            <RefreshCw size={10} aria-hidden="true" />
           </button>
         </div>
 
@@ -240,7 +241,7 @@ const PanelChart = memo(({ symbol: initialSymbol = 'BTC', data: externalData }: 
           </div>
         )}
 
-        <div ref={chartContainerRef} style={{ flex: 1, minHeight: 120 }}>
+        <div ref={chartContainerRef} role="img" aria-label={`${symbol} price chart for the last ${range.label}`} style={{ flex: 1, minHeight: 120 }}>
           {error && chartData.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: 'var(--text-3)' }}>
               <AlertTriangle size={20} color="var(--amber)" />

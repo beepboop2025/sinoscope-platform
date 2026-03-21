@@ -92,6 +92,8 @@ export interface ApiFetchOptions {
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
+  /** Request timeout in milliseconds (default: 10000) */
+  timeoutMs?: number;
 }
 
 export interface ApiClient {

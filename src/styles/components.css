@@ -5,11 +5,15 @@
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-xl);
   padding: 18px;
-  transition: all var(--duration-normal);
+  transition: all var(--duration-normal) var(--ease-out);
   position: relative;
   overflow: hidden;
 }
-.card:hover { border-color: var(--border-2); box-shadow: var(--shadow-sm); }
+.card:hover {
+  border-color: var(--border-2);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
 .card::before {
   content: '';
   position: absolute;
@@ -153,6 +157,30 @@
   top: 10px;
   border-left: 1px solid var(--border-1);
   border-bottom: 1px solid var(--border-1);
+}
+
+/* Skeleton row variant for data panels */
+.skeleton-row {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    110deg,
+    var(--surface-1) 0%,
+    var(--surface-1) 40%,
+    var(--surface-3) 50%,
+    var(--surface-1) 60%,
+    var(--surface-1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.5s ease-in-out infinite;
+}
+.skeleton-row:nth-child(2) { width: 80%; }
+.skeleton-row:nth-child(3) { width: 60%; }
+
+/* Fade-in for panel body content */
+.panel-body > * {
+  animation: fade-in var(--duration-normal) var(--ease-out) both;
 }
 
 .toast-container {

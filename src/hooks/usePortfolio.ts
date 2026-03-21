@@ -114,7 +114,9 @@ export function usePortfolio(): UsePortfolioReturn {
   const deletePortfolio = useCallback(async (id: string): Promise<void> => {
     try {
       await api.deletePortfolio(id);
-    } catch { /* local-only fallback */ }
+    } catch (err) {
+      console.warn('[usePortfolio] deletePortfolio API failed, using local fallback:', err);
+    }
     setPortfolios(prev => prev.filter(p => p.id !== id));
     setActiveId(prev => prev === id ? null : prev);
   }, []);
@@ -160,7 +162,9 @@ export function usePortfolio(): UsePortfolioReturn {
   const removeHolding = useCallback(async (portfolioId: string, holdingId: string): Promise<void> => {
     try {
       await api.removeHolding(portfolioId, holdingId);
-    } catch { /* local-only fallback */ }
+    } catch (err) {
+      console.warn('[usePortfolio] removeHolding API failed, using local fallback:', err);
+    }
     setPortfolios(prev => prev.map(p => {
       if (p.id !== portfolioId) return p;
       return { ...p, holdings: p.holdings.filter(h => h.id !== holdingId) };

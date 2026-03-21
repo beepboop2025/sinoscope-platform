@@ -55,14 +55,24 @@ class AuthUser:
     email: str
 
 
+_auth_bypass_warned = False
+
 async def require_auth(
     request: Request,
     session: AsyncSession = Depends(get_db),
 ) -> AuthUser:
-    """Verify Clerk JWT and resolve user. Dev mode if no CLERK_SECRET_KEY and DEBUG=true."""
-    # Dev mode — only when DEBUG is explicitly enabled AND no CLERK_SECRET_KEY
+    """Verify Clerk JWT and resolve user. Auth bypass requires DISABLE_AUTH=true (not just DEBUG)."""
+    global _auth_bypass_warned
+    # Auth bypass — requires explicit DISABLE_AUTH=true env var, not just DEBUG
     if not settings.CLERK_SECRET_KEY:
-        if settings.DEBUG:
+        if settings.DISABLE_AUTH:
+            if not _auth_bypass_warned:
+                logger.warning(
+                    "!!! AUTH BYPASS ACTIVE !!! "
+                    "DISABLE_AUTH=true is set — all requests use dev-user. "
+                    "DO NOT use this in production!"
+                )
+                _auth_bypass_warned = True
             user = await _resolve_user(session, "dev-user", "dev@localhost")
             return AuthUser(user_id=user.id, clerk_id="dev-user", email="dev@localhost")
         raise HTTPException(status_code=401, detail="Authentication not configured")
@@ -119,7 +129,7 @@ async def optional_auth(
 ) -> AuthUser | None:
     """Optional auth — returns None if no valid token."""
     if not settings.CLERK_SECRET_KEY:
-        if settings.DEBUG:
+        if settings.DISABLE_AUTH:
             user = await _resolve_user(session, "dev-user", "dev@localhost")
             return AuthUser(user_id=user.id, clerk_id="dev-user", email="dev@localhost")
         return None

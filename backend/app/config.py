@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 200
 
+    # Auth bypass — requires explicit opt-in, not just DEBUG=true
+    DISABLE_AUTH: bool = False
+
     # Collector
     DATA_DIR: str = ""  # Fallback JSON data dir (server/data)
 

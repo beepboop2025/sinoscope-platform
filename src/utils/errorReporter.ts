@@ -1,6 +1,7 @@
 /**
  * Lightweight error reporter for production.
  * Batches errors and sends them to a server endpoint.
+ * In dev mode, tracks error counts for the UI footer counter.
  */
 
 interface ErrorReport {
@@ -10,14 +11,22 @@ interface ErrorReport {
   timestamp: number;
   url: string;
   userAgent: string;
+  sessionDuration: number;
+  viewportSize: string;
 }
 
 const ERROR_ENDPOINT = '/api/errors';
 const BATCH_INTERVAL = 5000;
 const MAX_BATCH_SIZE = 10;
+const ERROR_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 let errorQueue: ErrorReport[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
+const sessionStart = Date.now();
+
+/** Recent error timestamps for the dev-mode counter (last 5 minutes) */
+let recentErrorTimestamps: number[] = [];
+let errorCountListeners: Array<(count: number) => void> = [];
 
 function createReport(error: Error | string, component?: string): ErrorReport {
   const err = typeof error === 'string' ? new Error(error) : error;
@@ -28,6 +37,35 @@ function createReport(error: Error | string, component?: string): ErrorReport {
     timestamp: Date.now(),
     url: window.location.href,
     userAgent: navigator.userAgent,
+    sessionDuration: Math.round((Date.now() - sessionStart) / 1000),
+    viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+  };
+}
+
+function pruneOldErrors(): void {
+  const cutoff = Date.now() - ERROR_WINDOW_MS;
+  recentErrorTimestamps = recentErrorTimestamps.filter(ts => ts > cutoff);
+}
+
+function notifyCountListeners(): void {
+  pruneOldErrors();
+  const count = recentErrorTimestamps.length;
+  for (const fn of errorCountListeners) {
+    try { fn(count); } catch { /* ignore */ }
+  }
+}
+
+/** Get the number of errors in the last 5 minutes */
+export function getRecentErrorCount(): number {
+  pruneOldErrors();
+  return recentErrorTimestamps.length;
+}
+
+/** Subscribe to error count changes (for UI components) */
+export function onErrorCountChange(fn: (count: number) => void): () => void {
+  errorCountListeners.push(fn);
+  return () => {
+    errorCountListeners = errorCountListeners.filter(l => l !== fn);
   };
 }
 
@@ -65,6 +103,10 @@ function scheduleFlush(): void {
 }
 
 export function reportError(error: Error | string, component?: string): void {
+  // Always track for the dev-mode counter
+  recentErrorTimestamps.push(Date.now());
+  notifyCountListeners();
+
   if (import.meta.env.DEV) {
     console.error('[ErrorReporter]', error, component);
     return;

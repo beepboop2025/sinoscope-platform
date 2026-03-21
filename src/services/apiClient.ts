@@ -7,9 +7,10 @@ declare global {
 }
 
 const API_BASE: string = (import.meta.env.VITE_API_BASE_URL || '') + '/api';
+const DEFAULT_TIMEOUT_MS = 10_000;
 
 async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<unknown> {
-  const { method = 'GET', body, headers: extraHeaders = {} } = options;
+  const { method = 'GET', body, headers: extraHeaders = {}, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -21,20 +22,36 @@ async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<un
     try {
       const token: string | null = await window.__clerk_session.getToken();
       if (token) headers.Authorization = `Bearer ${token}`;
-    } catch { /* no auth */ }
+    } catch {
+      console.warn('[apiClient] Failed to get auth token');
+    }
   }
 
-  const res: Response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
+  // AbortController-based timeout for all requests
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (res.status === 204) return null;
+  try {
+    const res: Response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      signal: controller.signal,
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
 
-  const data: unknown = await res.json();
-  if (!res.ok) throw new Error((data as { error?: string }).error || `HTTP ${res.status}`);
-  return data;
+    if (res.status === 204) return null;
+
+    const data: unknown = await res.json();
+    if (!res.ok) throw new Error((data as { error?: string }).error || `HTTP ${res.status}`);
+    return data;
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`Request to ${path} timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export const api: ApiClient = {

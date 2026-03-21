@@ -19,13 +19,22 @@ function getTextColor(val: number): string {
 const PanelSectors = memo((): ReactElement => {
   const [sectors, setSectors] = useState<SectorData[]>([]);
   const [view, setView] = useState<string>('day');
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
       const real = await fetchSectorPerformance();
-      if (real && (real as SectorData[]).length > 0) { setSectors(real as SectorData[]); }
-    } catch { /* no data available */ }
-  }, []);
+      if (real && (real as SectorData[]).length > 0) {
+        setSectors(real as SectorData[]);
+        setError(null);
+      }
+    } catch (err) {
+      console.warn('[PanelSectors] Failed to load sector data:', err);
+      if (sectors.length === 0) {
+        setError('Failed to load sector data');
+      }
+    }
+  }, [sectors.length]);
 
   useEffect(() => { loadData(); const interval = setInterval(loadData, 120000); return () => clearInterval(interval); }, [loadData]);
 
@@ -43,6 +52,11 @@ const PanelSectors = memo((): ReactElement => {
             <button key={v} className={view === v ? 'btn-primary' : 'btn-ghost'} onClick={() => setView(v)} style={{ padding: '2px 8px', fontSize: 9, textTransform: 'capitalize' }}>{v}</button>
           ))}
         </div>
+        {error && sectors.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-3)', fontSize: 11 }}>
+            {error}
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, flex: 1, minHeight: 0, overflow: 'auto' }}>
           {sorted.map(s => {
             const val = getVal(s);

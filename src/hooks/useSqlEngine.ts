@@ -167,7 +167,9 @@ export function useSqlEngine(marketData: MarketData | null) {
             r.name, r.stars || 0, r.forks || 0, r.language || '', (String(r.description || '')).slice(0, 200), r.license || ''
           ]);
         }
-      } catch { /* use mock on failure */ }
+      } catch (err) {
+        console.warn('[useSqlEngine] GitHub repos fetch failed, using mock data:', err);
+      }
 
       // HuggingFace models
       try {
@@ -178,7 +180,9 @@ export function useSqlEngine(marketData: MarketData | null) {
             m.name, m.pipeline || '', m.downloads || 0, m.likes || 0, m.library || ''
           ]);
         }
-      } catch { /* use mock on failure */ }
+      } catch (err) {
+        console.warn('[useSqlEngine] HuggingFace models fetch failed, using mock data:', err);
+      }
 
       // DeFi protocols
       try {
@@ -189,7 +193,9 @@ export function useSqlEngine(marketData: MarketData | null) {
             p.name, p.symbol || '', p.tvl || 0, p.change1d || 0, p.category || ''
           ]);
         }
-      } catch { /* use mock on failure */ }
+      } catch (err) {
+        console.warn('[useSqlEngine] DeFi protocols fetch failed, using mock data:', err);
+      }
 
       // Reddit posts
       try {
@@ -200,7 +206,9 @@ export function useSqlEngine(marketData: MarketData | null) {
             (String(p.title || '')).slice(0, 200), p.subreddit || '', p.score || 0, p.numComments || 0, p.flair || ''
           ]);
         }
-      } catch { /* use mock on failure */ }
+      } catch (err) {
+        console.warn('[useSqlEngine] Reddit posts fetch failed, using mock data:', err);
+      }
     }
 
     loadResearchData().catch(err => {

@@ -152,8 +152,9 @@ export default function CommandBar({
                   onClose();
                 }
               }}
+              label="Command palette"
             >
-              <div className="cmdk-input-wrapper">
+              <div className="cmdk-input-wrapper" role="search" aria-label="Search commands and symbols">
                 <Search size={18} color="var(--text-3)" aria-hidden="true" />
                 <Command.Input
                   ref={inputRef}
