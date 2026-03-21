@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, type ReactElement } from 'react';
+import { useState, useEffect, useMemo, useRef, memo, type ReactElement } from 'react';
 import { ArrowLeftRight, AlertCircle } from 'lucide-react';
 import { ChinaAPI } from '../../../services/api/chinaApi';
 import { CNY_MARKET } from '../../../constants/china';
@@ -12,7 +12,7 @@ function getCSSVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-export default function PanelCNYTracker(): ReactElement {
+const PanelCNYTracker = memo(function PanelCNYTracker(): ReactElement {
   const [fxData, setFxData] = useState<FXData | null>(null);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -155,4 +155,6 @@ export default function PanelCNYTracker(): ReactElement {
       </div>
     </PanelChrome>
   );
-}
+});
+PanelCNYTracker.displayName = 'PanelCNYTracker';
+export default PanelCNYTracker;

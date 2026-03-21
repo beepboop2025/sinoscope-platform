@@ -13,19 +13,28 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Rate-limit tier configuration
 # ---------------------------------------------------------------------------
+#
+# Tiers:
+#   - Public endpoints (no auth): 60 req/min
+#   - Authenticated endpoints (general): 300 req/min
+#   - Data-heavy endpoints (SQL, ML, quant, backtest): 30 req/min
+#   - Write endpoints (POST/PUT/PATCH/DELETE): 50 req/min
+# ---------------------------------------------------------------------------
 
-# Endpoints that are cheap / read-only get the default bucket.
-_DEFAULT_LIMIT = 200  # requests per minute
+_PUBLIC_LIMIT = 60       # requests per minute — unauthenticated
+_AUTH_LIMIT = 300        # requests per minute — authenticated general
+_WRITE_LIMIT = 50        # write mutations
+_DATAHEAVY_LIMIT = 30    # expensive compute / large result sets
 
-# Write endpoints (POST/PUT/PATCH/DELETE) use a tighter bucket.
-_WRITE_LIMIT = 50
-
-# Expensive compute endpoints get the tightest bucket.
-_EXPENSIVE_PREFIXES: tuple[str, ...] = (
+# Data-heavy endpoint prefixes — get the tightest bucket.
+_DATAHEAVY_PREFIXES: tuple[str, ...] = (
     "/api/quant",
     "/api/backtest",
+    "/api/data/sql",
+    "/api/agents",
+    "/api/compliance",
+    "/api/analytics",
 )
-_EXPENSIVE_LIMIT = 10
 
 # Endpoints exempt from rate limiting.
 _BYPASS_PREFIXES: tuple[str, ...] = (
@@ -34,19 +43,28 @@ _BYPASS_PREFIXES: tuple[str, ...] = (
     "/docs",
     "/openapi.json",
     "/redoc",
+    "/metrics",
 )
 
 _WINDOW_SECONDS = 60
 
 
-def _classify_request(path: str, method: str) -> tuple[str, int]:
+def _classify_request(path: str, method: str, is_authenticated: bool = False) -> tuple[str, int]:
     """Return (bucket_suffix, limit) for the request."""
-    for prefix in _EXPENSIVE_PREFIXES:
+    # Data-heavy endpoints (tightest)
+    for prefix in _DATAHEAVY_PREFIXES:
         if path.startswith(prefix):
-            return "expensive", _EXPENSIVE_LIMIT
+            return "dataheavy", _DATAHEAVY_LIMIT
+
+    # Write mutations
     if method in ("POST", "PUT", "PATCH", "DELETE"):
         return "write", _WRITE_LIMIT
-    return "general", _DEFAULT_LIMIT
+
+    # Authenticated vs public read
+    if is_authenticated:
+        return "auth", _AUTH_LIMIT
+
+    return "public", _PUBLIC_LIMIT
 
 
 def _is_bypassed(path: str) -> bool:
@@ -96,7 +114,8 @@ class RateLimitMiddleware:
             request.client.host if request.client else "anonymous"
         )
 
-        bucket, limit = _classify_request(path, method)
+        is_authenticated = getattr(getattr(request, "state", None), "user_id", None) is not None
+        bucket, limit = _classify_request(path, method, is_authenticated)
         redis_key = f"rl:{user_id}:{bucket}"
 
         try:

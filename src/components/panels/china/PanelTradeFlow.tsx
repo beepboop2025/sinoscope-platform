@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactElement } from 'react';
+import { useState, useRef, useEffect, memo, type ReactElement } from 'react';
 import { ArrowRightLeft, TrendingUp, TrendingDown, Package, Ship, Scale, Info } from 'lucide-react';
 import { createChart, HistogramSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from 'lightweight-charts';
 import { TRADE_CATEGORIES } from '../../../constants/china';
@@ -37,7 +37,7 @@ function getCSSVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-export default function PanelTradeFlow(): ReactElement {
+const PanelTradeFlow = memo(function PanelTradeFlow(): ReactElement {
   const [selectedView, setSelectedView] = useState<string>('monthly');
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -197,4 +197,6 @@ export default function PanelTradeFlow(): ReactElement {
     </div>
     </PanelChrome>
   );
-}
+});
+PanelTradeFlow.displayName = 'PanelTradeFlow';
+export default PanelTradeFlow;

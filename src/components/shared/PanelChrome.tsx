@@ -20,16 +20,16 @@ function formatTimeAgo(ts: number | null | undefined): string | null {
 function freshnessColor(ts: number | null | undefined): string {
   if (!ts) return 'var(--text-4)';
   const secs = Math.round((Date.now() - ts) / 1000);
-  if (secs < 10) return 'var(--green)';
-  if (secs < 60) return 'var(--amber)';
+  if (secs < 30) return 'var(--green)';
+  if (secs < 120) return 'var(--amber)';
   return 'var(--red)';
 }
 
 function freshnessStatus(ts: number | null | undefined): string {
   if (!ts) return 'stale';
   const secs = Math.round((Date.now() - ts) / 1000);
-  if (secs < 10) return 'live';
-  if (secs < 60) return 'loading';
+  if (secs < 30) return 'live';
+  if (secs < 120) return 'loading';
   return 'error';
 }
 

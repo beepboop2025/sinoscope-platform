@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react';
+import { useState, memo, type ReactElement } from 'react';
 import { Globe } from 'lucide-react';
 import { BRI_COUNTRIES, BRI_CORRIDORS } from '../../../constants/china';
 import PanelChrome from '../../shared/PanelChrome';
@@ -60,7 +60,7 @@ const CORRIDOR_PATHS: CorridorPath[] = [
   { name: 'East Africa', d: 'M 75 35 L 70 50 L 60 58 L 48 60', color: '#ec4899', width: 2 },
 ];
 
-export default function PanelBeltRoad(): ReactElement {
+const PanelBeltRoad = memo(function PanelBeltRoad(): ReactElement {
   const [selectedCorridor, setSelectedCorridor] = useState<Corridor | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<Region | null>(null);
 
@@ -164,4 +164,6 @@ export default function PanelBeltRoad(): ReactElement {
     </div>
     </PanelChrome>
   );
-}
+});
+PanelBeltRoad.displayName = 'PanelBeltRoad';
+export default PanelBeltRoad;

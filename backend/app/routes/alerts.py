@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,11 +18,15 @@ router = APIRouter()
 async def list_alerts(
     auth: AuthUser = Depends(require_auth),
     session: AsyncSession = Depends(get_db),
+    limit: int = Query(100, ge=1, le=500, description="Max items to return"),
+    offset: int = Query(0, ge=0, description="Number of items to skip"),
 ):
     result = await session.execute(
         select(Alert)
         .where(Alert.user_id == auth.user_id)
         .order_by(Alert.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

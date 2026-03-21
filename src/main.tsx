@@ -87,3 +87,78 @@ createRoot(document.getElementById('root')!).render(
     </RootErrorBoundary>
   </StrictMode>,
 );
+
+// ── Service Worker registration with update handling ─────────────────────────
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(registration => {
+      console.info('[SW] Registered successfully');
+
+      // Check for updates every 60 seconds
+      setInterval(() => registration.update(), 60_000);
+
+      // Listen for new service worker waiting to activate
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (!newWorker) return;
+
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version available — show update banner
+            showUpdateBanner(registration);
+          }
+        });
+      });
+    }).catch(err => {
+      console.warn('[SW] Registration failed:', err);
+    });
+
+    // Listen for SW messages (e.g., SW_UPDATED after activation)
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'SW_UPDATED') {
+        console.info('[SW] Updated to version', event.data.version);
+      }
+    });
+  });
+}
+
+function showUpdateBanner(registration: ServiceWorkerRegistration): void {
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100000;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 10px 20px; font-size: 13px; font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    color: #fff; background: rgba(59, 130, 246, 0.95);
+    backdrop-filter: blur(8px);
+  `;
+
+  const label = document.createElement('span');
+  label.textContent = 'New version available';
+  banner.appendChild(label);
+
+  const updateBtn = document.createElement('button');
+  updateBtn.textContent = 'Update now';
+  updateBtn.style.cssText = `
+    padding: 4px 14px; background: #fff; color: #3b82f6; border: none;
+    border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;
+  `;
+  updateBtn.addEventListener('click', () => {
+    registration.waiting?.postMessage('SKIP_WAITING');
+    window.location.reload();
+  });
+  banner.appendChild(updateBtn);
+
+  const dismissBtn = document.createElement('button');
+  dismissBtn.textContent = 'Later';
+  dismissBtn.style.cssText = `
+    padding: 4px 10px; background: transparent; color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; font-size: 12px;
+  `;
+  dismissBtn.addEventListener('click', () => {
+    banner.remove();
+  });
+  banner.appendChild(dismissBtn);
+
+  document.body.appendChild(banner);
+}

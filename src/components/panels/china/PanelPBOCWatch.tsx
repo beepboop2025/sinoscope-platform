@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactElement } from 'react';
+import { useState, useEffect, memo, type ReactElement } from 'react';
 import { Landmark, TrendingDown, TrendingUp, Clock, AlertCircle, History, Info } from 'lucide-react';
 import { ChinaAPI } from '../../../services/api/chinaApi';
 import { PBOC_TOOLS } from '../../../constants/china';
@@ -20,7 +20,7 @@ const RATE_HISTORY: RateAction[] = [
   { date: '2023-06-20', tool: 'LPR_1Y', rate: 3.55, change: -10, reason: 'Support growth' },
 ];
 
-export default function PanelPBOCWatch(): ReactElement {
+const PanelPBOCWatch = memo(function PanelPBOCWatch(): ReactElement {
   const [pbocData, setPbocData] = useState<PBOCData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -109,4 +109,6 @@ export default function PanelPBOCWatch(): ReactElement {
       </div>
     </PanelChrome>
   );
-}
+});
+PanelPBOCWatch.displayName = 'PanelPBOCWatch';
+export default PanelPBOCWatch;

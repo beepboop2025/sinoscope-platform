@@ -1,8 +1,12 @@
-import { memo, useState, useCallback, useRef, useMemo, type ReactElement, type KeyboardEvent, type ChangeEvent } from 'react';
+import { memo, useState, useCallback, useRef, useMemo, useDeferredValue, type ReactElement, type KeyboardEvent, type ChangeEvent } from 'react';
 import { Database, Play, Trash2, ChevronDown, ChevronUp, Clock, Download, Copy, Star, BookOpen, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Save, FileSpreadsheet } from 'lucide-react';
 import PanelChrome from '../shared/PanelChrome';
+import VirtualTable, { type VirtualTableColumn } from '../shared/VirtualTable';
 import { useSqlEngine } from '../../hooks/useSqlEngine';
 import { exportToXlsx } from '../../utils/excelExport';
+
+/** Threshold: use VirtualTable when result set exceeds this row count */
+const VIRTUAL_TABLE_THRESHOLD = 100;
 
 interface QueryResult {
   columns: string[];
@@ -385,58 +389,87 @@ const PanelSqlQuery = memo(({ data }: { data?: unknown }): ReactElement => {
           </div>
         )}
 
-        {/* Results table */}
-        {result && !result.error && result.rows.length > 0 && (
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-            <table className="dense-table">
-              <thead>
-                <tr>
-                  {result.columns.map(col => (
-                    <th
-                      key={col}
-                      onClick={() => handleSort(col)}
-                      style={{
-                        textAlign: typeof result.rows[0][col] === 'number' ? 'right' : 'left',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                      }}
-                      title={`Sort by ${col}`}
-                    >
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                        {col}
-                        <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRows.map((row, i) => (
-                  <tr key={i}>
-                    {result.columns.map(col => {
-                      const val = row[col];
-                      const isNum = typeof val === 'number';
-                      const isChangePct = col === 'changePct' || col === 'change' || col === 'avgChg';
-                      return (
-                        <td
-                          key={col}
-                          style={{
-                            textAlign: isNum ? 'right' : 'left',
-                            color: isChangePct ? ((val as number) > 0 ? 'var(--green)' : (val as number) < 0 ? 'var(--red)' : undefined) : undefined,
-                          }}
-                        >
-                          {isNum
-                            ? (isChangePct ? `${(Number(val) || 0).toFixed(2)}%` : Number.isInteger(val as number) ? (val as number).toLocaleString() : (Number(val) || 0).toFixed(2))
-                            : String(val ?? '')}
-                        </td>
-                      );
-                    })}
+        {/* Results table — uses VirtualTable for large result sets */}
+        {result && !result.error && result.rows.length > 0 && (() => {
+          const useVirtual = sortedRows.length > VIRTUAL_TABLE_THRESHOLD;
+
+          if (useVirtual) {
+            const vtCols: VirtualTableColumn<Record<string, unknown>>[] = result.columns.map(col => ({
+              key: col,
+              label: col,
+              style: { textAlign: typeof result.rows[0][col] === 'number' ? 'right' as const : 'left' as const },
+              cellStyle: { textAlign: typeof result.rows[0][col] === 'number' ? 'right' as const : 'left' as const },
+              render: (val: unknown) => {
+                const isNum = typeof val === 'number';
+                const isChangePct = col === 'changePct' || col === 'change' || col === 'avgChg';
+                if (isNum) {
+                  const styled = isChangePct
+                    ? `${(Number(val) || 0).toFixed(2)}%`
+                    : Number.isInteger(val as number) ? (val as number).toLocaleString() : (Number(val) || 0).toFixed(2);
+                  return <span style={{ color: isChangePct ? ((val as number) > 0 ? 'var(--green)' : (val as number) < 0 ? 'var(--red)' : undefined) : undefined }}>{styled}</span>;
+                }
+                return String(val ?? '');
+              },
+            }));
+            return (
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <VirtualTable columns={vtCols} rows={sortedRows} rowHeight={26} containerHeight={300} />
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+              <table className="dense-table">
+                <thead>
+                  <tr>
+                    {result.columns.map(col => (
+                      <th
+                        key={col}
+                        onClick={() => handleSort(col)}
+                        style={{
+                          textAlign: typeof result.rows[0][col] === 'number' ? 'right' : 'left',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                        }}
+                        title={`Sort by ${col}`}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          {col}
+                          <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
+                        </span>
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {sortedRows.map((row, i) => (
+                    <tr key={i}>
+                      {result.columns.map(col => {
+                        const val = row[col];
+                        const isNum = typeof val === 'number';
+                        const isChangePct = col === 'changePct' || col === 'change' || col === 'avgChg';
+                        return (
+                          <td
+                            key={col}
+                            style={{
+                              textAlign: isNum ? 'right' : 'left',
+                              color: isChangePct ? ((val as number) > 0 ? 'var(--green)' : (val as number) < 0 ? 'var(--red)' : undefined) : undefined,
+                            }}
+                          >
+                            {isNum
+                              ? (isChangePct ? `${(Number(val) || 0).toFixed(2)}%` : Number.isInteger(val as number) ? (val as number).toLocaleString() : (Number(val) || 0).toFixed(2))
+                              : String(val ?? '')}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
 
         {result && !result.error && result.rows.length === 0 && (
           <div style={{ padding: 12, color: 'var(--text-4)', fontSize: 11, textAlign: 'center' }}>

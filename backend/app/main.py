@@ -49,13 +49,34 @@ async def lifespan(app: FastAPI):
     # Start Redis pub/sub → WebSocket bridge
     subscriber_task = asyncio.create_task(start_redis_subscriber())
 
+    # Start periodic DB pool monitoring (every 60s)
+    async def _pool_monitor():
+        from app.database import log_pool_stats, get_pool_stats
+        from app.metrics import DB_POOL_CHECKED_OUT, DB_POOL_OVERFLOW
+        while True:
+            await asyncio.sleep(60)
+            try:
+                log_pool_stats()
+                stats = get_pool_stats()
+                DB_POOL_CHECKED_OUT.set(stats["checked_out"])
+                DB_POOL_OVERFLOW.set(stats["overflow"])
+            except Exception:
+                pass
+
+    pool_monitor_task = asyncio.create_task(_pool_monitor())
+
     logger.info(f"API running on port {settings.API_PORT}")
     yield
     # Shutdown — gracefully drain WebSocket connections
     logger.info("Shutting down DragonScope API...")
+    pool_monitor_task.cancel()
     subscriber_task.cancel()
     try:
         await subscriber_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await pool_monitor_task
     except asyncio.CancelledError:
         pass
     await ws_manager.stop_heartbeat()

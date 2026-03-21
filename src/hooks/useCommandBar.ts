@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
 import { COMMANDS } from '../constants/commands';
 
 type CommandEntry = (typeof COMMANDS)[number];
@@ -87,11 +87,14 @@ export function useCommandBar({ onCommand, marketData }: UseCommandBarOptions): 
 
   const allCommands = useMemo(() => [...COMMANDS, ...dataItems], [dataItems]);
 
-  const filtered = query
+  // Defer the search query so typing stays responsive even with large data sets
+  const deferredQuery = useDeferredValue(query);
+
+  const filtered = deferredQuery
     ? allCommands.filter(c =>
-        c.label.toLowerCase().includes(query.toLowerCase()) ||
-        c.desc.toLowerCase().includes(query.toLowerCase()) ||
-        c.id.toLowerCase().includes(query.toLowerCase())
+        c.label.toLowerCase().includes(deferredQuery.toLowerCase()) ||
+        c.desc.toLowerCase().includes(deferredQuery.toLowerCase()) ||
+        c.id.toLowerCase().includes(deferredQuery.toLowerCase())
       )
     : COMMANDS; // Only show static commands when no query
 

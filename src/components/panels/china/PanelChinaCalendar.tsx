@@ -1,4 +1,4 @@
-import { useState, useMemo, type ReactElement } from 'react';
+import { useState, useMemo, memo, type ReactElement } from 'react';
 import { Calendar, Clock, AlertCircle, TrendingUp, TrendingDown, Minus, Bell, Info } from 'lucide-react';
 import { CHINA_CALENDAR } from '../../../constants/china';
 import PanelChrome from '../../shared/PanelChrome';
@@ -46,7 +46,7 @@ const generateCalendarEvents = (): CalendarEvent[] => {
 
 const CALENDAR_EVENTS = generateCalendarEvents();
 
-export default function PanelChinaCalendar(): ReactElement {
+const PanelChinaCalendar = memo(function PanelChinaCalendar(): ReactElement {
   const [filter, setFilter] = useState<string>('all');
   const [alerts, setAlerts] = useState<Set<string>>(new Set());
 
@@ -150,4 +150,6 @@ export default function PanelChinaCalendar(): ReactElement {
     </div>
     </PanelChrome>
   );
-}
+});
+PanelChinaCalendar.displayName = 'PanelChinaCalendar';
+export default PanelChinaCalendar;

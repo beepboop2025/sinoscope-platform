@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -24,12 +24,16 @@ router = APIRouter()
 async def list_watchlists(
     auth: AuthUser = Depends(require_auth),
     session: AsyncSession = Depends(get_db),
+    limit: int = Query(50, ge=1, le=200, description="Max items to return"),
+    offset: int = Query(0, ge=0, description="Number of items to skip"),
 ):
     result = await session.execute(
         select(Watchlist)
         .where(Watchlist.user_id == auth.user_id)
         .options(selectinload(Watchlist.items))
         .order_by(Watchlist.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

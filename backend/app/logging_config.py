@@ -24,6 +24,12 @@ user_id_ctx: ContextVar[str | None] = ContextVar("user_id", default=None)
 class JSONFormatter(logging.Formatter):
     """Formats log records as single-line JSON with correlation context."""
 
+    # Well-known extra fields to promote to top-level log entry keys
+    _PROMOTED_FIELDS = {
+        "http_method", "http_path", "http_status", "duration_ms",
+        "client_ip", "endpoint", "slow_query_ms",
+    }
+
     def format(self, record: logging.LogRecord) -> str:
         log_entry: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -60,10 +66,15 @@ class JSONFormatter(logging.Formatter):
             "filename", "module", "levelno", "levelname", "msecs", "message",
             "thread", "threadName", "process", "processName", "taskName",
         }
-        extras = {
-            k: v for k, v in record.__dict__.items()
-            if k not in standard_attrs and not k.startswith("_")
-        }
+        extras = {}
+        for k, v in record.__dict__.items():
+            if k in standard_attrs or k.startswith("_"):
+                continue
+            # Promote well-known fields to top level
+            if k in self._PROMOTED_FIELDS:
+                log_entry[k] = v
+            else:
+                extras[k] = v
         if extras:
             log_entry["extra"] = extras
 

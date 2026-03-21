@@ -64,6 +64,12 @@ def setup_slow_query_logging(
                     "statement_length": len(statement),
                 },
             )
+            # Increment global slow query counter for health monitoring
+            try:
+                from app.database import increment_slow_query_count
+                increment_slow_query_count()
+            except ImportError:
+                pass
 
     logger.info(
         "Slow query logging enabled (threshold=%dms)", threshold_ms

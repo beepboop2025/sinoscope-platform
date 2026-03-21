@@ -4,9 +4,18 @@ import { getTokens } from '../../services/RateLimiter';
 import { cacheStats } from '../../services/CacheManager';
 import { getRecentErrorCount, onErrorCountChange } from '../../utils/errorReporter';
 
-function computeFreshness(lastUpdate: number | null | undefined): string {
-  if (!lastUpdate) return 'N/A';
-  return `${Math.round((Date.now() - lastUpdate) / 1000)}s ago`;
+interface FreshnessInfo { label: string; color: string; level: string; }
+
+function computeFreshness(lastUpdate: number | null | undefined): FreshnessInfo {
+  if (!lastUpdate) return { label: 'No data', color: 'var(--text-4)', level: 'unknown' };
+  const secs = Math.round((Date.now() - lastUpdate) / 1000);
+  if (secs < 30) return { label: `${secs}s ago`, color: 'var(--green)', level: 'fresh' };
+  if (secs < 120) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return { label: m > 0 ? `${m}m ${s}s ago` : `${secs}s ago`, color: 'var(--amber)', level: 'aging' };
+  }
+  return { label: `${Math.round(secs / 60)}m ago`, color: 'var(--red)', level: 'stale' };
 }
 
 interface FooterProps {
@@ -21,6 +30,13 @@ const IS_DEV = import.meta.env.DEV;
 const Footer = memo<FooterProps>(({ lastUpdate, wsStatus, panelCount = 0, onShowShortcuts }): ReactElement => {
   const stats = cacheStats();
   const freshness = computeFreshness(lastUpdate);
+
+  // Re-compute freshness every 5s to keep the label current
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 5000);
+    return () => clearInterval(id);
+  }, []);
   const [showApiDetail, setShowApiDetail] = useState(false);
   const [errorCount, setErrorCount] = useState(() => getRecentErrorCount());
 
@@ -46,9 +62,12 @@ const Footer = memo<FooterProps>(({ lastUpdate, wsStatus, panelCount = 0, onShow
 
       <span style={{ color: 'var(--border-3)' }}>|</span>
 
-      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Data freshness">
-        <Database size={10} color={lastUpdate ? 'var(--green)' : 'var(--text-4)'} />
-        {freshness}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={`Data freshness: ${freshness.level} — Last updated: ${freshness.label}`}>
+        <Database size={10} color={freshness.color} />
+        <span style={{ color: freshness.color, fontWeight: freshness.level === 'stale' ? 700 : 400 }}>
+          {freshness.label}
+        </span>
+        {freshness.level === 'stale' && <span style={{ color: 'var(--red)', fontSize: 8 }}>STALE</span>}
       </span>
 
       <span style={{ color: 'var(--border-3)' }}>|</span>

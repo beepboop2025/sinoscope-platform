@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactElement } from 'react';
+import { useState, useEffect, memo, type ReactElement } from 'react';
 import { TrendingUp, TrendingDown, Activity, Globe } from 'lucide-react';
 import { ChinaAPI } from '../../../services/api/chinaApi';
 import { CHINA_INDICES, CHINA_BLUE_CHIPS } from '../../../constants/china';
@@ -8,7 +8,7 @@ interface IndexData { symbol: string; name: string; price?: number; change?: num
 interface StockData { symbol: string; name: string; price?: number; change?: number; changesPercentage?: number; }
 interface PanelChinaMarketsProps { apiKey?: string; }
 
-export default function PanelChinaMarkets({ apiKey }: PanelChinaMarketsProps): ReactElement {
+const PanelChinaMarkets = memo(function PanelChinaMarkets({ apiKey }: PanelChinaMarketsProps): ReactElement {
   const [indices, setIndices] = useState<IndexData[]>([]);
   const [stocks, setStocks] = useState<StockData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -101,4 +101,6 @@ export default function PanelChinaMarkets({ apiKey }: PanelChinaMarketsProps): R
       </div>
     </PanelChrome>
   );
-}
+});
+PanelChinaMarkets.displayName = 'PanelChinaMarkets';
+export default PanelChinaMarkets;

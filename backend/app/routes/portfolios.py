@@ -25,12 +25,16 @@ router = APIRouter()
 async def list_portfolios(
     auth: AuthUser = Depends(require_auth),
     session: AsyncSession = Depends(get_db),
+    limit: int = Query(50, ge=1, le=200, description="Max items to return"),
+    offset: int = Query(0, ge=0, description="Number of items to skip"),
 ):
     result = await session.execute(
         select(Portfolio)
         .where(Portfolio.user_id == auth.user_id)
         .options(selectinload(Portfolio.holdings))
         .order_by(Portfolio.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     portfolios = list(result.scalars().all())
     return portfolios
