@@ -19,14 +19,12 @@ logger = logging.getLogger(__name__)
 # Financial keywords to filter HN stories
 # Only multi-word phrases or unambiguous terms belong here (substring match).
 FINANCIAL_KEYWORDS = [
-    "crypto", "bitcoin", "ethereum", "trading",
+    "cryptocurrency", "bitcoin", "ethereum", "trading",
     "interest rate", "inflation", "recession", "gdp",
-    "startup funding", "ipo", "acquisition", "valuation",
-    "fintech", "defi", "treasury",
+    "startup funding", "acquisition", "valuation",
+    "fintech", "treasury",
     "regulation", "hedge fund", "venture capital",
-    # Specific yield phrases to avoid matching programming "yield"
     "yield curve", "bond yield", "treasury yield", "dividend yield",
-    # Multi-word stock/market/bank phrases that are unambiguous
     "stock market", "stock exchange", "stock price",
     "central bank", "banking sector", "investment bank",
     "bond market", "corporate bond",
@@ -34,10 +32,10 @@ FINANCIAL_KEYWORDS = [
 ]
 
 # Short keywords needing word-boundary matching to avoid false positives
-# e.g. "fed" matches "federated", "stock" matches "livestock",
-# "bank" matches "databank", "market" matches "supermarket"
+# e.g. "fed" matches "federated", "crypto" matches "cryptography",
+# "defi" matches "definitely", "ipo" matches "ipopt"
 _FINANCIAL_WORD_RE = re.compile(
-    r'\b(?:sec|fed|stock|bank|bond|market)\b', re.IGNORECASE
+    r'\b(?:sec|fed|stock|bank|bond|market|crypto|defi|ipo)\b', re.IGNORECASE
 )
 
 

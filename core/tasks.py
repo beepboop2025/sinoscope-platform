@@ -999,7 +999,10 @@ def push_stats():
             for key in stats_keys:
                 data = r.get(key)
                 if data:
-                    health[key.replace("health:", "")] = json.loads(data)
+                    try:
+                        health[key.replace("health:", "")] = json.loads(data)
+                    except (json.JSONDecodeError, TypeError):
+                        logger.debug(f"[Stats] Skipping corrupted health key {key}")
 
             summary = {
                 "sources": health,
