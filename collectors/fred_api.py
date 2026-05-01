@@ -4,7 +4,9 @@ Fetches US macro indicators: Fed Funds Rate, CPI, Treasury yields,
 unemployment, GDP, SOFR, VIX, credit spreads.
 """
 
+import asyncio
 import logging
+import time
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -20,6 +22,7 @@ class FredCollector(BaseCollector):
     source_type = "api"
 
     BASE_URL = "https://api.stlouisfed.org/fred"
+    _INTER_REQUEST_DELAY = 1.0
 
     def __init__(self, config: dict):
         super().__init__(config)
@@ -33,10 +36,16 @@ class FredCollector(BaseCollector):
         records = []
         rate_limited = False
         rate_limit_retry = 60
+        last_request_at = 0.0
         for series_id in self.series_ids:
             if rate_limited:
                 logger.warning(f"[FRED] Skipping {series_id} — rate limited")
                 continue
+
+            elapsed = time.monotonic() - last_request_at
+            if elapsed < self._INTER_REQUEST_DELAY:
+                await asyncio.sleep(self._INTER_REQUEST_DELAY - elapsed)
+            last_request_at = time.monotonic()
 
             resp = await self._http.get(
                 f"{self.BASE_URL}/series/observations",

@@ -62,6 +62,7 @@ class CCILCollector(BaseCollector):
         # Known metadata fields that are NOT rate observations
         _meta_fields = {"status", "status_code", "count", "total", "version",
                         "timestamp", "id", "page", "size", "error", "code"}
+        _RATE_MIN, _RATE_MAX = -10.0, 50.0
 
         # Try JSON API first
         try:
@@ -76,9 +77,12 @@ class CCILCollector(BaseCollector):
                             continue
                         for key, value in item.items():
                             if isinstance(value, (int, float)) and not isinstance(value, bool) and key.lower() not in _meta_fields:
+                                fval = float(value)
+                                if not (_RATE_MIN <= fval <= _RATE_MAX):
+                                    continue
                                 records.append({
                                     "indicator": f"fbil_{key}",
-                                    "value": float(value),
+                                    "value": fval,
                                     "date": datetime.now(timezone.utc).isoformat(),
                                     "source_type": "fbil_reference_rates",
                                 })
@@ -106,12 +110,12 @@ class CCILCollector(BaseCollector):
                             continue
                         val_text = cols[-1].get_text(strip=True)
                         try:
-                            # Extract first decimal number from text
-                            # (re.sub can produce "1.2.3" from "1.2% on 15.3")
                             match = re.search(r"\d+(?:\.\d+)?", val_text)
                             if not match:
                                 continue
                             val = float(match.group())
+                            if not (_RATE_MIN <= val <= _RATE_MAX):
+                                continue
                             records.append({
                                 "indicator": f"fbil_{name.lower().replace(' ', '_')}",
                                 "value": val,
