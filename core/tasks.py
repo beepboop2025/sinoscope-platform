@@ -213,10 +213,12 @@ async def _scrape_and_route(scraper_factory, method_name: str, **kwargs):
         )
         raise
     finally:
-        if scraper and hasattr(scraper, "close"):
-            await scraper.close()
-        await router.close()
-        await dedup.close()
+        for closeable in [scraper, router, dedup]:
+            if closeable and hasattr(closeable, "close"):
+                try:
+                    await closeable.close()
+                except Exception as exc:
+                    logger.warning(f"[{scraper_name}] Cleanup failed for {type(closeable).__name__}: {exc}")
 
 
 async def _store_scraped_items(items):
@@ -372,11 +374,12 @@ async def _scrape_twitter_impl():
         )
         raise
     finally:
-        if scraper and hasattr(scraper, "close"):
-            await scraper.close()
-        await router.close()
-        if dedup:
-            await dedup.close()
+        for closeable in [scraper, router, dedup]:
+            if closeable and hasattr(closeable, "close"):
+                try:
+                    await closeable.close()
+                except Exception as exc:
+                    logger.warning(f"[twitter] Cleanup failed for {type(closeable).__name__}: {exc}")
 
 
 @app.task(bind=True, max_retries=3, default_retry_delay=30)

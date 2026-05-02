@@ -105,10 +105,10 @@ class HackerNewsScraper(BaseScraper):
                 display_name=item.get("by", "unknown"),
             ),
             engagement=EngagementMetrics(
-                likes=item.get("score", 0),
-                replies=item.get("descendants", 0),
+                likes=item.get("score") or 0,
+                replies=item.get("descendants") or 0,
             ),
-            created_at=datetime.fromtimestamp(item.get("time", 0), tz=timezone.utc),
+            created_at=datetime.fromtimestamp(item.get("time") or 0, tz=timezone.utc),
             source_url=item.get("url") or f"https://news.ycombinator.com/item?id={item.get('id')}",
             urls=[item["url"]] if item.get("url") else [],
             raw_metadata={
@@ -116,7 +116,7 @@ class HackerNewsScraper(BaseScraper):
                 "type": item.get("type"),
                 "url": item.get("url"),
                 "title": item.get("title"),
-                "kids_count": len(item.get("kids", [])),
+                "kids_count": len(item.get("kids") or []),
             },
         )
         return ScrapedItem(unified=content)
@@ -136,14 +136,14 @@ class HackerNewsScraper(BaseScraper):
                 display_name=item.get("by", "unknown"),
             ),
             engagement=EngagementMetrics(),
-            created_at=datetime.fromtimestamp(item.get("time", 0), tz=timezone.utc),
+            created_at=datetime.fromtimestamp(item.get("time") or 0, tz=timezone.utc),
             is_reply=True,
             parent_id=str(item.get("parent", "")),
             source_url=f"https://news.ycombinator.com/item?id={item.get('id')}",
             raw_metadata={
                 "hn_id": item.get("id"),
                 "parent": item.get("parent"),
-                "kids_count": len(item.get("kids", [])),
+                "kids_count": len(item.get("kids") or []),
             },
         )
         return ScrapedItem(unified=content)

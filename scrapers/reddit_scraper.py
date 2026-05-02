@@ -133,7 +133,7 @@ class RedditScraper(BaseScraper):
 
     def _parse_post(self, post_data: dict, subreddit: str = "") -> ScrapedItem:
         data = post_data.get("data", post_data)
-        created_utc = data.get("created_utc", 0)
+        created_utc = data.get("created_utc") or 0
 
         author_name = data.get("author") or "[deleted]"
         content = ScrapedContent(
@@ -147,10 +147,10 @@ class RedditScraper(BaseScraper):
                 id=data.get("author_fullname"),
             ),
             engagement=EngagementMetrics(
-                likes=data.get("ups", 0),
-                replies=data.get("num_comments", 0),
+                likes=data.get("ups") or 0,
+                replies=data.get("num_comments") or 0,
                 views=None,
-                reposts=data.get("num_crossposts", 0),
+                reposts=data.get("num_crossposts") or 0,
             ),
             created_at=datetime.fromtimestamp(created_utc, tz=timezone.utc),
             source_url=f"https://reddit.com{data.get('permalink', '')}",
@@ -189,11 +189,11 @@ class RedditScraper(BaseScraper):
                 display_name=comment_author,
             ),
             engagement=EngagementMetrics(
-                likes=data.get("ups", 0),
+                likes=data.get("ups") or 0,
                 replies=0,
             ),
             created_at=datetime.fromtimestamp(
-                data.get("created_utc", 0), tz=timezone.utc
+                data.get("created_utc") or 0, tz=timezone.utc
             ),
             is_reply=True,
             parent_id=data.get("parent_id"),
