@@ -53,12 +53,15 @@ class NSEBhavcopy(BaseCollector):
                     logger.warning(f"[NSE] FII/DII API returned HTTP {resp.status_code}")
                 else:
                     data = resp.json()
-                    for item in data if isinstance(data, list) else [data]:
-                        records.append({
-                            "indicator": "nse_fii_dii",
-                            "data": item,
-                            "type": "fii_dii",
-                        })
+                    if data is None:
+                        logger.warning("[NSE] FII/DII API returned null JSON body")
+                    else:
+                        for item in data if isinstance(data, list) else [data]:
+                            records.append({
+                                "indicator": "nse_fii_dii",
+                                "data": item,
+                                "type": "fii_dii",
+                            })
             except Exception as e:
                 logger.warning(f"[NSE] FII/DII failed: {e}")
 
@@ -72,7 +75,8 @@ class NSEBhavcopy(BaseCollector):
                     logger.warning(f"[NSE] Equity API returned HTTP {resp.status_code}")
                 else:
                     data = resp.json()
-                    records.append({"indicator": "nse_equity_snapshot", "data": data, "type": "equity"})
+                    if data is not None:
+                        records.append({"indicator": "nse_equity_snapshot", "data": data, "type": "equity"})
             except Exception as e:
                 logger.warning(f"[NSE] Equity snapshot failed: {e}")
 
@@ -88,7 +92,8 @@ class NSEBhavcopy(BaseCollector):
                     logger.warning(f"[NSE] Derivatives API returned HTTP {resp.status_code}")
                 else:
                     data = resp.json()
-                    records.append({"indicator": "nse_derivatives_snapshot", "data": data, "type": "derivatives"})
+                    if data is not None:
+                        records.append({"indicator": "nse_derivatives_snapshot", "data": data, "type": "derivatives"})
             except Exception as e:
                 logger.warning(f"[NSE] Derivatives snapshot failed: {e}")
 
@@ -98,7 +103,7 @@ class NSEBhavcopy(BaseCollector):
     async def parse(self, raw_data: list[dict]) -> pd.DataFrame:
         rows = []
         for r in raw_data:
-            data = r.get("data", {})
+            data = r.get("data") or {}
             if isinstance(data, dict):
                 for key, val in data.items():
                     if isinstance(val, (int, float)):

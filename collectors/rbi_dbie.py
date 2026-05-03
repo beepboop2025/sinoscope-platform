@@ -185,7 +185,7 @@ class RBIDbie(BaseCollector):
                     records.append({
                         "indicator": f"rbi_{dataset}_{key}",
                         "value": float(value),
-                        "date": item.get("date", datetime.now(timezone.utc).isoformat()),
+                        "date": item.get("date") or datetime.now(timezone.utc).isoformat(),
                         "dataset": dataset,
                     })
         return records
