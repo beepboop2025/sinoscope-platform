@@ -6,6 +6,7 @@ unemployment, GDP, SOFR, VIX, credit spreads.
 
 import asyncio
 import logging
+import math
 import time
 from datetime import datetime, timezone
 
@@ -81,7 +82,7 @@ class FredCollector(BaseCollector):
                 continue
 
             for obs in data.get("observations", []):
-                if obs.get("value") not in (".", "", None) and obs.get("date"):
+                if obs.get("value") not in (".", "", None, "ND") and obs.get("date"):
                     records.append({
                         "series_id": series_id,
                         "date": obs["date"],
@@ -99,10 +100,14 @@ class FredCollector(BaseCollector):
         rows = []
         for r in raw_data:
             try:
+                val = float(r["value"])
+                if not math.isfinite(val):
+                    logger.warning(f"[FRED] {r.get('series_id')}: non-finite value {r['value']!r}")
+                    continue
                 rows.append({
                     "indicator": r["series_id"],
                     "date": datetime.strptime(r["date"], "%Y-%m-%d").replace(tzinfo=timezone.utc),
-                    "value": float(r["value"]),
+                    "value": val,
                     "unit": "",
                     "metadata": {"realtime_start": r.get("realtime_start")},
                 })

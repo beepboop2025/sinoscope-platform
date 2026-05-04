@@ -20,6 +20,8 @@ class CCILCollector(BaseCollector):
     source_type = "api"
 
     FBIL_URL = "https://www.fbil.org.in"
+    _RATE_MIN = -10.0
+    _RATE_MAX = 50.0
 
     def __init__(self, config: dict):
         super().__init__(config)
@@ -59,10 +61,8 @@ class CCILCollector(BaseCollector):
         """FBIL benchmark rates — MIBOR O/N, Term MIBOR, MIFOR."""
         records = []
 
-        # Known metadata fields that are NOT rate observations
         _meta_fields = {"status", "status_code", "count", "total", "version",
                         "timestamp", "id", "page", "size", "error", "code"}
-        _RATE_MIN, _RATE_MAX = -10.0, 50.0
 
         # Try JSON API first
         try:
@@ -78,7 +78,7 @@ class CCILCollector(BaseCollector):
                         for key, value in item.items():
                             if isinstance(value, (int, float)) and not isinstance(value, bool) and key.lower() not in _meta_fields:
                                 fval = float(value)
-                                if not (_RATE_MIN <= fval <= _RATE_MAX):
+                                if not (self._RATE_MIN <= fval <= self._RATE_MAX):
                                     continue
                                 records.append({
                                     "indicator": f"fbil_{key}",
@@ -114,7 +114,7 @@ class CCILCollector(BaseCollector):
                             if not match:
                                 continue
                             val = float(match.group())
-                            if not (_RATE_MIN <= val <= _RATE_MAX):
+                            if not (self._RATE_MIN <= val <= self._RATE_MAX):
                                 continue
                             records.append({
                                 "indicator": f"fbil_{name.lower().replace(' ', '_')}",
@@ -146,17 +146,23 @@ class CCILCollector(BaseCollector):
                 value = data.get(tenor_key)
                 if value is None:
                     value = data.get(tenor_label)
-                if value is not None:
-                    try:
-                        records.append({
-                            "indicator": f"mibor_{tenor_key}",
-                            "value": float(value),
-                            "date": datetime.now(timezone.utc).isoformat(),
-                            "source_type": "mibor",
-                            "metadata": {"tenor": tenor_label},
-                        })
-                    except (ValueError, TypeError):
-                        logger.warning(f"[CCIL] MIBOR {tenor_key}: non-numeric value {value!r}")
+                if value is None or isinstance(value, bool):
+                    continue
+                try:
+                    fval = float(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"[CCIL] MIBOR {tenor_key}: non-numeric value {value!r}")
+                    continue
+                if not (self._RATE_MIN <= fval <= self._RATE_MAX):
+                    logger.warning(f"[CCIL] MIBOR {tenor_key}: value {fval} outside valid range")
+                    continue
+                records.append({
+                    "indicator": f"mibor_{tenor_key}",
+                    "value": fval,
+                    "date": datetime.now(timezone.utc).isoformat(),
+                    "source_type": "mibor",
+                    "metadata": {"tenor": tenor_label},
+                })
             return records
         except Exception as e:
             logger.warning(f"[CCIL] MIBOR collection failed: {e}")
@@ -176,13 +182,16 @@ class CCILCollector(BaseCollector):
             value = data.get("weighted_avg")
             if value is None:
                 value = data.get("rate")
-            if value is None:
+            if value is None or isinstance(value, bool):
                 logger.warning("[CCIL] TREPS response missing rate value")
                 return []
             try:
                 float_value = float(value)
             except (ValueError, TypeError):
                 logger.warning(f"[CCIL] TREPS: non-numeric value {value!r}")
+                return []
+            if not (self._RATE_MIN <= float_value <= self._RATE_MAX):
+                logger.warning(f"[CCIL] TREPS: value {float_value} outside valid range")
                 return []
             return [{
                 "indicator": "treps_weighted_avg",
@@ -211,17 +220,23 @@ class CCILCollector(BaseCollector):
                 value = data.get(t)
                 if value is None:
                     value = data.get(t.lower())
-                if value is not None:
-                    try:
-                        records.append({
-                            "indicator": f"gsec_yield_{t.lower()}",
-                            "value": float(value),
-                            "date": datetime.now(timezone.utc).isoformat(),
-                            "source_type": "sovereign_yield_curve",
-                            "metadata": {"tenor": t},
-                        })
-                    except (ValueError, TypeError):
-                        logger.warning(f"[CCIL] Yield curve {t}: non-numeric value {value!r}")
+                if value is None or isinstance(value, bool):
+                    continue
+                try:
+                    fval = float(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"[CCIL] Yield curve {t}: non-numeric value {value!r}")
+                    continue
+                if not (self._RATE_MIN <= fval <= self._RATE_MAX):
+                    logger.warning(f"[CCIL] Yield curve {t}: value {fval} outside valid range")
+                    continue
+                records.append({
+                    "indicator": f"gsec_yield_{t.lower()}",
+                    "value": fval,
+                    "date": datetime.now(timezone.utc).isoformat(),
+                    "source_type": "sovereign_yield_curve",
+                    "metadata": {"tenor": t},
+                })
             return records
         except Exception as e:
             logger.warning(f"[CCIL] Yield curve collection failed: {e}")
@@ -245,17 +260,23 @@ class CCILCollector(BaseCollector):
                 value = data.get(t)
                 if value is None:
                     value = data.get(t.lower())
-                if value is not None:
-                    try:
-                        records.append({
-                            "indicator": f"{prefix}_rate_{t.lower()}",
-                            "value": float(value),
-                            "date": datetime.now(timezone.utc).isoformat(),
-                            "source_type": dtype,
-                            "metadata": {"tenor": t},
-                        })
-                    except (ValueError, TypeError):
-                        logger.warning(f"[CCIL] {prefix.upper()} {t}: non-numeric value {value!r}")
+                if value is None or isinstance(value, bool):
+                    continue
+                try:
+                    fval = float(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"[CCIL] {prefix.upper()} {t}: non-numeric value {value!r}")
+                    continue
+                if not (self._RATE_MIN <= fval <= self._RATE_MAX):
+                    logger.warning(f"[CCIL] {prefix.upper()} {t}: value {fval} outside valid range")
+                    continue
+                records.append({
+                    "indicator": f"{prefix}_rate_{t.lower()}",
+                    "value": fval,
+                    "date": datetime.now(timezone.utc).isoformat(),
+                    "source_type": dtype,
+                    "metadata": {"tenor": t},
+                })
             return records
         except Exception as e:
             logger.warning(f"[CCIL] {prefix.upper()} rates collection failed: {e}")
