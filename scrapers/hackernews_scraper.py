@@ -63,19 +63,27 @@ class HackerNewsScraper(BaseScraper):
 
     async def _get_item(self, item_id: int) -> Optional[dict]:
         async with self._sem:
-            try:
-                resp = await self._http.get(f"{self.BASE_URL}/item/{item_id}.json")
-            except httpx.HTTPError as e:
-                logger.warning(f"[HN] Network error fetching item {item_id}: {e}")
-                return None
-            if resp.status_code != 200:
-                logger.debug(f"[HN] Non-200 status ({resp.status_code}) for item {item_id}")
-                return None
-            try:
-                return resp.json()
-            except Exception:
-                logger.warning(f"[HN] Malformed JSON for item {item_id}")
-                return None
+            for attempt in range(2):
+                try:
+                    resp = await self._http.get(f"{self.BASE_URL}/item/{item_id}.json")
+                except httpx.HTTPError as e:
+                    if attempt == 0:
+                        await asyncio.sleep(1.0)
+                        continue
+                    logger.warning(f"[HN] Network error fetching item {item_id}: {e}")
+                    return None
+                if resp.status_code in (502, 503, 504) and attempt == 0:
+                    await asyncio.sleep(1.5)
+                    continue
+                if resp.status_code != 200:
+                    logger.debug(f"[HN] Non-200 status ({resp.status_code}) for item {item_id}")
+                    return None
+                try:
+                    return resp.json()
+                except Exception:
+                    logger.warning(f"[HN] Malformed JSON for item {item_id}")
+                    return None
+            return None
 
     async def _get_stories(self, category: str = "topstories", limit: int = 100) -> list[int]:
         try:

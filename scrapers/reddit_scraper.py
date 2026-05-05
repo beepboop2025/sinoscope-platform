@@ -234,7 +234,11 @@ class RedditScraper(BaseScraper):
 
     async def scrape_comments(self, post_url: str, limit: int = 50) -> list[ScrapedItem]:
         """Scrape comments on a specific post."""
-        url = post_url.rstrip("/") + f".json?limit={limit}"
+        parsed = urlparse(post_url)
+        path = parsed.path.rstrip("/")
+        if not path.endswith(".json"):
+            path += ".json"
+        url = urlunparse(parsed._replace(path=path, query=f"limit={limit}", fragment=""))
         data = await self._fetch_json(url)
         items = []
         if isinstance(data, list) and len(data) > 1 and isinstance(data[1], dict):
