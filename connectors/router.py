@@ -205,8 +205,8 @@ class DataRouter:
             logger.debug(f"[Router] LiquiFi close error: {e}")
         if self.kafka_producer is not None:
             try:
-                self.kafka_producer.flush(timeout=5)
-                self.kafka_producer.close(timeout=5)
+                await asyncio.to_thread(self.kafka_producer.flush, timeout=5)
+                await asyncio.to_thread(self.kafka_producer.close, timeout=5)
                 logger.debug("[Router] Kafka producer closed")
             except Exception as e:
                 logger.debug(f"[Router] Kafka producer close error: {e}")
