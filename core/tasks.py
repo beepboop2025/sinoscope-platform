@@ -579,6 +579,7 @@ def process_pipeline():
             unprocessed = (
                 db.query(Article)
                 .filter(Article.is_processed == False)
+                .order_by(Article.collected_at.asc())
                 .limit(200)
                 .all()
             )
@@ -674,8 +675,6 @@ def route_to_destinations():
 
 async def _route_collected_data():
     """Push recent articles and economic data to both destinations."""
-    import hashlib
-
     from api.database import SessionLocal
     from storage.models import Article, EconomicData
 
@@ -713,6 +712,8 @@ async def _route_collected_data():
             ds_redis = aioredis.from_url(
                 os.getenv("DRAGONSCOPE_REDIS_URL", "redis://localhost:6379/1"),
                 decode_responses=True,
+                socket_timeout=10,
+                socket_connect_timeout=5,
             )
 
             if recent_articles:
@@ -793,6 +794,8 @@ async def _route_collected_data():
             lf_redis = aioredis.from_url(
                 os.getenv("LIQUIFI_REDIS_URL", "redis://localhost:6379/2"),
                 decode_responses=True,
+                socket_timeout=10,
+                socket_connect_timeout=5,
             )
 
             # Filter for treasury relevance
@@ -994,7 +997,12 @@ def push_stats():
     """Push aggregate stats to DragonScope for monitoring dashboards."""
     try:
         import redis
-        r = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"), decode_responses=True)
+        r = redis.from_url(
+            os.getenv("REDIS_URL", "redis://localhost:6379"),
+            decode_responses=True,
+            socket_timeout=10,
+            socket_connect_timeout=5,
+        )
 
         try:
             stats_keys = list(r.scan_iter("health:*"))
@@ -1016,7 +1024,12 @@ def push_stats():
 
         # Push to DragonScope
         try:
-            ds = redis.from_url(os.getenv("DRAGONSCOPE_REDIS_URL", "redis://localhost:6379/1"), decode_responses=True)
+            ds = redis.from_url(
+                os.getenv("DRAGONSCOPE_REDIS_URL", "redis://localhost:6379/1"),
+                decode_responses=True,
+                socket_timeout=10,
+                socket_connect_timeout=5,
+            )
             try:
                 ds.set("market:scraper_stats", json.dumps(summary, default=str), ex=1200)
             finally:
