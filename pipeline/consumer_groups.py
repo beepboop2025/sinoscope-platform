@@ -159,8 +159,11 @@ class ConsumerGroupManager:
                 "failed_at": datetime.now(timezone.utc).isoformat(),
             }
             producer.send(TOPIC_DLQ, key=f"dlq:{key}", value=dlq_message)
-            producer.flush()
-            logger.info(f"[DLQ] Sent failed message from {original_topic} to DLQ: {error[:100]}")
+            remaining = producer.flush(timeout=30)
+            if remaining and remaining > 0:
+                logger.warning(f"[DLQ] Flush timed out — {remaining} messages may be unsent")
+            else:
+                logger.info(f"[DLQ] Sent failed message from {original_topic} to DLQ: {error[:100]}")
         except Exception as e:
             logger.error(f"[DLQ] Failed to send to DLQ: {e}")
 
@@ -245,7 +248,9 @@ class ConsumerGroupManager:
                 )
                 replayed += 1
 
-            producer.flush()
+            remaining = producer.flush(timeout=30)
+            if remaining and remaining > 0:
+                logger.warning(f"[Replay] Flush timed out — {remaining} messages may be unsent")
 
             logger.info(
                 f"[Replay] Replayed {replayed} messages from {topic}:{partition} "

@@ -19,23 +19,29 @@ TOPIC_ANALYSIS = "analysis-results"
 GROUP_ID = "scraper-enrichment"
 
 _shutdown_requested = False
+_dlq_manager = None
+
+
+def _get_dlq_manager():
+    """Lazy singleton — avoids creating a new KafkaProducer per failed message."""
+    global _dlq_manager
+    if _dlq_manager is None:
+        from pipeline.consumer_groups import ConsumerGroupManager
+        _dlq_manager = ConsumerGroupManager()
+    return _dlq_manager
 
 
 def _send_to_dlq(message, error: str):
     """Send a failed message to the dead letter queue."""
     try:
-        from pipeline.consumer_groups import ConsumerGroupManager
-        mgr = ConsumerGroupManager()
-        try:
-            key = message.key.decode("utf-8") if message.key else "unknown"
-            mgr.send_to_dlq(
-                original_topic=TOPIC_RAW,
-                key=key,
-                value=message.value if isinstance(message.value, dict) else {},
-                error=error,
-            )
-        finally:
-            mgr.close()
+        mgr = _get_dlq_manager()
+        key = message.key.decode("utf-8") if message.key else "unknown"
+        mgr.send_to_dlq(
+            original_topic=TOPIC_RAW,
+            key=key,
+            value=message.value if isinstance(message.value, dict) else {},
+            error=error,
+        )
     except Exception as e:
         logger.warning(f"[Consumer] DLQ send failed (message may be lost): {e}")
 
@@ -160,6 +166,8 @@ def run_consumer():
             logger.warning(f"[Consumer] Shutdown flush timed out — {remaining} messages may be unsent")
         consumer.close()
         producer.close()
+        if _dlq_manager is not None:
+            _dlq_manager.close()
         logger.info("[Consumer] Shut down cleanly.")
 
 
