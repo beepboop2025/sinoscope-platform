@@ -6,6 +6,7 @@ source only requires a sources.yaml entry, not code changes.
 
 import logging
 import os
+from pathlib import Path
 
 from celery import Celery
 from celery.schedules import crontab
@@ -13,6 +14,9 @@ from celery.schedules import crontab
 logger = logging.getLogger(__name__)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_BEAT_SCHEDULE_PATH = str(_PROJECT_ROOT / "data" / "beat-schedule")
 
 app = Celery(
     "econscraper",
@@ -34,7 +38,12 @@ app.conf.update(
     worker_max_tasks_per_child=200,
     task_default_retry_delay=30,
     task_max_retries=3,
-    beat_schedule_filename="/tmp/econscraper-beat-schedule",
+    beat_schedule_filename=_BEAT_SCHEDULE_PATH,
+    broker_connection_retry_on_startup=True,
+    worker_cancel_long_running_tasks_on_connection_loss=True,
+    broker_transport_options={
+        "visibility_timeout": 7200,
+    },
 )
 
 

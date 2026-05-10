@@ -96,6 +96,13 @@ class BaseCollector(ABC):
 
         Returns a summary dict with status, records_collected, duration.
         """
+        if self._http.is_closed:
+            self._http = httpx.AsyncClient(
+                timeout=self.timeout,
+                headers={"User-Agent": "EconScraper/4.0"},
+                follow_redirects=True,
+            )
+
         start = time.monotonic()
 
         # Circuit breaker check — skip collection if circuit is open
