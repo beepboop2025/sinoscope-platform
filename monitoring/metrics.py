@@ -94,6 +94,9 @@ class _Histogram:
         self._lock = threading.Lock()
 
     def observe(self, value: float, **label_values):
+        import math
+        if not math.isfinite(value):
+            return
         key = tuple(label_values.get(l, "") for l in self.labels)
         with self._lock:
             if key not in self._data:

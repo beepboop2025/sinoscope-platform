@@ -80,6 +80,7 @@ def create_enrichment_producer() -> KafkaProducer:
 def run_consumer():
     """Main consumer loop — reads raw posts, enriches, publishes to enriched topic, stores in DB."""
     global _shutdown_requested
+    _shutdown_requested = False
 
     def _handle_signal(sig, frame):
         global _shutdown_requested

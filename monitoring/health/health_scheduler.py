@@ -109,6 +109,7 @@ async def scheduler_loop() -> None:
 def start_scheduler() -> None:
     """Start the scheduler daemon."""
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     def _shutdown(sig, frame):
         print("\nScheduler shutting down...")
