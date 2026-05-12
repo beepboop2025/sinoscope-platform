@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Only multi-word phrases or unambiguous terms belong here (substring match).
 FINANCIAL_KEYWORDS = [
     "cryptocurrency", "bitcoin", "ethereum", "trading",
-    "interest rate", "inflation", "recession", "gdp",
+    "interest rate", "inflation", "recession",
     "startup funding", "acquisition", "valuation",
     "fintech", "treasury",
     "regulation", "hedge fund", "venture capital",
@@ -35,7 +35,7 @@ FINANCIAL_KEYWORDS = [
 # e.g. "fed" matches "federated", "crypto" matches "cryptography",
 # "defi" matches "definitely", "ipo" matches "ipopt"
 _FINANCIAL_WORD_RE = re.compile(
-    r'\b(?:sec|fed|stock|bank|bond|market|crypto|defi|ipo)\b', re.IGNORECASE
+    r'\b(?:sec|fed|stock|bank|bond|market|crypto|defi|ipo|gdp)\b', re.IGNORECASE
 )
 
 

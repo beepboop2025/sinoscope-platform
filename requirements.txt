@@ -44,7 +44,6 @@ redis>=5.0.0
 
 # Message queue
 kafka-python>=2.0.0
-confluent-kafka>=2.3.0
 
 # Database
 psycopg2-binary>=2.9.0
