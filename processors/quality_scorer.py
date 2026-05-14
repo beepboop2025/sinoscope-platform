@@ -58,6 +58,11 @@ RELEVANCE_KEYWORDS = {
     "crypto": 1, "blockchain": 1, "regulation": 1, "compliance": 1,
 }
 
+_RELEVANCE_PATTERNS: list[tuple[re.Pattern, int]] = [
+    (re.compile(r'\b' + re.escape(kw) + r'\b'), weight)
+    for kw, weight in RELEVANCE_KEYWORDS.items()
+]
+
 
 class QualityScorer:
     """Scores articles on a 0-100 quality scale across five dimensions."""
@@ -140,6 +145,18 @@ class QualityScorer:
 
         if content_hash in self._seen_hashes:
             return 0  # Exact duplicate
+
+        # Check URL-based duplication before eviction so the lookup
+        # isn't invalidated by a cache purge that removes the URL key.
+        url_hash = article.get("url_hash")
+        url_is_duplicate = False
+        if url_hash:
+            url_key = f"url:{url_hash}"
+            if url_key in self._seen_hashes:
+                url_is_duplicate = True
+            else:
+                self._seen_hashes[url_key] = None
+
         self._seen_hashes[content_hash] = None
 
         # Cap entries — evict oldest half (OrderedDict preserves insertion order)
@@ -148,14 +165,8 @@ class QualityScorer:
             for _ in range(to_remove):
                 self._seen_hashes.popitem(last=False)
 
-        # Check URL-based duplication (separate namespace to avoid
-        # false positives from collisions with content hashes)
-        url_hash = article.get("url_hash")
-        if url_hash:
-            url_key = f"url:{url_hash}"
-            if url_key in self._seen_hashes:
-                return 5  # Same URL, slightly different content
-            self._seen_hashes[url_key] = None
+        if url_is_duplicate:
+            return 5  # Same URL, slightly different content
 
         return 20
 
@@ -170,8 +181,8 @@ class QualityScorer:
             return 0
 
         total_points = 0
-        for keyword, weight in RELEVANCE_KEYWORDS.items():
-            if re.search(r'\b' + re.escape(keyword) + r'\b', text):
+        for pattern, weight in _RELEVANCE_PATTERNS:
+            if pattern.search(text):
                 total_points += weight
 
         # Scale: 0 points -> 0, 5+ points -> 20
@@ -272,20 +283,24 @@ class QualityScorer:
         try:
             from api.database import SessionLocal
             from storage.models import Article
+        except ImportError as e:
+            logger.error(f"[QualityScorer] Cannot import DB modules: {e}")
+            return
 
-            db = SessionLocal()
-            try:
-                for item in scored_articles:
-                    article = item["article"]
-                    score = item["quality_score"]
-                    article_id = article.get("id")
-                    if article_id:
-                        db.query(Article).filter(Article.id == article_id).update(
-                            {"quality_score": score["total"]},
-                            synchronize_session=False,
-                        )
-                db.commit()
-            finally:
-                db.close()
+        db = SessionLocal()
+        try:
+            for item in scored_articles:
+                article = item["article"]
+                score = item["quality_score"]
+                article_id = article.get("id")
+                if article_id:
+                    db.query(Article).filter(Article.id == article_id).update(
+                        {"quality_score": score["total"]},
+                        synchronize_session=False,
+                    )
+            db.commit()
         except Exception as e:
             logger.error(f"[QualityScorer] Store failed: {e}")
+            db.rollback()
+        finally:
+            db.close()

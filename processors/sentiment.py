@@ -106,8 +106,9 @@ class SentimentAnalyzer(BaseProcessor):
         # Detect language and route to appropriate model
         language = self._detect_language(text)
         score, model_used = self._analyze(text, language=language)
-        direction = self._detect_policy_direction(text)
-        sectors = self._detect_sectors(text)
+        text_lower = text.lower()
+        direction = self._detect_policy_direction(text_lower)
+        sectors = self._detect_sectors(text_lower)
 
         return {
             "article_id": article_id,
@@ -196,8 +197,7 @@ class SentimentAnalyzer(BaseProcessor):
         score = self._vader.polarity_scores(text)["compound"]
         return self._sanitize_score(score)
 
-    def _detect_policy_direction(self, text: str) -> str:
-        text_lower = text.lower()
+    def _detect_policy_direction(self, text_lower: str) -> str:
         hawkish = sum(1 for kw in HAWKISH_KEYWORDS if kw in text_lower)
         dovish = sum(1 for kw in DOVISH_KEYWORDS if kw in text_lower)
 
@@ -207,9 +207,8 @@ class SentimentAnalyzer(BaseProcessor):
             return "dovish"
         return "neutral"
 
-    def _detect_sectors(self, text: str) -> dict:
+    def _detect_sectors(self, text_lower: str) -> dict:
         """Detect which sectors are mentioned and assign per-sector sentiment."""
-        text_lower = text.lower()
         sectors = {}
         for sector, keywords in SECTOR_KEYWORDS.items():
             mentions = sum(1 for kw in keywords if kw in text_lower)
