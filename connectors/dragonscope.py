@@ -71,7 +71,12 @@ class DragonScopeConnector:
             conn = None
             try:
                 import redis.asyncio as aioredis
-                conn = aioredis.from_url(self.redis_url, decode_responses=True)
+                conn = aioredis.from_url(
+                    self.redis_url,
+                    decode_responses=True,
+                    socket_timeout=10,
+                    socket_connect_timeout=5,
+                )
                 await conn.ping()
                 self._redis = conn
             except Exception as e:

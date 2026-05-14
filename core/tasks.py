@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from datetime import datetime, timedelta, timezone
 
 from core.scheduler import app
@@ -805,11 +806,21 @@ async def _route_collected_data():
                 "usd/inr", "rupee", "forex", "g-sec", "liquidity",
                 "inflation", "cpi", "gdp", "fiscal deficit",
             ]
+            _boundary_kws = {
+                kw: re.compile(r"\b" + re.escape(kw) + r"\b")
+                for kw in treasury_keywords if len(kw) <= 4
+            }
 
             treasury_articles = []
             for a in recent_articles:
                 text = ((a.full_text or "") + " " + (a.title or "")).lower()
-                hits = sum(1 for kw in treasury_keywords if kw in text)
+                hits = 0
+                for kw in treasury_keywords:
+                    if kw in _boundary_kws:
+                        if _boundary_kws[kw].search(text):
+                            hits += 1
+                    elif kw in text:
+                        hits += 1
                 if hits >= 1:
                     treasury_articles.append({
                         "title": a.title or "",
