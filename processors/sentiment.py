@@ -13,25 +13,37 @@ from core.base_processor import BaseProcessor
 
 logger = logging.getLogger(__name__)
 
-# Keyword-based policy direction detection
-HAWKISH_KEYWORDS = [
+# Keyword-based policy direction detection (pre-compiled with word boundaries)
+_HAWKISH_KEYWORDS = [
     "rate hike", "tightening", "inflation concern", "restrictive",
     "higher rates", "tapering", "reducing liquidity", "contractionary",
     "rate increase", "monetary tightening", "crr hike", "slr increase",
 ]
-DOVISH_KEYWORDS = [
+_DOVISH_KEYWORDS = [
     "rate cut", "easing", "accommodative", "stimulus",
     "lower rates", "quantitative easing", "expansionary", "liquidity injection",
     "rate reduction", "monetary easing", "crr cut", "growth support",
 ]
 
-SECTOR_KEYWORDS = {
+HAWKISH_PATTERNS: list[re.Pattern] = [
+    re.compile(r'\b' + re.escape(kw) + r'\b') for kw in _HAWKISH_KEYWORDS
+]
+DOVISH_PATTERNS: list[re.Pattern] = [
+    re.compile(r'\b' + re.escape(kw) + r'\b') for kw in _DOVISH_KEYWORDS
+]
+
+_SECTOR_KEYWORDS = {
     "banking": ["bank", "npa", "credit growth", "deposit", "lending", "nbfc", "rbi"],
     "markets": ["nifty", "sensex", "ipo", "fii", "dii", "market cap", "equity"],
     "real_estate": ["real estate", "housing", "property", "rera", "construction"],
     "commodities": ["crude", "gold", "silver", "copper", "commodity"],
     "forex": ["rupee", "dollar", "usd/inr", "forex", "exchange rate"],
     "tech": ["it sector", "technology", "digital", "fintech", "startup"],
+}
+
+SECTOR_PATTERNS: dict[str, list[re.Pattern]] = {
+    sector: [re.compile(r'\b' + re.escape(kw) + r'\b') for kw in keywords]
+    for sector, keywords in _SECTOR_KEYWORDS.items()
 }
 
 
@@ -198,8 +210,8 @@ class SentimentAnalyzer(BaseProcessor):
         return self._sanitize_score(score)
 
     def _detect_policy_direction(self, text_lower: str) -> str:
-        hawkish = sum(1 for kw in HAWKISH_KEYWORDS if kw in text_lower)
-        dovish = sum(1 for kw in DOVISH_KEYWORDS if kw in text_lower)
+        hawkish = sum(1 for p in HAWKISH_PATTERNS if p.search(text_lower))
+        dovish = sum(1 for p in DOVISH_PATTERNS if p.search(text_lower))
 
         if hawkish > dovish and hawkish >= 2:
             return "hawkish"
@@ -210,8 +222,8 @@ class SentimentAnalyzer(BaseProcessor):
     def _detect_sectors(self, text_lower: str) -> dict:
         """Detect which sectors are mentioned and assign per-sector sentiment."""
         sectors = {}
-        for sector, keywords in SECTOR_KEYWORDS.items():
-            mentions = sum(1 for kw in keywords if kw in text_lower)
+        for sector, patterns in SECTOR_PATTERNS.items():
+            mentions = sum(1 for p in patterns if p.search(text_lower))
             if mentions > 0:
                 sectors[sector] = {"mentions": mentions}
         return sectors

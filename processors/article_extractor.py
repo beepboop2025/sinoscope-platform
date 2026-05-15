@@ -57,16 +57,21 @@ class ArticleExtractor(BaseProcessor):
 
     def _extract_trafilatura(self, url: str) -> str | None:
         try:
+            import httpx
             import trafilatura
 
-            downloaded = trafilatura.fetch_url(url)
-            if downloaded:
-                return trafilatura.extract(
-                    downloaded,
-                    include_comments=False,
-                    include_tables=True,
-                    favor_recall=True,
-                )
+            resp = httpx.get(url, timeout=self.timeout, follow_redirects=True, headers=_HEADERS)
+            if resp.status_code != 200:
+                return None
+            if len(resp.content) > MAX_HTML_BYTES:
+                logger.warning(f"[ArticleExtractor] Skipping {url}: {len(resp.content)} bytes exceeds HTML limit")
+                return None
+            return trafilatura.extract(
+                resp.text,
+                include_comments=False,
+                include_tables=True,
+                favor_recall=True,
+            )
         except Exception as e:
             logger.debug(f"[ArticleExtractor] trafilatura failed for {url}: {e}")
         return None
