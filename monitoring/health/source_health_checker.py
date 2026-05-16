@@ -60,7 +60,7 @@ def _parse_date_fuzzy(text: str) -> datetime | None:
     import re as _re
     patterns = [
         (r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})", "%d/%m/%Y"),
-        (r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", "%Y-%m-%d"),
+        (r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", "%Y/%m/%d"),
         (r"(\w+ \d{1,2},? \d{4})", None),
     ]
     # Try explicit patterns first
@@ -489,7 +489,7 @@ async def check_single_rss(client: httpx.AsyncClient, name: str, url: str) -> He
                             status = HealthStatus.WARNING
 
         if not notes_parts:
-            notes_parts.append(f"OK — {len(items) if 'items' in dir() else '?'} entries")
+            notes_parts.append(f"OK — {len(items)} entries")
         return HealthCheckResult(f"RSS: {name}", status, elapsed, last_date, structure_match,
                                  "; ".join(notes_parts))
     except httpx.TimeoutException:

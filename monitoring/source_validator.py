@@ -59,8 +59,10 @@ class SourceValidator:
             result["checks"].append("no schedule defined")
 
         # Check required config keys
-        config = cfg.get("config", {})
-        if cfg.get("collector_class", "").endswith("FREDCollector") and not config.get("api_key"):
+        source_config = cfg.get("config", {})
+        needs_api_key = {"FredCollector", "DataGovCollector"}
+        class_short = collector_class.rsplit(".", 1)[-1] if "." in collector_class else collector_class
+        if class_short in needs_api_key and not source_config.get("api_key"):
             result["checks"].append("warning: no api_key configured")
 
         return result
