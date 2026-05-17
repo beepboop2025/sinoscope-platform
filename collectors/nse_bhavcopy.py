@@ -1,5 +1,6 @@
 """NSE daily bhavcopy + FII/DII flows collector."""
 
+import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 import pandas as pd
@@ -47,6 +48,7 @@ class NSEBhavcopy(BaseCollector):
             return records
 
         if "fii_dii" in self.types:
+            await asyncio.sleep(self.rate_limit)
             try:
                 resp = await self._http.get(f"{self.NSE_URL}/api/fiidiiTradeReact")
                 if resp.status_code != 200:
@@ -66,6 +68,7 @@ class NSEBhavcopy(BaseCollector):
                 logger.warning(f"[NSE] FII/DII failed: {e}")
 
         if "equity" in self.types:
+            await asyncio.sleep(self.rate_limit)
             try:
                 resp = await self._http.get(
                     f"{self.NSE_URL}/api/historical/cm/equity",
@@ -81,6 +84,7 @@ class NSEBhavcopy(BaseCollector):
                 logger.warning(f"[NSE] Equity snapshot failed: {e}")
 
         if "derivatives" in self.types:
+            await asyncio.sleep(self.rate_limit)
             try:
                 ist_now = datetime.now(_IST)
                 date_str = ist_now.strftime("%d-%m-%Y")

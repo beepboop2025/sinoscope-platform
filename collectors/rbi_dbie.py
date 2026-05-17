@@ -4,6 +4,7 @@ Fetches structured data: forex reserves, money supply, sectoral credit,
 interest rates, exchange rates from RBI's data portal.
 """
 
+import asyncio
 import logging
 import re
 from datetime import datetime, timezone
@@ -29,7 +30,9 @@ class RBIDbie(BaseCollector):
     async def collect(self) -> list[dict]:
         records = []
 
-        for dataset in self.datasets:
+        for i, dataset in enumerate(self.datasets):
+            if i > 0:
+                await asyncio.sleep(self.rate_limit)
             try:
                 if dataset == "forex_reserves":
                     records.extend(await self._collect_forex_reserves())
