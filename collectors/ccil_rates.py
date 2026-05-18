@@ -3,8 +3,10 @@
 Critical for LiquiFi treasury management.
 """
 
+import asyncio
 import logging
 import re
+import time
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -22,6 +24,7 @@ class CCILCollector(BaseCollector):
     FBIL_URL = "https://www.fbil.org.in"
     _RATE_MIN = -10.0
     _RATE_MAX = 50.0
+    _INTER_REQUEST_DELAY = 1.5
 
     def __init__(self, config: dict):
         super().__init__(config)
@@ -30,8 +33,13 @@ class CCILCollector(BaseCollector):
     async def collect(self) -> list[dict]:
         records = []
         failures = []
+        last_request_at = 0.0
 
         for dtype in self.data_types:
+            elapsed = time.monotonic() - last_request_at
+            if last_request_at and elapsed < self._INTER_REQUEST_DELAY:
+                await asyncio.sleep(self._INTER_REQUEST_DELAY - elapsed)
+            last_request_at = time.monotonic()
             try:
                 if dtype == "fbil_reference_rates":
                     records.extend(await self._collect_fbil_rates())
