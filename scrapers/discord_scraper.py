@@ -45,6 +45,17 @@ class DiscordScraper(BaseScraper):
 
     async def _get(self, endpoint: str, params: Optional[dict] = None) -> dict | list:
         resp = await self._http.get(f"{self.BASE_URL}{endpoint}", params=params)
+        if resp.status_code == 429:
+            try:
+                retry_after = float(resp.json().get("retry_after", 5))
+            except Exception:
+                retry_after = 5.0
+            retry_after = min(retry_after, 60.0)
+            logger.warning(f"[Discord] Rate limited on {endpoint}, waiting {retry_after:.1f}s")
+            await asyncio.sleep(retry_after)
+            raise httpx.HTTPStatusError(
+                "429 rate limited", request=resp.request, response=resp
+            )
         resp.raise_for_status()
         return resp.json()
 
@@ -125,6 +136,24 @@ class DiscordScraper(BaseScraper):
 
         logger.info(f"[Discord] Scraped {len(items)} messages from #{channel_name}")
         return items
+
+    async def scrape_configured_channels(self, channel_ids: list[str], limit_per_channel: int = 50) -> list[ScrapedItem]:
+        """Scrape a list of pre-configured channel IDs."""
+        if not self.bot_token:
+            logger.error("[Discord] Bot token required")
+            return []
+
+        all_items = []
+        for ch_id in channel_ids:
+            ch_id = ch_id.strip()
+            if not ch_id:
+                continue
+            items = await self.safe_scrape_channel(ch_id, limit_per_channel)
+            all_items.extend(items)
+            await asyncio.sleep(1.0)
+
+        logger.info(f"[Discord] Scraped {len(all_items)} messages from {len(channel_ids)} configured channels")
+        return all_items
 
     async def scrape_guild_channels(self, guild_id: str, limit_per_channel: int = 50) -> list[ScrapedItem]:
         """Scrape all text channels in a guild."""

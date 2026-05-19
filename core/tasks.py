@@ -544,11 +544,15 @@ def scrape_discord(self):
     bot_token = os.getenv("DISCORD_BOT_TOKEN")
     if not bot_token:
         return {"scraper": "discord", "items_scraped": 0, "note": "No bot token"}
+    channel_ids = [c.strip() for c in os.getenv("DISCORD_CHANNELS", "").split(",") if c.strip()]
+    if not channel_ids:
+        return {"scraper": "discord", "items_scraped": 0, "note": "No channels configured"}
     try:
         from scrapers.discord_scraper import DiscordScraper
         return _run_async(_scrape_and_route(
             lambda: DiscordScraper(bot_token=bot_token),
-            "scrape",
+            "scrape_configured_channels",
+            channel_ids=channel_ids,
         ))
     except Exception as e:
         logger.error(
