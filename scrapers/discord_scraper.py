@@ -44,18 +44,19 @@ class DiscordScraper(BaseScraper):
         await self._http.aclose()
 
     async def _get(self, endpoint: str, params: Optional[dict] = None) -> dict | list:
-        resp = await self._http.get(f"{self.BASE_URL}{endpoint}", params=params)
-        if resp.status_code == 429:
-            try:
-                retry_after = float(resp.json().get("retry_after", 5))
-            except Exception:
-                retry_after = 5.0
-            retry_after = min(retry_after, 60.0)
-            logger.warning(f"[Discord] Rate limited on {endpoint}, waiting {retry_after:.1f}s")
-            await asyncio.sleep(retry_after)
-            raise httpx.HTTPStatusError(
-                "429 rate limited", request=resp.request, response=resp
-            )
+        for _attempt in range(3):
+            resp = await self._http.get(f"{self.BASE_URL}{endpoint}", params=params)
+            if resp.status_code == 429:
+                try:
+                    retry_after = float(resp.json().get("retry_after", 5))
+                except Exception:
+                    retry_after = 5.0
+                retry_after = min(retry_after, 60.0)
+                logger.warning(f"[Discord] Rate limited on {endpoint}, waiting {retry_after:.1f}s")
+                await asyncio.sleep(retry_after)
+                continue
+            resp.raise_for_status()
+            return resp.json()
         resp.raise_for_status()
         return resp.json()
 

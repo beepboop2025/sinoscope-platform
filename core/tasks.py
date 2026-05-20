@@ -769,7 +769,7 @@ async def _route_collected_data():
                         {
                             "source": e.source,
                             "indicator": e.indicator,
-                            "value": float(e.value) if e.value else None,
+                            "value": float(e.value) if e.value is not None else None,
                             "date": e.date.isoformat() if e.date else "",
                             "unit": e.unit or "",
                         }
@@ -855,7 +855,7 @@ async def _route_collected_data():
                     "rates": [
                         {
                             "indicator": e.indicator,
-                            "value": float(e.value) if e.value else None,
+                            "value": float(e.value) if e.value is not None else None,
                             "source": e.source,
                             "date": e.date.isoformat() if e.date else "",
                         }
