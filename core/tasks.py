@@ -18,6 +18,8 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 
+from celery.exceptions import SoftTimeLimitExceeded
+
 from core.scheduler import app
 
 logger = logging.getLogger(__name__)
@@ -104,6 +106,9 @@ def run_collector(self, source_name: str):
         result = _run_async(collector.run())
         logger.info(f"[{source_name}] {result.get('status')}: {result.get('records_collected', 0)} records")
         return result
+    except SoftTimeLimitExceeded:
+        logger.error(f"Collector task timed out for {source_name}")
+        raise
     except Exception as e:
         logger.error(
             "Collector task failed",
@@ -279,6 +284,9 @@ def scrape_reddit(self):
             ),
             "scrape_all_financial", limit_per_sub=25,
         ))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for reddit")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -293,6 +301,9 @@ def scrape_twitter(self):
         return {"scraper": "twitter", "items_scraped": 0, "skipped": "backpressure"}
     try:
         return _run_async(_scrape_twitter_impl())
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for twitter")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -390,6 +401,9 @@ def scrape_hackernews(self):
     try:
         from scrapers.hackernews_scraper import HackerNewsScraper
         return _run_async(_scrape_and_route(HackerNewsScraper, "scrape_financial", limit=50))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for hackernews")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -408,6 +422,9 @@ def scrape_youtube(self):
             lambda: YouTubeScraper(api_key=os.getenv("YOUTUBE_API_KEY")),
             "scrape_financial_content", limit_per_query=20,
         ))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for youtube")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -433,6 +450,9 @@ def scrape_rss_financial(self):
             lambda: RSSScraper(feeds=critical_feeds),
             "scrape_all_feeds", limit_per_feed=10,
         ))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for rss")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -448,6 +468,9 @@ def scrape_central_banks(self):
     try:
         from scrapers.centralbank_scraper import CentralBankScraper
         return _run_async(_scrape_and_route(CentralBankScraper, "scrape_all"))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for central_bank")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -463,6 +486,9 @@ def scrape_sec(self):
     try:
         from scrapers.sec_scraper import SECScraper
         return _run_async(_scrape_and_route(SECScraper, "scrape_recent_filings", limit=30))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for sec_edgar")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -481,6 +507,9 @@ def scrape_github(self):
             lambda: GitHubScraper(token=os.getenv("GITHUB_TOKEN")),
             "scrape_all_monitored", limit_per_repo=10,
         ))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for github")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -496,6 +525,9 @@ def scrape_mastodon(self):
     try:
         from scrapers.mastodon_scraper import MastodonScraper
         return _run_async(_scrape_and_route(MastodonScraper, "scrape_financial_hashtags", limit_per_tag=20))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for mastodon")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -514,6 +546,9 @@ def scrape_darkweb(self):
             lambda: DarkWebScraper(tor_proxy=os.getenv("TOR_PROXY", "socks5://127.0.0.1:9050")),
             "scrape_all_threat_intel",
         ))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for darkweb")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -529,6 +564,9 @@ def scrape_web(self):
     try:
         from scrapers.web_scraper import WebScraper
         return _run_async(_scrape_and_route(WebScraper, "scrape_all_targets", limit_per_site=10))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for web")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",
@@ -554,6 +592,9 @@ def scrape_discord(self):
             "scrape_configured_channels",
             channel_ids=channel_ids,
         ))
+    except SoftTimeLimitExceeded:
+        logger.error("Scrape task timed out for discord")
+        raise
     except Exception as e:
         logger.error(
             "Scrape task failed",

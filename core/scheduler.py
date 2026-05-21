@@ -38,11 +38,16 @@ app.conf.update(
     worker_max_tasks_per_child=200,
     task_default_retry_delay=30,
     task_max_retries=3,
+    task_soft_time_limit=300,
+    task_time_limit=600,
     beat_schedule_filename=_BEAT_SCHEDULE_PATH,
     broker_connection_retry_on_startup=True,
     worker_cancel_long_running_tasks_on_connection_loss=True,
     broker_transport_options={
         "visibility_timeout": 7200,
+        "socket_timeout": 30,
+        "socket_connect_timeout": 15,
+        "socket_keepalive": True,
     },
 )
 
@@ -217,7 +222,11 @@ def build_beat_schedule() -> dict:
 
 
 # Build and apply schedule
-app.conf.beat_schedule = build_beat_schedule()
+try:
+    app.conf.beat_schedule = build_beat_schedule()
+except Exception as exc:
+    logger.critical(f"Failed to build beat schedule: {exc} — starting with empty schedule")
+    app.conf.beat_schedule = {}
 
 app.conf.task_routes = {
     # Collectors (YAML-driven + social scrapers)
