@@ -129,7 +129,7 @@ class RedditScraper(BaseScraper):
             return resp.json()
         except Exception:
             logger.error(f"[Reddit] Failed to parse JSON from {url} (status={resp.status_code})")
-            return {}
+            raise ValueError(f"Non-JSON response from Reddit (status {resp.status_code})")
 
     def _parse_post(self, post_data: dict, subreddit: str = "") -> ScrapedItem:
         data = post_data.get("data", post_data)

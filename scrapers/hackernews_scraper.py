@@ -75,6 +75,18 @@ class HackerNewsScraper(BaseScraper):
                 if resp.status_code in (502, 503, 504) and attempt == 0:
                     await asyncio.sleep(1.5)
                     continue
+                if resp.status_code == 429:
+                    if attempt == 0:
+                        raw_retry = resp.headers.get("Retry-After", "5")
+                        try:
+                            retry_secs = min(int(raw_retry), 60)
+                        except (ValueError, TypeError):
+                            retry_secs = 10
+                        logger.warning(f"[HN] Rate limited on item {item_id}, backing off {retry_secs}s")
+                        await asyncio.sleep(retry_secs)
+                        continue
+                    logger.warning(f"[HN] Rate limited on retry for item {item_id}, skipping")
+                    return None
                 if resp.status_code != 200:
                     logger.debug(f"[HN] Non-200 status ({resp.status_code}) for item {item_id}")
                     return None
