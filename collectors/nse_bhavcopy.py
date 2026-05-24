@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 import pandas as pd
 from core.base_collector import BaseCollector
+from core.exceptions import RateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,11 @@ class NSEBhavcopy(BaseCollector):
         if resp.status_code != 200:
             raise RuntimeError(f"NSE homepage returned {resp.status_code}, cookies not set")
 
+    def _check_rate_limit(self, resp, endpoint: str):
+        if resp.status_code == 429:
+            retry_after = float(resp.headers.get("Retry-After", "120"))
+            raise RateLimitError(f"nse/{endpoint}", retry_after)
+
     async def collect(self) -> list[dict]:
         records = []
         try:
@@ -51,6 +57,7 @@ class NSEBhavcopy(BaseCollector):
             await asyncio.sleep(self.rate_limit)
             try:
                 resp = await self._http.get(f"{self.NSE_URL}/api/fiidiiTradeReact")
+                self._check_rate_limit(resp, "fii_dii")
                 if resp.status_code != 200:
                     logger.warning(f"[NSE] FII/DII API returned HTTP {resp.status_code}")
                 else:
@@ -64,6 +71,8 @@ class NSEBhavcopy(BaseCollector):
                                 "data": item,
                                 "type": "fii_dii",
                             })
+            except RateLimitError:
+                raise
             except Exception as e:
                 logger.warning(f"[NSE] FII/DII failed: {e}")
 
@@ -74,12 +83,15 @@ class NSEBhavcopy(BaseCollector):
                     f"{self.NSE_URL}/api/historical/cm/equity",
                     params={"symbol": "NIFTY 50"},
                 )
+                self._check_rate_limit(resp, "equity")
                 if resp.status_code != 200:
                     logger.warning(f"[NSE] Equity API returned HTTP {resp.status_code}")
                 else:
                     data = resp.json()
                     if data is not None:
                         records.append({"indicator": "nse_equity_snapshot", "data": data, "type": "equity"})
+            except RateLimitError:
+                raise
             except Exception as e:
                 logger.warning(f"[NSE] Equity snapshot failed: {e}")
 
@@ -92,12 +104,15 @@ class NSEBhavcopy(BaseCollector):
                     f"{self.NSE_URL}/api/reports",
                     params={"archives": f"[{{\"name\":\"F&O - Loss Data\",\"type\":\"archives\",\"reportType\":\"derivatives\",\"dt\":\"{date_str}\"}}]"},
                 )
+                self._check_rate_limit(resp, "derivatives")
                 if resp.status_code != 200:
                     logger.warning(f"[NSE] Derivatives API returned HTTP {resp.status_code}")
                 else:
                     data = resp.json()
                     if data is not None:
                         records.append({"indicator": "nse_derivatives_snapshot", "data": data, "type": "derivatives"})
+            except RateLimitError:
+                raise
             except Exception as e:
                 logger.warning(f"[NSE] Derivatives snapshot failed: {e}")
 

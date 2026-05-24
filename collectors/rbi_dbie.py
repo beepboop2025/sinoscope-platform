@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from core.base_collector import BaseCollector
+from core.exceptions import RateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +47,18 @@ class RBIDbie(BaseCollector):
                     records.extend(await self._collect_exchange_rates())
                 elif dataset == "sectoral_credit":
                     records.extend(await self._collect_sectoral_credit())
+            except RateLimitError:
+                raise
             except Exception as e:
                 logger.warning(f"[RBI-DBIE] {dataset} failed: {e}")
 
         logger.info(f"[RBI-DBIE] Collected {len(records)} data points from {len(self.datasets)} datasets")
         return records
+
+    def _check_rate_limit(self, resp, endpoint: str):
+        if resp.status_code == 429:
+            retry_after = float(resp.headers.get("Retry-After", "60"))
+            raise RateLimitError(f"rbi_dbie/{endpoint}", retry_after)
 
     async def _collect_forex_reserves(self) -> list[dict]:
         """Fetch India's forex reserves data."""
@@ -58,8 +66,8 @@ class RBIDbie(BaseCollector):
             f"{self.base_url}/dbie/api/data",
             params={"series": "forex_reserves", "format": "json"},
         )
+        self._check_rate_limit(resp, "forex_reserves")
         if resp.status_code != 200:
-            # Try scraping the page
             return await self._scrape_rbi_page("forex-reserves")
         try:
             data = resp.json()
@@ -80,6 +88,7 @@ class RBIDbie(BaseCollector):
         # These are well-known rates — scrape from RBI's current rates page
         try:
             resp = await self._http.get("https://rbi.org.in/scripts/BS_NSDPDisplay.aspx?param=4")
+            self._check_rate_limit(resp, "interest_rates")
             if resp.status_code != 200:
                 logger.warning(f"[RBI-DBIE] Interest rates page returned HTTP {resp.status_code}")
                 return records
@@ -109,6 +118,7 @@ class RBIDbie(BaseCollector):
         records = []
         try:
             resp = await self._http.get("https://rbi.org.in/scripts/ReferenceRateArchive.aspx")
+            self._check_rate_limit(resp, "exchange_rates")
             if resp.status_code != 200:
                 logger.warning(f"[RBI-DBIE] Exchange rates page returned HTTP {resp.status_code}")
                 return records
@@ -153,6 +163,7 @@ class RBIDbie(BaseCollector):
             return records
         try:
             resp = await self._http.get(f"https://rbi.org.in/scripts/PublicationsView.aspx?Id={page_id}")
+            self._check_rate_limit(resp, page)
             if resp.status_code != 200:
                 logger.warning(f"[RBI-DBIE] Scrape {page} returned HTTP {resp.status_code}")
                 return records
@@ -165,7 +176,7 @@ class RBIDbie(BaseCollector):
                     if len(cols) >= 2:
                         name = cols[0].get_text(strip=True)
                         val = cols[-1].get_text(strip=True)
-                        match = re.search(r"[\d,]+\.?\d*", val)
+                        match = re.search(r"\d[\d,]*\.?\d*", val)
                         if match and name:
                             records.append({
                                 "indicator": f"rbi_{page}_{name[:50].lower().replace(' ', '_')}",
