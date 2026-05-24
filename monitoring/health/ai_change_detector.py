@@ -98,6 +98,7 @@ End with: IMMEDIATE ACTIONS, WATCH LIST, and NEW OPPORTUNITIES sections."""
                 CLIPROXY_URL,
                 json={
                     "model": MODEL,
+                    "max_tokens": 4096,
                     "messages": [
                         {
                             "role": "system",

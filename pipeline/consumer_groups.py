@@ -108,6 +108,7 @@ class ConsumerGroupManager:
                     group_id=gid,
                     enable_auto_commit=False,
                     request_timeout_ms=10000,
+                    socket_timeout_ms=10000,
                 )
 
                 group_lag = {"topics": {}, "total_lag": 0}
@@ -293,6 +294,7 @@ class ConsumerGroupManager:
                     group_id="dlq-health",
                     enable_auto_commit=False,
                     request_timeout_ms=10000,
+                    socket_timeout_ms=10000,
                 )
                 try:
                     partitions = consumer.partitions_for_topic(TOPIC_DLQ) or set()

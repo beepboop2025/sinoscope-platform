@@ -66,7 +66,7 @@ async def send_telegram_alert(message: str, chat_id: str, bot_token: str) -> boo
                         retry_after = resp.json().get("parameters", {}).get("retry_after", 5)
                     except Exception:
                         retry_after = 5
-                    await asyncio.sleep(retry_after)
+                    await asyncio.sleep(min(retry_after, 30))
                     retry_resp = await client.post(url, json={
                         "chat_id": chat_id,
                         "text": part,
