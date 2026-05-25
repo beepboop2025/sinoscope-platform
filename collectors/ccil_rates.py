@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from core.base_collector import BaseCollector
-from core.exceptions import SourceDownError
+from core.exceptions import RateLimitError, SourceDownError
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +30,25 @@ class CCILCollector(BaseCollector):
         super().__init__(config)
         self.data_types = config.get("data_types", ["fbil_reference_rates", "mibor"])
 
+    @staticmethod
+    def _parse_retry_after(resp) -> int:
+        try:
+            return min(int(resp.headers.get("Retry-After", 60)), 300)
+        except (ValueError, TypeError):
+            return 60
+
     async def collect(self) -> list[dict]:
         records = []
         failures = []
         last_request_at = 0.0
+        rate_limited = False
+        rate_limit_retry = 60
 
         for dtype in self.data_types:
+            if rate_limited:
+                logger.warning(f"[CCIL] Skipping {dtype} — rate limited")
+                continue
+
             elapsed = time.monotonic() - last_request_at
             if last_request_at and elapsed < self._INTER_REQUEST_DELAY:
                 await asyncio.sleep(self._INTER_REQUEST_DELAY - elapsed)
@@ -51,9 +64,16 @@ class CCILCollector(BaseCollector):
                     records.extend(await self._collect_yield_curve())
                 elif dtype in ("cp_rates", "cd_rates"):
                     records.extend(await self._collect_money_market(dtype))
+            except RateLimitError as e:
+                rate_limited = True
+                rate_limit_retry = int(e.retry_after) if e.retry_after else 60
+                logger.warning(f"[CCIL] Rate limited at {dtype}, retry-after={rate_limit_retry}s, keeping {len(records)} records collected so far")
             except Exception as e:
                 failures.append(dtype)
                 logger.warning(f"[CCIL] {dtype} collection failed: {e}")
+
+        if rate_limited and not records:
+            raise RateLimitError(self.name, retry_after=rate_limit_retry)
 
         if not records and failures:
             raise SourceDownError(
@@ -75,6 +95,9 @@ class CCILCollector(BaseCollector):
         # Try JSON API first
         try:
             resp = await self._http.get(f"{self.FBIL_URL}/api/ratesapi")
+            if resp.status_code == 429:
+                retry_after = self._parse_retry_after(resp)
+                raise RateLimitError(self.name, retry_after=retry_after)
             if resp.status_code == 200:
                 data = resp.json()
                 if not isinstance(data, (dict, list)):
@@ -96,13 +119,21 @@ class CCILCollector(BaseCollector):
                                 })
                 if records:
                     return records
+        except RateLimitError:
+            raise
         except Exception as e:
             logger.warning(f"[CCIL] FBIL API failed: {e}")
+
+        # Delay before fallback to avoid back-to-back requests
+        await asyncio.sleep(self._INTER_REQUEST_DELAY)
 
         # Fallback: scrape HTML page
         try:
             from bs4 import BeautifulSoup
             resp = await self._http.get(f"{self.FBIL_URL}")
+            if resp.status_code == 429:
+                retry_after = self._parse_retry_after(resp)
+                raise RateLimitError(self.name, retry_after=retry_after)
             if resp.status_code != 200:
                 logger.warning(f"[CCIL] FBIL HTML page returned {resp.status_code}")
                 return []
@@ -132,6 +163,8 @@ class CCILCollector(BaseCollector):
                             })
                         except (ValueError, TypeError):
                             pass
+        except RateLimitError:
+            raise
         except Exception as e:
             logger.warning(f"[CCIL] FBIL HTML scrape failed: {e}")
 
@@ -141,6 +174,9 @@ class CCILCollector(BaseCollector):
         """MIBOR overnight, 14-day, 1-month, 3-month via FBIL."""
         try:
             resp = await self._http.get(f"{self.FBIL_URL}/api/mibor")
+            if resp.status_code == 429:
+                retry_after = self._parse_retry_after(resp)
+                raise RateLimitError(self.name, retry_after=retry_after)
             if resp.status_code != 200:
                 logger.warning(f"[CCIL] MIBOR endpoint returned {resp.status_code}")
                 return []
@@ -172,6 +208,8 @@ class CCILCollector(BaseCollector):
                     "metadata": {"tenor": tenor_label},
                 })
             return records
+        except RateLimitError:
+            raise
         except Exception as e:
             logger.warning(f"[CCIL] MIBOR collection failed: {e}")
             return []
@@ -180,6 +218,9 @@ class CCILCollector(BaseCollector):
         """TREPS (Triparty Repo) rates."""
         try:
             resp = await self._http.get(f"{self.FBIL_URL}/api/treps")
+            if resp.status_code == 429:
+                retry_after = self._parse_retry_after(resp)
+                raise RateLimitError(self.name, retry_after=retry_after)
             if resp.status_code != 200:
                 logger.warning(f"[CCIL] TREPS endpoint returned {resp.status_code}")
                 return []
@@ -207,6 +248,8 @@ class CCILCollector(BaseCollector):
                 "date": datetime.now(timezone.utc).isoformat(),
                 "source_type": "treps_rates",
             }]
+        except RateLimitError:
+            raise
         except Exception as e:
             logger.warning(f"[CCIL] TREPS collection failed: {e}")
             return []
@@ -215,6 +258,9 @@ class CCILCollector(BaseCollector):
         """Sovereign yield curve — various tenors."""
         try:
             resp = await self._http.get(f"{self.FBIL_URL}/api/yield-curve")
+            if resp.status_code == 429:
+                retry_after = self._parse_retry_after(resp)
+                raise RateLimitError(self.name, retry_after=retry_after)
             if resp.status_code != 200:
                 logger.warning(f"[CCIL] Yield curve endpoint returned {resp.status_code}")
                 return []
@@ -246,6 +292,8 @@ class CCILCollector(BaseCollector):
                     "metadata": {"tenor": t},
                 })
             return records
+        except RateLimitError:
+            raise
         except Exception as e:
             logger.warning(f"[CCIL] Yield curve collection failed: {e}")
             return []
@@ -255,6 +303,9 @@ class CCILCollector(BaseCollector):
         prefix = "cp" if dtype == "cp_rates" else "cd"
         try:
             resp = await self._http.get(f"{self.FBIL_URL}/api/{prefix}-rates")
+            if resp.status_code == 429:
+                retry_after = self._parse_retry_after(resp)
+                raise RateLimitError(self.name, retry_after=retry_after)
             if resp.status_code != 200:
                 logger.warning(f"[CCIL] {prefix.upper()} rates endpoint returned {resp.status_code}")
                 return []
@@ -286,6 +337,8 @@ class CCILCollector(BaseCollector):
                     "metadata": {"tenor": t},
                 })
             return records
+        except RateLimitError:
+            raise
         except Exception as e:
             logger.warning(f"[CCIL] {prefix.upper()} rates collection failed: {e}")
             return []
