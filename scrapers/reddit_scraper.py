@@ -136,11 +136,14 @@ class RedditScraper(BaseScraper):
         created_utc = data.get("created_utc") or 0
 
         author_name = data.get("author") or "[deleted]"
+        title = data.get("title", "")
+        selftext = data.get("selftext", "")
+        combined_text = f"{title}\n\n{selftext}".strip() if selftext else title
         content = ScrapedContent(
             id=self.make_id("reddit", data.get("id", "")),
             platform=Platform.REDDIT,
             content_type=ContentType.POST,
-            text=data.get("selftext", "") or data.get("title", ""),
+            text=combined_text,
             author=AuthorInfo(
                 username=author_name,
                 display_name=author_name,

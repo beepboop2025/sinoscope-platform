@@ -98,21 +98,40 @@ class HackerNewsScraper(BaseScraper):
             return None
 
     async def _get_stories(self, category: str = "topstories", limit: int = 100) -> list[int]:
-        try:
-            resp = await self._http.get(f"{self.BASE_URL}/{category}.json")
-            resp.raise_for_status()
-        except httpx.HTTPError as e:
-            logger.error(f"[HN] Failed to fetch {category} story list: {e}")
-            return []
-        try:
-            ids = resp.json()
-        except Exception:
-            logger.error(f"[HN] Failed to parse story list JSON for {category}")
-            return []
-        if not isinstance(ids, list):
-            logger.error(f"[HN] Expected list for {category}, got {type(ids).__name__}")
-            return []
-        return ids[:limit]
+        for attempt in range(2):
+            try:
+                resp = await self._http.get(f"{self.BASE_URL}/{category}.json")
+            except httpx.HTTPError as e:
+                if attempt == 0:
+                    await asyncio.sleep(1.5)
+                    continue
+                logger.error(f"[HN] Failed to fetch {category} story list: {e}")
+                return []
+            if resp.status_code in (502, 503, 504) and attempt == 0:
+                await asyncio.sleep(2.0)
+                continue
+            if resp.status_code == 429 and attempt == 0:
+                raw_retry = resp.headers.get("Retry-After", "10")
+                try:
+                    retry_secs = min(int(raw_retry), 60)
+                except (ValueError, TypeError):
+                    retry_secs = 10
+                logger.warning(f"[HN] Rate limited on {category} list, backing off {retry_secs}s")
+                await asyncio.sleep(retry_secs)
+                continue
+            if resp.status_code != 200:
+                logger.error(f"[HN] Non-200 ({resp.status_code}) fetching {category} list")
+                return []
+            try:
+                ids = resp.json()
+            except Exception:
+                logger.error(f"[HN] Failed to parse story list JSON for {category}")
+                return []
+            if not isinstance(ids, list):
+                logger.error(f"[HN] Expected list for {category}, got {type(ids).__name__}")
+                return []
+            return ids[:limit]
+        return []
 
     def _parse_story(self, item: dict) -> ScrapedItem:
         content = ScrapedContent(
