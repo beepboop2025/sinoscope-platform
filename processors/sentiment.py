@@ -5,11 +5,21 @@ Classifies text as positive/negative/neutral with financial context:
 - Sector-level sentiment for banking, markets, real estate, etc.
 """
 
+import json
 import logging
 import math
+import os
 import re
 
 from core.base_processor import BaseProcessor
+
+try:
+    from free_llm_router import AllProvidersFailed, FreeLLMRouter
+    from free_llm_router.policy import smart_order
+
+    _FREE_AVAILABLE = True
+except Exception:  # pragma: no cover - import guard
+    _FREE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +68,16 @@ class SentimentAnalyzer(BaseProcessor):
             "multilingual_model", "cardiffnlp/twitter-xlm-roberta-base-sentiment"
         )
         self.fallback = self.config.get("fallback", "vader")
+        # LLM tier (free providers) sits ABOVE FinBERT/VADER. Enabled by default
+        # when the package is present; degrades to the existing chain on failure.
+        self.use_llm = self.config.get(
+            "use_llm",
+            _FREE_AVAILABLE and os.environ.get("FREE_LLM_ENABLED", "true").lower() == "true",
+        )
         self._pipeline = None
         self._multilingual_pipeline = None
         self._vader = None
+        self._free_router = None
 
     def _get_pipeline(self):
         if self._pipeline is None:
@@ -147,6 +164,12 @@ class SentimentAnalyzer(BaseProcessor):
         """
         from processors.language_detector import get_sentiment_model_for_language
 
+        # Top tier: free LLM with financial context. Falls through on any failure.
+        if self.use_llm:
+            llm = self._llm_score(text)
+            if llm is not None:
+                return llm
+
         model_type = get_sentiment_model_for_language(language)
 
         if model_type == "vader":
@@ -197,6 +220,71 @@ class SentimentAnalyzer(BaseProcessor):
         except Exception as e:
             logger.debug(f"[Sentiment] Multilingual model failed: {e}")
             return self._sanitize_score(self._vader_score(text)), "vader"
+
+    def _get_free_router(self):
+        if not (_FREE_AVAILABLE and self.use_llm):
+            return None
+        if self._free_router is None:
+            self._free_router = FreeLLMRouter(order_fn=smart_order)
+        return self._free_router
+
+    @staticmethod
+    def _run_async(coro):
+        """Run an async coroutine from this sync processor.
+
+        Celery sync workers have no running loop, so asyncio.run is safe. If a loop
+        is somehow already running, bail (caller falls back to FinBERT/VADER).
+        """
+        import asyncio
+
+        try:
+            asyncio.get_running_loop()
+            return None  # already in a loop — don't risk a nested-run crash
+        except RuntimeError:
+            pass
+        return asyncio.run(coro)
+
+    def _llm_score(self, text: str):
+        """Financial sentiment via free LLM. Returns (score, model) or None.
+
+        Asks for a compact JSON object so we get both an intensity score AND the
+        financial direction (which keyword/FinBERT scoring conflates with tone).
+        """
+        router = self._get_free_router()
+        if router is None:
+            return None
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a financial sentiment analyst. Read the text and reply "
+                    "with ONLY a JSON object: "
+                    '{"score": <float -1.0..1.0>, "direction": "bullish"|"bearish"|"neutral"}. '
+                    "score reflects market sentiment intensity (negative=bearish). "
+                    "No prose, no code fences."
+                ),
+            },
+            {"role": "user", "content": text[:2000]},
+        ]
+        try:
+            result = self._run_async(
+                router.chat_completion(
+                    messages, task_type="sentiment", temperature=0.0, max_tokens=48
+                )
+            )
+            if result is None:
+                return None
+            raw = result["text"].strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            parsed = json.loads(raw)
+            score = self._sanitize_score(float(parsed["score"]))
+            return score, f"llm:{result.get('provider', 'free')}"
+        except AllProvidersFailed as exc:
+            logger.debug("[Sentiment] All free providers failed: %s", exc)
+            return None
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
+            logger.debug("[Sentiment] LLM returned unparseable output: %s", exc)
+            return None
 
     def _vader_score(self, text: str) -> float:
         if self._vader is None:
