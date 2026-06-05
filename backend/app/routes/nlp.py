@@ -45,7 +45,8 @@ async def analyze_text(body: NlpAnalyzeRequest):
             result["entities"] = [e.to_dict() for e in ents]
 
         if "summarize" in operations:
-            result["summary"] = _engine.summarize(body.text)
+            # Abstractive LLM summary (free providers) with extractive fallback.
+            result["summary"] = await _engine.summarize_async(body.text)
 
         if "topics" in operations:
             result["topics"] = _engine.extract_topics(body.text)

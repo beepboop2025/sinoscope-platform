@@ -19,6 +19,7 @@ import alertRoutes from './routes/alerts.js';
 import userRoutes from './routes/users.js';
 import apiKeyRoutes from './routes/apiKeys.js';
 import licenseRoutes from './routes/license.js';
+import llmRoutes from './routes/llm.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3456;
@@ -53,6 +54,7 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/api-keys', apiKeyRoutes);
 app.use('/api/license', licenseRoutes);
+app.use('/api/llm', llmRoutes);
 
 // Backward compatibility: serve /{category}.json like old dataServer
 app.get('/:file', (req, res, next) => {

@@ -7,11 +7,34 @@ topic extraction, fake-news heuristics, and market briefing generation.
 import json
 import logging
 import math
+import os
 import re
 from collections import Counter
 from datetime import date, datetime
 
 logger = logging.getLogger(__name__)
+
+# Optional free-LLM router for abstractive summarization. Guarded so the rule-based
+# engine still works standalone if the package is absent.
+try:
+    from free_llm_router import AllProvidersFailed, FreeLLMRouter
+    from free_llm_router.policy import smart_order
+
+    _FREE_AVAILABLE = True
+except Exception:  # pragma: no cover - import guard
+    _FREE_AVAILABLE = False
+
+_FREE_ROUTER = None
+
+
+def _get_free_router():
+    """Lazy singleton free router, or None if disabled/unavailable."""
+    global _FREE_ROUTER
+    if not (_FREE_AVAILABLE and os.environ.get("FREE_LLM_ENABLED", "true").lower() == "true"):
+        return None
+    if _FREE_ROUTER is None:
+        _FREE_ROUTER = FreeLLMRouter(order_fn=smart_order)
+    return _FREE_ROUTER
 
 # ── Sentiment word lists ──────────────────────────────────────────────────────
 
@@ -280,6 +303,40 @@ class NlpEngine:
         top = sorted(scored[:max_sentences], key=lambda x: x[0])
 
         return " ".join(item[2] for item in top)
+
+    async def summarize_async(self, text: str, max_sentences: int = 3) -> str:
+        """Abstractive summary via free LLM, falling back to extractive summarize().
+
+        Use this from async (FastAPI) contexts. The rule-based extractive summary
+        is the fallback when free providers are disabled, absent, or all fail.
+        """
+        router = _get_free_router()
+        if router is not None and text and text.strip():
+            try:
+                result = await router.chat_completion(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are a financial market analyst. Write a concise, "
+                                f"factual summary in at most {max_sentences} sentences. "
+                                "Plain text only — no preamble, no bullet points."
+                            ),
+                        },
+                        {"role": "user", "content": text[:6000]},
+                    ],
+                    task_type="summarization",
+                    temperature=0.2,
+                    max_tokens=320,
+                )
+                summary = (result.get("text") or "").strip()
+                if summary:
+                    return summary
+            except AllProvidersFailed as exc:
+                logger.warning(
+                    "Free LLM summarization failed (%s) — using extractive fallback", exc
+                )
+        return self.summarize(text, max_sentences)
 
     def extract_topics(self, text: str, max_topics: int = 5) -> list[str]:
         """TF-IDF-like keyword extraction for topic identification."""

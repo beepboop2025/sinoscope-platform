@@ -131,4 +131,29 @@ export interface ApiClient {
 
   // Data Quality
   getDataQuality: () => Promise<unknown>;
+
+  // LLM (free-provider router behind the authed backend proxy)
+  llmChat: (req: LlmChatRequest) => Promise<LlmChatResult>;
+}
+
+export interface LlmChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface LlmChatRequest {
+  messages: LlmChatMessage[];
+  tier?: 'fast' | 'smart';
+  taskType?: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+export interface LlmChatResult {
+  text: string;
+  model: string;
+  provider: string;
+  tokens: { prompt: number; completion: number; total: number };
+  latencyMs: number;
+  costUsd: number;
 }

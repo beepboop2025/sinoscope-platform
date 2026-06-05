@@ -1,4 +1,4 @@
-import type { ApiFetchOptions, ApiClient } from '../types/api';
+import type { ApiFetchOptions, ApiClient, LlmChatResult } from '../types/api';
 
 declare global {
   interface Window {
@@ -126,4 +126,9 @@ export const api: ApiClient = {
 
   // Data Quality
   getDataQuality: () => apiFetch('/data-quality'),
+
+  // LLM — free-provider router behind the authed backend proxy. Keys never
+  // touch the browser; this just POSTs the prompt and gets the completion back.
+  llmChat: (req) =>
+    apiFetch('/llm/chat', { method: 'POST', body: req, timeoutMs: 45_000 }) as Promise<LlmChatResult>,
 };
