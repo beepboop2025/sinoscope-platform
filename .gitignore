@@ -17,3 +17,7 @@ release/
 *.log
 firebase-debug.log
 .next/
+
+# generated local data
+server/data/
+server/prisma/dev.db

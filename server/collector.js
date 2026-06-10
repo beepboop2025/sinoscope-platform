@@ -232,9 +232,162 @@ async function fetchTrendingCoins() {
   }
 }
 
+// ─── Keyless real-data fallbacks (Yahoo Finance / treasury.gov) ───
+// Used automatically when the corresponding API key is absent, so the app
+// shows real market data out of the box instead of demo placeholders.
+const YF_UA = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' };
+
+async function yahooChart(symbol, range = '5d', interval = '1d') {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
+  const res = await safeFetch(url, { headers: YF_UA });
+  const data = await res.json();
+  return data?.chart?.result?.[0] || null;
+}
+
+async function fetchStocksYahoo() {
+  const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'JPM', 'V', 'WMT'];
+  const results = [];
+  for (const sym of symbols) {
+    try {
+      const chart = await yahooChart(sym, '1d', '1d');
+      const m = chart?.meta;
+      if (!m?.regularMarketPrice) continue;
+      const prev = m.chartPreviousClose ?? m.previousClose ?? m.regularMarketPrice;
+      const q = chart.indicators?.quote?.[0] || {};
+      results.push({
+        symbol: m.symbol,
+        price: m.regularMarketPrice,
+        change: +(m.regularMarketPrice - prev).toFixed(4),
+        changePct: +(((m.regularMarketPrice - prev) / prev) * 100).toFixed(4),
+        volume: m.regularMarketVolume ?? q.volume?.[0] ?? 0,
+        high: m.regularMarketDayHigh ?? q.high?.[0] ?? m.regularMarketPrice,
+        low: m.regularMarketDayLow ?? q.low?.[0] ?? m.regularMarketPrice,
+        open: q.open?.[0] ?? prev,
+        prevClose: prev,
+      });
+    } catch (err) {
+      log(`[STOCKS] Yahoo ${sym} error: ${err.message}`);
+    }
+    await sleep(300);
+  }
+  if (results.length > 0) {
+    saveData('stocks', results);
+    log(`[STOCKS] Updated ${results.length} quotes (Yahoo keyless)`);
+    recordRun('stocks', true);
+  } else {
+    recordRun('stocks', false);
+  }
+}
+
+async function fetchCommoditiesYahoo() {
+  const futures = {
+    GOLD: 'GC=F', SILVER: 'SI=F', OIL_WTI: 'CL=F', OIL_BRENT: 'BZ=F',
+    NATGAS: 'NG=F', COPPER: 'HG=F',
+  };
+  const results = {};
+  for (const [name, sym] of Object.entries(futures)) {
+    try {
+      const chart = await yahooChart(sym, '1mo', '1d');
+      const m = chart?.meta;
+      if (!m?.regularMarketPrice) continue;
+      const ts = chart.timestamp || [];
+      const closes = chart.indicators?.quote?.[0]?.close || [];
+      const history = ts
+        .map((t, i) => (closes[i] != null
+          ? { date: new Date(t * 1000).toISOString().slice(0, 10), value: +closes[i].toFixed(4) }
+          : null))
+        .filter(Boolean)
+        .reverse();
+      results[name] = {
+        price: m.regularMarketPrice,
+        date: new Date((m.regularMarketTime || Date.now() / 1000) * 1000).toISOString().slice(0, 10),
+        history: history.slice(0, 10),
+      };
+    } catch (err) {
+      log(`[COMMODITIES] Yahoo ${name} error: ${err.message}`);
+    }
+    await sleep(300);
+  }
+  if (Object.keys(results).length > 0) {
+    saveData('commodities', results);
+    log(`[COMMODITIES] Updated ${Object.keys(results).length} commodities (Yahoo keyless)`);
+    recordRun('commodities', true);
+  } else {
+    recordRun('commodities', false);
+  }
+}
+
+async function fetchBondsTreasuryGov() {
+  const month = new Date().toISOString().slice(0, 7).replace('-', '');
+  const url = `https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value_month=${month}`;
+  const fields = {
+    '1M': 'BC_1MONTH', '3M': 'BC_3MONTH', '6M': 'BC_6MONTH', '1Y': 'BC_1YEAR',
+    '2Y': 'BC_2YEAR', '3Y': 'BC_3YEAR', '5Y': 'BC_5YEAR', '7Y': 'BC_7YEAR',
+    '10Y': 'BC_10YEAR', '20Y': 'BC_20YEAR', '30Y': 'BC_30YEAR',
+  };
+  try {
+    const res = await safeFetch(url, { headers: YF_UA });
+    const xml = await res.text();
+    const entries = xml.split('<m:properties>').slice(1);
+    const results = {};
+    for (const entry of entries) {
+      const dateMatch = entry.match(/<d:NEW_DATE[^>]*>([^<]+)/);
+      if (!dateMatch) continue;
+      const date = dateMatch[1].slice(0, 10);
+      for (const [mat, field] of Object.entries(fields)) {
+        const m = entry.match(new RegExp(`<d:${field}[^>]*>([0-9.]+)`));
+        if (!m) continue;
+        (results[mat] ||= []).push({ date, value: parseFloat(m[1]) });
+      }
+    }
+    if (Object.keys(results).length === 0) throw new Error('no entries parsed');
+    for (const mat of Object.keys(results)) results[mat].reverse(); // newest first, like FRED
+    saveData('bonds', results);
+    const curve = Object.entries(results)
+      .map(([mat, obs]) => (obs.length > 0 ? { maturity: mat, yield: obs[0].value, date: obs[0].date } : null))
+      .filter(Boolean);
+    saveData('yield_curve', curve);
+    log(`[BONDS] Updated ${curve.length} maturities (treasury.gov keyless)`);
+    recordRun('bonds', true);
+  } catch (err) {
+    log(`[BONDS] treasury.gov error: ${err.message}`);
+    recordRun('bonds', false);
+  }
+}
+
+async function fetchNewsYahooRss() {
+  try {
+    const res = await safeFetch('https://finance.yahoo.com/news/rssindex', { headers: YF_UA });
+    const xml = await res.text();
+    const items = xml.split('<item>').slice(1, 21);
+    const articles = items.map(item => {
+      const pick = (tag) => {
+        const m = item.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${tag}>`));
+        return m ? m[1].trim() : '';
+      };
+      const title = pick('title');
+      const url = pick('link');
+      if (!title || !url) return null;
+      return {
+        id: url,
+        title,
+        summary: pick('description').replace(/<[^>]+>/g, '').slice(0, 200),
+        source: pick('source') || 'Yahoo Finance',
+        url,
+        image: '',
+        time: pick('pubDate') ? new Date(pick('pubDate')).getTime() : Date.now(),
+        category: 'business',
+      };
+    }).filter(Boolean);
+    return articles.length > 0 ? articles : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── STOCKS (Alpha Vantage) ───
 async function fetchStocks() {
-  if (!AV_KEY) { log('[STOCKS] No Alpha Vantage key'); return; }
+  if (!AV_KEY) { return fetchStocksYahoo(); }
   const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'JPM', 'V', 'WMT'];
   const results = [];
   for (const sym of symbols) {
@@ -270,7 +423,7 @@ async function fetchStocks() {
 
 // ─── BONDS (FRED Treasury Yields) ───
 async function fetchBonds() {
-  if (!FRED_KEY) { log('[BONDS] No FRED key'); return; }
+  if (!FRED_KEY) { return fetchBondsTreasuryGov(); }
   const series = {
     '1M': 'DGS1MO', '3M': 'DGS3MO', '6M': 'DGS6MO', '1Y': 'DGS1',
     '2Y': 'DGS2', '3Y': 'DGS3', '5Y': 'DGS5', '7Y': 'DGS7',
@@ -308,7 +461,7 @@ async function fetchBonds() {
 
 // ─── COMMODITIES (FRED) ───
 async function fetchCommodities() {
-  if (!FRED_KEY) return;
+  if (!FRED_KEY) { return fetchCommoditiesYahoo(); }
   const indicators = {
     GASOLINE: 'GASREGW', OIL_WTI: 'DCOILWTICO', OIL_BRENT: 'DCOILBRENTEU',
     NATGAS: 'DHHNGSP', COPPER: 'PCOPPUSDM',
@@ -581,6 +734,11 @@ async function fetchNews() {
       }));
       if (articles.length === 0) articles = null;
     } catch { articles = null; }
+  }
+
+  // 6. Yahoo Finance RSS (keyless — real headlines with no API key)
+  if (!articles) {
+    articles = await fetchNewsYahooRss();
   }
 
   if (articles && articles.length > 0) {
