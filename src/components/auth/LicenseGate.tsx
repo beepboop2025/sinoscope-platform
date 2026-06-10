@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, type ReactElement, type ReactNode, type FormEvent } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactElement, type ReactNode, type FormEvent } from 'react';
 import { storageRead, storageWrite } from '../../utils/storage';
 
 const LICENSE_KEY = 'dragonscope_license';
@@ -161,6 +161,18 @@ export default function LicenseGate({ children }: LicenseGateProps): ReactElemen
       setError(result.error || 'Invalid license code');
     }
   }, [code]);
+
+  // The boot splash in index.html is normally removed when App mounts. When the
+  // gate blocks (no license yet), App never mounts and the splash would cover
+  // this form forever — clear it here too.
+  useEffect(() => {
+    if (license) return;
+    const splash = document.getElementById('splash');
+    if (splash) {
+      splash.classList.add('splash-fade-out');
+      setTimeout(() => splash.remove(), 600);
+    }
+  }, [license]);
 
   if (license) {
     return children as ReactElement;
