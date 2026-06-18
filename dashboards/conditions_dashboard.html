@@ -194,6 +194,7 @@
   </footer>
 </div>
 
+<!--CBB_EMBED--><script>window.__CBB_EMBED__={"sectors": [{"sector": "agriculture", "region": "national", "period": "2026-05", "D": 0.0, "SD": 0.0, "AS": 0.0, "momentum": 0.0, "mirror_gap": null, "confidence": "low", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": null, "anchor_source": null, "pos": 0, "neg": 0, "neutral": 0}}, {"sector": "finance_banking", "region": "national", "period": "2026-05", "D": 0.0, "SD": 0.0, "AS": 0.0, "momentum": 0.0, "mirror_gap": null, "confidence": "low", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": null, "anchor_source": null, "pos": 0, "neg": 0, "neutral": 0}}, {"sector": "manufacturing", "region": "coastal_export", "period": "2026-05", "D": 26.8906, "SD": 0.0, "AS": 44.8177, "momentum": -23.062, "mirror_gap": null, "confidence": "med", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": 0.04824170932561763, "anchor_source": "cn_hf:macro_customs", "pos": 0, "neg": 0, "neutral": 0}}, {"sector": "mining_commodities", "region": "national", "period": "2026-05", "D": 0.0, "SD": 0.0, "AS": 0.0, "momentum": 0.0, "mirror_gap": null, "confidence": "low", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": null, "anchor_source": null, "pos": 0, "neg": 0, "neutral": 0}}, {"sector": "property_construction", "region": "national", "period": "2026-05", "D": 0.0, "SD": 0.0, "AS": 0.0, "momentum": 0.0, "mirror_gap": null, "confidence": "low", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": null, "anchor_source": null, "pos": 0, "neg": 0, "neutral": 0}}, {"sector": "retail_consumer", "region": "national", "period": "2026-05", "D": 0.0, "SD": 0.0, "AS": 0.0, "momentum": 0.0, "mirror_gap": null, "confidence": "low", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": null, "anchor_source": null, "pos": 0, "neg": 0, "neutral": 0}}, {"sector": "services", "region": "national", "period": "2026-05", "D": 0.0, "SD": 0.0, "AS": 0.0, "momentum": 0.0, "mirror_gap": null, "confidence": "low", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": null, "anchor_source": null, "pos": 0, "neg": 0, "neutral": 0}}, {"sector": "technology", "region": "coastal_export", "period": "2026-05", "D": 0.0, "SD": 0.0, "AS": 0.0, "momentum": 0.0, "mirror_gap": null, "confidence": "low", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": null, "anchor_source": null, "pos": 0, "neg": 0, "neutral": 0}}, {"sector": "transport_logistics", "region": "national", "period": "2026-05", "D": 26.8906, "SD": 0.0, "AS": 44.8177, "momentum": -23.062, "mirror_gap": null, "confidence": "med", "n_mentions": 0, "inputs": {"reported_value": null, "mirror_value": null, "anchor_growth": 0.04824170932561763, "anchor_source": "cn_hf:macro_customs", "pos": 0, "neg": 0, "neutral": 0}}]};window.__CBB_EMBED_AT__="2026-06-18T14:19Z";</script>
 <script>
 // XSS defense: every interpolated string is escaped; every numeric field is coerced.
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -244,7 +245,8 @@ function setFeed(state){
   const tag=$("feedTag"), note=$("feedNote");
   tag.className="feed-tag "+esc(state);
   if(state==="live"){tag.textContent="● LIVE"; note.textContent="streaming from cbb:latest";}
-  else if(state==="err"){tag.textContent="API UNREACHABLE"; note.textContent="showing sample data — start the backend for live signal";}
+  else if(state==="snapshot"){tag.textContent="● SNAPSHOT"; note.textContent="real conditions pull "+(window.__CBB_EMBED_AT__||"")+" — start the API for live updates";}
+  else if(state==="err"){tag.textContent="API UNREACHABLE"; note.textContent="showing last snapshot — start the backend for live signal";}
   else{tag.textContent="SAMPLE DATA"; note.textContent="demonstration feed — connect the API for live signal";}
 }
 
@@ -294,19 +296,19 @@ function renderHeatmap(rows){
 
 async function boot(){
   $("clock").textContent=new Date().toISOString().slice(11,19);
-  let rows=[];
-  let feed="sample";
+  // Fallback chain: live API → real embedded snapshot → demonstration sample.
+  const EMBED=window.__CBB_EMBED__;
+  let rows=(EMBED && EMBED.sectors && EMBED.sectors.length)?EMBED.sectors:[];
+  let feed=rows.length?"snapshot":"sample";
   try{
     const res=await fetch("/api/v4/conditions/index",{cache:"no-store"});
     if(res.ok){
       const data=await res.json();
-      const arr=Array.isArray(data)?data:(Array.isArray(data.sectors)?data.sectors:[]);
+      const arr=Array.isArray(data)?data:(data.sectors||data.index||[]);
       if(arr.length){ rows=arr; feed="live"; }
-    }else{
-      feed="err";
-    }
-  }catch(e){ feed="err"; }
-  if(!rows.length) rows=SAMPLE.sectors;
+    }else if(feed!=="snapshot"){ feed="err"; }
+  }catch(e){ if(feed!=="snapshot") feed="err"; }
+  if(!rows.length){ rows=SAMPLE.sectors; feed="sample"; }
   setFeed(feed);
   renderStats(rows);
   renderHeatmap(rows);
