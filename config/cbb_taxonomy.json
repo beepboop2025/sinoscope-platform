@@ -65,9 +65,7 @@
           "exports"
         ]
       },
-      "cn_hf_sources": [
-        "macro_customs"
-      ],
+      "cn_hf_sources": [],
       "provinces": [
         {
           "name_zh": "黑龙江",
@@ -205,8 +203,7 @@
         "macro_pboc_credit",
         "macro_nbs",
         "macro_caixin_pmi",
-        "macro_cfl_pmi",
-        "macro_customs"
+        "macro_cfl_pmi"
       ],
       "provinces": [
         {
@@ -311,7 +308,8 @@
         "yiwu_index",
         "cement_digital",
         "coal_cctd",
-        "autos_cpca_retail"
+        "autos_cpca_retail",
+        "macro_customs"
       ],
       "provinces": [
         {
@@ -1027,7 +1025,8 @@
         "scfi",
         "freight_road_logistics",
         "mobility_12306",
-        "mobility_civil_aviation"
+        "mobility_civil_aviation",
+        "macro_customs"
       ],
       "provinces": [
         {

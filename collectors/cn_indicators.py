@@ -24,6 +24,59 @@ from typing import Any, Optional
 import pandas as pd
 
 from core.base_collector import BaseCollector
+
+
+# ── Per-source bespoke parsers ───────────────────────────────────────
+# Some open sources return idiosyncratic JSON the generic json_path/date/value
+# mapping can't reach. Each parser takes the decoded response and returns a flat
+# list of {"date": str, "value": number, **extra} observations.
+
+def _parse_sse_freight(data: Any) -> list:
+    """Shanghai Shipping Exchange CCFI/SCFI composite index.
+
+    Emits the current AND prior-week points so the index has a period-over-period
+    delta to compute momentum from.
+    """
+    d = (data or {}).get("data", {}) or {}
+    cur, last = d.get("currentDate"), d.get("lastDate")
+    lines = d.get("lineDataList", []) or []
+
+    def emit(item, label):
+        out = [{"date": cur, "value": item.get("currentContent"), "line": label}]
+        if last and item.get("lastContent") is not None:
+            out.append({"date": last, "value": item.get("lastContent"), "line": label})
+        return out
+
+    for item in lines:
+        dit = (item.get("dataItemTypeName") or "")
+        en = ((item.get("properties") or {}).get("lineName_EN") or "").strip().upper()
+        if dit.endswith("_T") or en == "COMPOSITE INDEX":
+            return emit(item, "COMPOSITE")
+    if lines:  # fallback: first line
+        return emit(lines[0], lines[0].get("dataItemTypeName") or "LINE")
+    return []
+
+
+def _parse_chinadata_series(data: Any, value_key: str = "export") -> list:
+    """chinadata.live series: data.data is a list of monthly trade rows."""
+    rows = ((data or {}).get("data", {}) or {}).get("data", []) or []
+    out = []
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        out.append({
+            "date": r.get("date"),
+            "value": r.get(value_key),
+            **{k: r.get(k) for k in ("total", "export", "import", "balance") if k in r},
+        })
+    return out
+
+
+_CUSTOM_PARSERS = {
+    "ccfi": _parse_sse_freight,
+    "scfi": _parse_sse_freight,
+    "macro_customs": _parse_chinadata_series,
+}
 from core.exceptions import SchemaChangedError
 
 logger = logging.getLogger(__name__)
@@ -332,6 +385,9 @@ class CNIndicatorsCollector(BaseCollector):
             return df.to_dict("records")
 
         data = resp.json()
+        custom = _CUSTOM_PARSERS.get(src.get("key"))
+        if custom:
+            return custom(data)
         return self._get_nested(data, src.get("json_path"))
 
     # ── Parsing helpers ─────────────────────────────────────────────
