@@ -222,7 +222,7 @@ The `beat` service drives 24/7 collection from `config/sources.yaml`; an in-stac
 `backup` service dumps Postgres + `data/` snapshots nightly and syncs them to
 Drive.
 
-**Two deployment paths:**
+**Deployment paths:**
 
 - **Fully cloud, zero local** → [`deploy/railway/DEPLOY_RAILWAY.md`](deploy/railway/DEPLOY_RAILWAY.md).
   Deploy every service from GitHub via the Railway dashboard — managed Postgres +
@@ -230,6 +230,10 @@ Drive.
 - **Self-managed VPS** → [`deploy/DEPLOY.md`](deploy/DEPLOY.md). Run the full
   compose stack on your own box with data on an attached disk (disk mount, rclone
   auth, systemd boot, reverse proxy).
+- **Heavy data + your own AI agent** → [`deploy/DEPLOY_HEAVY.md`](deploy/DEPLOY_HEAVY.md).
+  100 GB–1 TB+/mo of raw data to **Cloudflare R2** (structured data stays in
+  Postgres), analyzed by a free→local→paid AI cascade (`core/ai_complete.py`:
+  free-LLM router → Ollama → Claude). Real cost math included.
 
 ---
 

@@ -14,11 +14,20 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 RAW_DATA_DIR = os.getenv("RAW_DATA_DIR", "./data/raw")
+# S3-compatible object store: local MinIO OR Cloudflare R2 / AWS S3 / Backblaze B2.
+# For Cloudflare R2: MINIO_ENDPOINT=<account>.r2.cloudflarestorage.com, MINIO_SECURE=true.
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET", "econscraper-raw")
 USE_MINIO = os.getenv("USE_MINIO", "false").lower() == "true"
+# HTTPS is REQUIRED for R2/S3; only local MinIO runs plaintext. Defaults to true
+# unless the endpoint is an obvious localhost address.
+MINIO_SECURE = os.getenv(
+    "MINIO_SECURE",
+    "false" if MINIO_ENDPOINT.startswith(("localhost", "127.0.0.1", "minio:")) else "true",
+).lower() == "true"
+MINIO_REGION = os.getenv("MINIO_REGION", "auto")  # R2 accepts "auto"
 
 
 class RawStore:
@@ -35,7 +44,8 @@ class RawStore:
                     MINIO_ENDPOINT,
                     access_key=MINIO_ACCESS_KEY,
                     secret_key=MINIO_SECRET_KEY,
-                    secure=False,
+                    secure=MINIO_SECURE,
+                    region=MINIO_REGION,
                 )
                 if not self._minio_client.bucket_exists(MINIO_BUCKET):
                     self._minio_client.make_bucket(MINIO_BUCKET)
