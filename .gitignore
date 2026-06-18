@@ -4,6 +4,7 @@ __pycache__/
 .env
 cookies.json
 data/
+.agents/
 *.egg-info/
 .venv/
 venv/

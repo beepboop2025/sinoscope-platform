@@ -135,9 +135,16 @@ class SentimentAnalyzer(BaseProcessor):
         # Detect language and route to appropriate model
         language = self._detect_language(text)
         score, model_used = self._analyze(text, language=language)
-        text_lower = text.lower()
-        direction = self._detect_policy_direction(text_lower)
-        sectors = self._detect_sectors(text_lower)
+
+        # Policy-direction / sector enrichment is language-specific. The English
+        # path uses \b-anchored regex (sentiment.py), which never matches CJK; for
+        # Chinese we route to substring-based detection that handles negation.
+        if language == "zh":
+            direction, sectors = self._detect_zh_policy_and_sectors(text)
+        else:
+            text_lower = text.lower()
+            direction = self._detect_policy_direction(text_lower)
+            sectors = self._detect_sectors(text_lower)
 
         return {
             "article_id": article_id,
@@ -315,6 +322,23 @@ class SentimentAnalyzer(BaseProcessor):
             if mentions > 0:
                 sectors[sector] = {"mentions": mentions}
         return sectors
+
+    def _detect_zh_policy_and_sectors(self, text: str) -> tuple[str, dict]:
+        """Chinese policy-direction + sector detection (substring, negation-aware).
+
+        Returns (direction, sectors). Degrades to ("neutral", {}) if the lexicon
+        is missing, so a Chinese article still gets its sentiment score.
+        """
+        try:
+            from processors.zh_finance import (
+                detect_chinese_policy_and_sectors,
+                load_lexicon,
+            )
+            result = detect_chinese_policy_and_sectors(text, load_lexicon())
+            return result["policy_direction"], result["sectors"]
+        except Exception as e:
+            logger.debug(f"[Sentiment] Chinese enrichment failed: {e}")
+            return "neutral", {}
 
     def _store_results(self, results: list[dict], db):
         from storage.models import SentimentScore

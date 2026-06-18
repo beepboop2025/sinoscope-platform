@@ -19,6 +19,8 @@ from api.routes.trends import router as trends_router
 from api.routes.data import router as data_router
 from api.routes.digest import router as digest_router
 from api.routes.health_v4 import router as monitoring_router
+from api.routes.ddti import router as ddti_router
+from api.routes.conditions import router as conditions_router
 
 # API Key Manager
 from apikeys.routes import router as keys_router
@@ -76,6 +78,8 @@ app.include_router(trends_router, prefix="/api/v4")
 app.include_router(data_router, prefix="/api/v4")
 app.include_router(digest_router, prefix="/api/v4")
 app.include_router(monitoring_router, prefix="/api/v4")
+app.include_router(ddti_router, prefix="/api/v4")
+app.include_router(conditions_router, prefix="/api/v4")
 
 # API Key Manager
 app.include_router(keys_router, prefix="/api/v4")

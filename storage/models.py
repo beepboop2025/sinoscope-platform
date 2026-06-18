@@ -177,3 +177,59 @@ class CollectionLog(Base):
         Index("idx_log_status", "status"),
         Index("idx_log_run_at", "run_at"),
     )
+
+
+class DDTIIndexSnapshot(Base):
+    """Time-series of DDTI selectivity/novelty index computations.
+
+    One row per index run, so threat scores can be charted over time (the Redis
+    `ddti:index:latest` key is only the live cache). The full ranked list is kept
+    in `ranked` (JSONB); the scalar columns are denormalized for fast querying.
+    """
+    __tablename__ = "ddti_index_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    generated_at = Column(DateTime(timezone=True), nullable=False,
+                          default=lambda: datetime.now(timezone.utc))
+    n_observations = Column(Integer, default=0)
+    n_terms = Column(Integer, default=0)
+    n_new = Column(Integer, default=0)          # newly-sensitive terms this window
+    top_term = Column(Text, nullable=True)
+    top_threat = Column(Float, default=0.0)
+    window = Column(JSONB, default=dict)        # current/history days, weights
+    ranked = Column(JSONB, default=list)        # full ranked term list
+    scope = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("idx_ddti_generated_at", "generated_at"),
+        Index("idx_ddti_top_term", "top_term"),
+    )
+
+
+class ConditionsIndexSnapshot(Base):
+    """Time-series of China economic conditions index computations.
+
+    One row per sector per index run. The Redis `cbb:latest` key is the live cache;
+    this table provides durable history for trend analysis.
+    """
+    __tablename__ = "conditions_index_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    generated_at = Column(DateTime(timezone=True), nullable=False,
+                          default=lambda: datetime.now(timezone.utc))
+    period = Column(String(8), nullable=True)
+    sector = Column(String(64), nullable=False)
+    region = Column(String(32), nullable=True)
+    diffusion = Column(Float, default=0.0)
+    sentiment = Column(Float, default=0.0)
+    anchor = Column(Float, default=0.0)
+    momentum = Column(Float, default=0.0)
+    mirror_gap = Column(Float, nullable=True)
+    confidence = Column(String(8), default="low")
+    n_mentions = Column(Integer, default=0)
+    inputs = Column(JSONB, default=dict)
+
+    __table_args__ = (
+        Index("idx_cbb_generated_at", "generated_at"),
+        Index("idx_cbb_sector", "sector"),
+    )

@@ -701,6 +701,21 @@ def generate_digest():
         return {"error": str(e)}
 
 
+@app.task
+def generate_ddti_index():
+    """Recompute the DDTI selectivity/novelty index from ddti_deletion articles.
+
+    Schedule alongside collect-ddti_probe (e.g. every 15-30 min) in scheduler beat.
+    Writes ddti:index:latest to Redis; pushes high-threat/new terms to alerts:ddti.
+    """
+    try:
+        from processors.ddti_index import DDTIIndexProcessor
+        return DDTIIndexProcessor().run()
+    except Exception as e:
+        logger.error(f"DDTI index failed: {e}")
+        return {"error": str(e)}
+
+
 # ══════════════════════════════════════════════════════════════
 # 4. ROUTING — Push collected data to DragonScope + LiquiFi
 # ══════════════════════════════════════════════════════════════

@@ -192,3 +192,229 @@ sources:
         - "MIBOR SOFR rate"
         - "treasury yield"
         - "Fed rate decision"
+
+  # ── DDTI feasibility probe (censorship-as-signal) ────────────
+  ddti_probe:
+    enabled: false                     # enable after scripts/ddti_feasibility.py returns GO
+    schedule: "*/15 * * * *"           # every 15 min once live
+    collector_class: "collectors.ddti_probe.DDTIProbeCollector"
+    config:
+      deletion_feeds:
+        - name: cdt_english
+          url: "https://chinadigitaltimes.net/feed/"
+        - name: cdt_minitrue
+          url: "https://chinadigitaltimes.net/china/minitrue/feed/"
+        - name: cdt_chinese
+          url: "https://chinadigitaltimes.net/chinese/feed/"
+
+  # ── China Social (Weibo hot search) ──────────────────────────
+  weibo_hotsearch:
+    enabled: true
+    schedule: "*/10 * * * *"           # Every 10 minutes (hot list churns fast)
+    collector_class: "collectors.weibo_hotsearch.WeiboHotSearchCollector"
+    config:
+      # Used by _is_financially_relevant() — extend with your domain terms.
+      finance_keywords:
+        - "A股"        # A-shares
+        - "股市"        # stock market
+        - "央行"        # central bank (PBOC)
+        - "降准"        # RRR cut
+        - "降息"        # rate cut
+        - "加息"        # rate hike
+        - "人民币"      # RMB / yuan
+        - "楼市"        # property market
+        - "房地产"      # real estate
+        - "经济"        # economy
+        - "通胀"        # inflation
+        - "GDP"
+
+  # ── China Economic Conditions Engine (CBB) ───────────────────
+  comtrade_mirror:
+    enabled: true
+    schedule: "0 */6 * * *"            # Every 6 hours
+    collector_class: "collectors.comtrade_mirror.ComtradeMirrorCollector"
+    config:
+      base_url: "https://comtradeapi.un.org/data/v1/get"
+      # Optional API key. Leave empty to run unauthenticated; the collector will
+      # also check the COMTRADE_API_KEY environment variable if this is blank.
+      api_key: ""
+      reporter_code: 156               # China
+      partner_code_world: 0            # World aggregate
+      flows: ["M", "X"]                # Imports / Exports
+      hs_chapters:
+        - "84"   # Nuclear reactors, boilers, machinery
+        - "85"   # Electrical machinery
+        - "62"   # Apparel (not knit)
+        - "61"   # Apparel (knit)
+        - "72"   # Iron and steel
+        - "73"   # Articles of iron/steel
+        - "39"   # Plastics
+        - "27"   # Mineral fuels
+        - "71"   # Natural/cultured pearls, precious metals
+        - "90"   # Optical, medical, precision instruments
+        - "87"   # Vehicles (autos)
+        - "94"   # Furniture
+        - "95"   # Toys, games, sports equipment
+      mirror_partners:
+        - 842   # United States
+        - 392   # Japan
+        - 276   # Germany
+        - 410   # South Korea
+        - 704   # Vietnam
+        - 528   # Netherlands
+        - 356   # India
+        - 826   # United Kingdom
+        - 702   # Singapore
+        - 36    # Australia
+        - 124   # Canada
+        - 458   # Malaysia
+        - 764   # Thailand
+        - 380   # Italy
+        - 251   # France
+      recent_months: 6
+      timeout: 60
+      rate_limit: 1.0
+
+  cn_indicators:
+    enabled: true
+    schedule: "0 7 * * *"              # 7 AM UTC daily
+    collector_class: "collectors.cn_indicators.CNIndicatorsCollector"
+    config:
+      enabled_sources:
+        # ── Freight / logistics ─────────────────────────────────
+        - key: bdi
+          name_zh: 波罗的海干散货指数
+          name_en: Baltic Dry Index
+          url: "https://tradingeconomics.com/commodity/baltic"
+          method: GET
+          parser: json
+          unit: index
+          sector: transport_logistics
+          access: todo
+          note: "Daily bulk-shipping proxy. Public page; requires scraper or FRED API key."
+        - key: ccfi
+          name_zh: 中国出口集装箱运价指数
+          name_en: China Containerized Freight Index
+          url: "http://www.sse.net.cn/index/singleIndex?indexType=ccfi"
+          method: GET
+          parser: json
+          unit: index
+          sector: transport_logistics
+          access: scrape
+          note: "Shanghai Shipping Exchange; HTML table scrape."
+        - key: scfi
+          name_zh: 上海出口集装箱运价指数
+          name_en: Shanghai Containerized Freight Index
+          url: "http://www.sse.net.cn/index/singleIndex?indexType=scfi"
+          method: GET
+          parser: json
+          unit: index
+          sector: transport_logistics
+          access: scrape
+          note: "Shanghai Shipping Exchange; HTML table scrape."
+
+        # ── Trade hubs ──────────────────────────────────────────
+        - key: yiwu_index
+          name_zh: 义乌中国小商品指数
+          name_en: Yiwu China Commodity Index
+          url: "http://www.ywindex.com/"
+          method: GET
+          parser: json
+          unit: index
+          sector: trade
+          access: todo
+          note: "Yiwu small-commodity wholesale benchmark; scrape or partner feed required."
+
+        # ── Autos ───────────────────────────────────────────────
+        - key: cpca_retail_pv
+          name_zh: 乘联会乘用车零售销量
+          name_en: CPCA Passenger Vehicle Retail Sales
+          url: "https://www.cpauto.com.cn/"
+          method: GET
+          parser: json
+          unit: units
+          sector: automotive
+          access: todo
+          note: "CPCA publishes via WeChat/website; requires scrape or data partner."
+        - key: cpca_wholesale_pv
+          name_zh: 乘联会乘用车批发销量
+          name_en: CPCA Passenger Vehicle Wholesale Sales
+          url: "https://www.cpauto.com.cn/"
+          method: GET
+          parser: json
+          unit: units
+          sector: automotive
+          access: todo
+          note: "CPCA publishes via WeChat/website; requires scrape or data partner."
+
+        # ── Steel ───────────────────────────────────────────────
+        - key: steel_price_index
+          name_zh: 中国钢材价格指数
+          name_en: China Steel Price Index
+          url: "https://www.mysteel.com/"
+          method: GET
+          parser: json
+          unit: CNY/t
+          sector: steel
+          access: todo
+          note: "Mysteel/Myspic index is commercial; public alternative under review."
+
+        # ── Cement ──────────────────────────────────────────────
+        - key: cement_price_index
+          name_zh: 中国水泥价格指数
+          name_en: China Cement Price Index
+          url: "https://www.ccement.com/"
+          method: GET
+          parser: json
+          unit: CNY/t
+          sector: construction_materials
+          access: todo
+          note: "Cement price regional averages; requires scrape."
+
+        # ── Coal / energy ───────────────────────────────────────
+        - key: coal_price_index
+          name_zh: 中国煤炭价格指数
+          name_en: China Coal Price Index
+          url: "https://www.cctd.com.cn/"
+          method: GET
+          parser: json
+          unit: CNY/t
+          sector: energy
+          access: todo
+          note: "Coal price benchmarks (e.g., CCI, CCTD); commercial/scrape."
+
+        # ── Property ────────────────────────────────────────────
+        - key: property_price_index
+          name_zh: 商品住宅销售价格指数
+          name_en: China Property Price Index
+          url: "https://www.stats.gov.cn/tjsj/"
+          method: GET
+          parser: json
+          unit: index
+          sector: property
+          access: todo
+          note: "NBS monthly property price data; PDF/HTML tables."
+
+        # ── Mobility ────────────────────────────────────────────
+        - key: baidu_mobility
+          name_zh: 百度迁徙/出行指数
+          name_en: Baidu Migration/Mobility Index
+          url: "https://qianxi.baidu.com/"
+          method: GET
+          parser: json
+          unit: index
+          sector: consumer_mobility
+          access: todo
+          note: "Public dashboards but no stable open API; scrape or API partnership."
+
+        # ── Macro ───────────────────────────────────────────────
+        - key: pboc_lpr
+          name_zh: 贷款市场报价利率
+          name_en: PBOC Loan Prime Rate
+          url: "http://www.pbc.gov.cn/zhengcehuobisi/11111/index.html"
+          method: GET
+          parser: json
+          unit: pct
+          sector: macro
+          access: todo
+          note: "Monthly 1Y/5Y LPR; official PBOC site, HTML tables."
