@@ -1,0 +1,380 @@
+# DragonScope Enterprise - Service Definitions
+# Comprehensive service mesh for all components
+
+---
+# =============================================================================
+# Data Services
+# =============================================================================
+
+# TimescaleDB Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb-primary-headless
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: primary
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: primary
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb-replica-headless
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: replica
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/component: replica
+
+---
+# Redis Cluster Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster-headless
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cluster
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+      name: redis
+    - port: 16379
+      targetPort: 16379
+      protocol: TCP
+      name: cluster
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cluster
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-external
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cluster
+    service-type: load-balancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+      name: redis
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cluster
+
+---
+# ClickHouse Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse-headless
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/component: analytics
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 8123
+      targetPort: 8123
+      protocol: TCP
+      name: http
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: native
+    - port: 9009
+      targetPort: 9009
+      protocol: TCP
+      name: interserver
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/component: analytics
+
+---
+# Kafka Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-headless
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/component: messaging
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 9092
+      targetPort: 9092
+      protocol: TCP
+      name: broker
+    - port: 9093
+      targetPort: 9093
+      protocol: TCP
+      name: internal
+    - port: 9999
+      targetPort: 9999
+      protocol: TCP
+      name: jmx
+  selector:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/component: messaging
+
+---
+# MinIO Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-headless
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: api
+    - port: 9001
+      targetPort: 9001
+      protocol: TCP
+      name: console
+  selector:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+
+---
+# =============================================================================
+# Monitoring Services
+# =============================================================================
+
+# Prometheus Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-headless
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: metrics
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: metrics
+
+---
+# Grafana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-headless
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: visualization
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+    - port: 9094
+      targetPort: 9094
+      protocol: TCP
+      name: gossip
+  selector:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: visualization
+
+---
+# Loki Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-headless
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/component: logging
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 3100
+      targetPort: 3100
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/component: logging
+
+---
+# Jaeger Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-headless
+  namespace: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: tracing
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 16686
+      targetPort: 16686
+      protocol: TCP
+      name: query
+    - port: 6831
+      targetPort: 6831
+      protocol: UDP
+      name: agent-compact
+    - port: 6832
+      targetPort: 6832
+      protocol: UDP
+      name: agent-binary
+    - port: 14250
+      targetPort: 14250
+      protocol: TCP
+      name: collector-grpc
+    - port: 14268
+      targetPort: 14268
+      protocol: TCP
+      name: collector-http
+    - port: 4317
+      targetPort: 4317
+      protocol: TCP
+      name: otlp-grpc
+    - port: 4318
+      targetPort: 4318
+      protocol: TCP
+      name: otlp-http
+    - port: 9411
+      targetPort: 9411
+      protocol: TCP
+      name: zipkin
+  selector:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: tracing
+
+---
+# =============================================================================
+# External Access Services
+# =============================================================================
+
+# External Load Balancer for API Access
+apiVersion: v1
+kind: Service
+metadata:
+  name: dragonscope-api-external
+  namespace: dragonscope-production
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: api-gateway
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "8080"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTP"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 443
+      targetPort: 8443
+      protocol: TCP
+      name: https
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: api-gateway
+
+---
+# Internal Load Balancer for Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: dragonscope-internal
+  namespace: dragonscope-production
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: internal-services
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: internal-services

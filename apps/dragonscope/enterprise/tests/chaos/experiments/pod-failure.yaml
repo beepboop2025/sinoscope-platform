@@ -1,0 +1,69 @@
+# Chaos Experiment: Pod Failure Injection
+# Tests Kubernetes pod failure scenarios
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: api-pod-failure
+  namespace: chaos-testing
+spec:
+  action: pod-failure
+  mode: one
+  selector:
+    namespaces:
+      - dragonscope
+    labelSelectors:
+      app: dragonscope-api
+  duration: "2m"
+  scheduler:
+    cron: "@every 1h"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: api-pod-kill
+  namespace: chaos-testing
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - dragonscope
+    labelSelectors:
+      app: dragonscope-api
+  scheduler:
+    cron: "@every 2h"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: worker-pod-failure
+  namespace: chaos-testing
+spec:
+  action: pod-failure
+  mode: fixed-percent
+  value: "50"
+  selector:
+    namespaces:
+      - dragonscope
+    labelSelectors:
+      app: dragonscope-worker
+  duration: "3m"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: analysis-service-kill
+  namespace: chaos-testing
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - dragonscope
+    labelSelectors:
+      app: dragonscope-analysis
+  gracePeriod: 0  # Force kill

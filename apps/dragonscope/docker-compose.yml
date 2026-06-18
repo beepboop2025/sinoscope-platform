@@ -1,0 +1,102 @@
+# DragonScope Full-Stack Docker Compose
+# Usage: docker compose up --build
+
+services:
+  # ── Infrastructure ──────────────────────────────────────
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: dragonscope
+      POSTGRES_PASSWORD: dragonscope
+      POSTGRES_DB: dragonscope
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/docker/init-timescaledb.sql:/docker-entrypoint-initdb.d/init-timescaledb.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dragonscope"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Backend Services ────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: api
+    env_file: ./backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    expose:
+      - "3456"
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: worker
+    env_file: ./backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: beat
+    env_file: ./backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  # ── Frontend + Reverse Proxy ────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+  # ── ReadyState Integration ─────────────────────────────
+  # Personal resilience dashboard — shares infrastructure
+  # Requires ReadyState repo alongside DragonScope:
+  #   ../ReadyState  (or set READYSTATE_DIR env var)
+  readystate:
+    build:
+      context: ${READYSTATE_DIR:-../ReadyState}
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - READYSTATE_DATABASE_URL=postgresql+asyncpg://dragonscope:dragonscope@postgres:5432/readystate
+      - READYSTATE_CORS_ORIGINS=http://localhost:5173,http://localhost:80
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

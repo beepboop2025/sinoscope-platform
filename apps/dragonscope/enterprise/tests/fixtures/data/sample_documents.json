@@ -1,0 +1,41 @@
+{
+  "documents": [
+    {
+      "id": "doc_sample_001",
+      "filename": "quarterly_report_q4_2024.pdf",
+      "content_type": "application/pdf",
+      "content_preview": "Q4 2024 Financial Results...",
+      "pages": 24,
+      "word_count": 8500
+    },
+    {
+      "id": "doc_sample_002",
+      "filename": "market_analysis_2024.xlsx",
+      "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "content_preview": "Market Trends and Analysis...",
+      "sheets": 5,
+      "rows": 1500
+    },
+    {
+      "id": "doc_sample_003",
+      "filename": "customer_feedback.txt",
+      "content_type": "text/plain",
+      "content": "The product has exceeded our expectations. Great support team!"
+    },
+    {
+      "id": "doc_sample_004",
+      "filename": "annual_report_2024.pdf",
+      "content_type": "application/pdf",
+      "content_preview": "Annual Report 2024...",
+      "pages": 120,
+      "word_count": 45000
+    },
+    {
+      "id": "doc_sample_005",
+      "filename": "survey_responses.csv",
+      "content_type": "text/csv",
+      "content_preview": "id,satisfaction_score,feedback\n1,9,Great service\n2,7,Good but...",
+      "rows": 500
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+# Chaos Experiment: Network Latency Injection
+# Tests system behavior under network latency
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: api-network-latency
+  namespace: chaos-testing
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - dragonscope
+    labelSelectors:
+      app: dragonscope-api
+  delay:
+    latency: "500ms"
+    correlation: "100"
+    jitter: "50ms"
+  duration: "5m"
+  scheduler:
+    cron: "@every 30m"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: database-network-latency
+  namespace: chaos-testing
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - dragonscope
+    labelSelectors:
+      app: postgres
+  delay:
+    latency: "200ms"
+    correlation: "100"
+    jitter: "20ms"
+  duration: "3m"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: cache-network-partition
+  namespace: chaos-testing
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - dragonscope
+    labelSelectors:
+      app: redis
+  direction: to
+  target:
+    selector:
+      namespaces:
+        - dragonscope
+      labelSelectors:
+        app: dragonscope-api
+    mode: all
+  duration: "2m"

@@ -1,0 +1,264 @@
+# DragonScope Enterprise - MinIO Object Storage
+# S3-Compatible Distributed Object Storage
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+    app.kubernetes.io/part-of: dragonscope-enterprise
+spec:
+  serviceName: minio
+  replicas: 4
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: minio
+      app.kubernetes.io/component: storage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: minio
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/part-of: dragonscope-enterprise
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+        prometheus.io/path: "/minio/v2/metrics/cluster"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - minio
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: minio
+          image: minio/minio:RELEASE.2024-01-13T07-53-03Z
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: api
+              containerPort: 9000
+              protocol: TCP
+            - name: console
+              containerPort: 9001
+              protocol: TCP
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-minio-credentials
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-minio-credentials
+                  key: MINIO_ROOT_PASSWORD
+            - name: MINIO_PROMETHEUS_AUTH_TYPE
+              value: "public"
+            - name: MINIO_BROWSER
+              value: "on"
+            - name: MINIO_SERVER_URL
+              value: "http://minio:9000"
+            - name: MINIO_BROWSER_REDIRECT_URL
+              value: "http://minio-console:9001"
+            - name: MINIO_COMPRESSION_ENABLE
+              value: "on"
+            - name: MINIO_STORAGE_CLASS_STANDARD
+              value: "EC:2"
+            - name: MINIO_STORAGE_CLASS_RRS
+              value: "EC:1"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              minio server \
+                http://minio-{0...3}.minio.dragonscope-data.svc.cluster.local/data{0...1} \
+                --console-address ':9001'
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          volumeMounts:
+            - name: minio-data-0
+              mountPath: /data0
+            - name: minio-data-1
+              mountPath: /data1
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: api
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: api
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+      volumes:
+        - name: minio-data-0
+          persistentVolumeClaim:
+            claimName: minio-data-0-pvc
+        - name: minio-data-1
+          persistentVolumeClaim:
+            claimName: minio-data-1-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: api
+    - port: 9001
+      targetPort: 9001
+      protocol: TCP
+      name: console
+  selector:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-api
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: api
+  selector:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-console
+  namespace: dragonscope-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: console
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9001
+      targetPort: 9001
+      protocol: TCP
+      name: console
+  selector:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: storage
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-data-0-pvc
+  namespace: dragonscope-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: gp3-encrypted
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-data-1-pvc
+  namespace: dragonscope-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: gp3-encrypted
+
+---
+# MinIO Bucket Initialization Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init-buckets
+  namespace: dragonscope-data
+spec:
+  template:
+    spec:
+      containers:
+        - name: minio-mc
+          image: minio/mc:RELEASE.2024-01-13T08-44-48Z
+          command:
+            - /bin/sh
+            - -c
+            - |
+              mc alias set dragonscope http://minio:9000 $(MINIO_ROOT_USER) $(MINIO_ROOT_PASSWORD)
+              mc mb dragonscope/dragonscope-raw-data --ignore-existing
+              mc mb dragonscope/dragonscope-processed --ignore-existing
+              mc mb dragonscope/dragonscope-exports --ignore-existing
+              mc mb dragonscope/dragonscope-backups --ignore-existing
+              mc mb dragonscope/dragonscope-logs --ignore-existing
+              mc policy set download dragonscope/dragonscope-exports
+              mc ilm add dragonscope/dragonscope-logs --expiry-days "30"
+              mc ilm add dragonscope/dragonscope-backups --noncurrentversion-expiration-days "90"
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-minio-credentials
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dragonscope-minio-credentials
+                  key: MINIO_ROOT_PASSWORD
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+      restartPolicy: OnFailure

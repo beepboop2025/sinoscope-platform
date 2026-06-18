@@ -1,0 +1,25 @@
+# DragonScope Enterprise WebSocket Gateway Dependencies
+# ======================================================
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+
+# Protocol & Serialization
+msgpack>=1.0.7
+pydantic>=2.5.0
+
+# Compression
+lz4>=4.3.0
+
+# Redis
+aioredis>=2.0.1
+
+# Utilities
+python-jose[cryptography]>=3.3.0  # For JWT auth
+starlette>=0.27.0
+
+# Optional (for production)
+# prometheus-client>=0.19.0  # For metrics
+# sentry-sdk>=1.38.0         # For error tracking

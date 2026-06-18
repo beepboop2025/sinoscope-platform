@@ -1,0 +1,79 @@
+# DragonScope Enterprise - Kubernetes Namespace Configuration
+# Defines all namespaces with proper labeling and resource quotas
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dragonscope-production
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: production
+    app.kubernetes.io/part-of: dragonscope-enterprise
+    app.kubernetes.io/managed-by: kubernetes
+    environment: production
+    tier: platform
+    compliance: soc2,hipaa,iso27001
+  annotations:
+    scheduler.alpha.kubernetes.io/defaultTolerations: '[]'
+    description: "Production namespace for DragonScope Enterprise Platform"
+    contact: "platform-team@dragonscope.io"
+    cost-center: "platform-engineering"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dragonscope-staging
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: staging
+    app.kubernetes.io/part-of: dragonscope-enterprise
+    app.kubernetes.io/managed-by: kubernetes
+    environment: staging
+    tier: platform
+  annotations:
+    description: "Staging namespace for DragonScope Enterprise Platform"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dragonscope-data
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: data-services
+    app.kubernetes.io/part-of: dragonscope-enterprise
+    environment: production
+    tier: data
+    data-classification: critical
+  annotations:
+    description: "Namespace for data infrastructure services"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dragonscope-monitoring
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: dragonscope-enterprise
+    environment: production
+    tier: observability
+  annotations:
+    description: "Namespace for monitoring and observability stack"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dragonscope-ingress
+  labels:
+    app.kubernetes.io/name: dragonscope
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: dragonscope-enterprise
+    environment: production
+    tier: networking
+  annotations:
+    description: "Namespace for ingress controllers and load balancers"

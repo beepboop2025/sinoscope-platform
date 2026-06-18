@@ -1,0 +1,23 @@
+node_modules
+server/node_modules
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+secrets.local.yaml
+**/secrets.local.yaml
+.vite
+.vercel
+package-lock 2.json
+*.pyc
+__pycache__/
+dist/
+release/
+*.log
+firebase-debug.log
+.next/
+
+# generated local data
+server/data/
+server/prisma/dev.db
