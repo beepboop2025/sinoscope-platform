@@ -222,18 +222,21 @@ The `beat` service drives 24/7 collection from `config/sources.yaml`; an in-stac
 `backup` service dumps Postgres + `data/` snapshots nightly and syncs them to
 Drive.
 
-**Deployment paths:**
+### Deployment — pick a path when you ship
 
-- **Fully cloud, zero local** → [`deploy/railway/DEPLOY_RAILWAY.md`](deploy/railway/DEPLOY_RAILWAY.md).
-  Deploy every service from GitHub via the Railway dashboard — managed Postgres +
-  Redis, nightly Google Drive backups, nothing installed on your machine.
-- **Self-managed VPS** → [`deploy/DEPLOY.md`](deploy/DEPLOY.md). Run the full
-  compose stack on your own box with data on an attached disk (disk mount, rclone
-  auth, systemd boot, reverse proxy).
-- **Heavy data + your own AI agent** → [`deploy/DEPLOY_HEAVY.md`](deploy/DEPLOY_HEAVY.md).
-  100 GB–1 TB+/mo of raw data to **Cloudflare R2** (structured data stays in
-  Postgres), analyzed by a free→local→paid AI cascade (`core/ai_complete.py`:
-  free-LLM router → Ollama → Claude). Real cost math included.
+Nothing is locked in. **[`deploy/README.md`](deploy/README.md)** is a decision
+hub of opt-in paths — choose one when you're ready to ship:
+
+| Path | Cost/mo | Always-on? |
+|---|---|---|
+| Free serverless (GitHub Actions + Neon + Pages) | $0 | scheduled |
+| Oracle "Always Free" VM | $0 | ✅ |
+| Railway (managed, browser-only) | ~$5–25 | ✅ |
+| Self-managed VPS | ~$6–30 | ✅ |
+| Heavy data + your own AI agent (R2 + AI cascade) | ~$15–105 | ✅ |
+
+The app runs unchanged until you turn a path on — R2 storage, the AI cascade,
+production overlay, and Drive backups are all independent opt-in switches.
 
 ---
 
