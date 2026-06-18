@@ -1,0 +1,1081 @@
+{
+  "sectors": {
+    "agriculture": {
+      "hs_codes": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24"
+      ],
+      "keywords": {
+        "zh": [
+          "农业",
+          "农产品",
+          "粮食",
+          "谷物",
+          "大豆",
+          "猪肉",
+          "蔬菜",
+          "水果",
+          "饲料",
+          "化肥",
+          "天气",
+          "丰收",
+          "减产",
+          "禽流感",
+          "进口",
+          "出口"
+        ],
+        "en": [
+          "agriculture",
+          "agricultural products",
+          "grain",
+          "cereals",
+          "soybeans",
+          "pork",
+          "vegetables",
+          "fruits",
+          "feed",
+          "fertilizer",
+          "weather",
+          "harvest",
+          "crop reduction",
+          "avian influenza",
+          "imports",
+          "exports"
+        ]
+      },
+      "cn_hf_sources": [],
+      "provinces": [
+        {
+          "name_zh": "黑龙江",
+          "name_en": "Heilongjiang",
+          "role": "grain production hub"
+        },
+        {
+          "name_zh": "河南",
+          "name_en": "Henan",
+          "role": "grain and livestock hub"
+        },
+        {
+          "name_zh": "山东",
+          "name_en": "Shandong",
+          "role": "vegetable and fruit hub"
+        },
+        {
+          "name_zh": "四川",
+          "name_en": "Sichuan",
+          "role": "livestock and grain hub"
+        },
+        {
+          "name_zh": "新疆",
+          "name_en": "Xinjiang",
+          "role": "cotton and fruit hub"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "牧原食品股份有限公司",
+          "name_en": "Muyuan Foods",
+          "ticker": "002714.SZ",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "新希望六和股份有限公司",
+          "name_en": "New Hope Liuhe",
+          "ticker": "000876.SZ",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "温氏食品集团股份有限公司",
+          "name_en": "Wens Foodstuff Group",
+          "ticker": "300498.SZ",
+          "ownership": "private"
+        }
+      ],
+      "region": "national"
+    },
+    "finance_banking": {
+      "hs_codes": [],
+      "keywords": {
+        "zh": [
+          "银行",
+          "金融",
+          "信贷",
+          "贷款",
+          "存款",
+          "利率",
+          "降准",
+          "降息",
+          "加息",
+          "MLF",
+          "LPR",
+          "央行",
+          "货币政策",
+          "流动性",
+          "债券",
+          "股市",
+          "A股",
+          "信贷脉冲",
+          "社融",
+          "M2",
+          "不良资产",
+          "不良贷款",
+          "净息差",
+          "影子银行",
+          "理财",
+          "信托",
+          "金融科技",
+          "数字人民币",
+          "商业银行",
+          "国有银行",
+          "股份制银行",
+          "城商行",
+          "农商行",
+          "信用卡",
+          "房贷",
+          "地方债",
+          "城投债"
+        ],
+        "en": [
+          "bank",
+          "banking",
+          "finance",
+          "financial",
+          "credit",
+          "loan",
+          "deposit",
+          "interest rate",
+          "RRR cut",
+          "reserve requirement ratio",
+          "rate cut",
+          "PBOC",
+          "central bank",
+          "monetary policy",
+          "liquidity",
+          "bonds",
+          "stock market",
+          "A-shares",
+          "credit impulse",
+          "aggregate financing",
+          "M2",
+          "NPL",
+          "non-performing loan",
+          "NIM",
+          "net interest margin",
+          "shadow banking",
+          "wealth management",
+          "trust",
+          "fintech",
+          "digital yuan",
+          "e-CNY",
+          "commercial bank",
+          "state-owned bank",
+          "joint-stock bank",
+          "city commercial bank",
+          "credit card",
+          "mortgage",
+          "local government debt",
+          "LGFV debt"
+        ]
+      },
+      "cn_hf_sources": [
+        "macro_pboc_credit",
+        "macro_nbs",
+        "macro_caixin_pmi",
+        "macro_cfl_pmi"
+      ],
+      "provinces": [
+        {
+          "name_zh": "北京",
+          "name_en": "Beijing",
+          "role": "national regulatory and policy center"
+        },
+        {
+          "name_zh": "上海",
+          "name_en": "Shanghai",
+          "role": "interbank market and stock exchange hub"
+        },
+        {
+          "name_zh": "广东",
+          "name_en": "Guangdong",
+          "role": "Shenzhen exchange and fintech center"
+        },
+        {
+          "name_zh": "浙江",
+          "name_en": "Zhejiang",
+          "role": "digital payments and wealth management hub"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "中国工商银行",
+          "name_en": "Industrial and Commercial Bank of China",
+          "ticker": "601398.SH",
+          "ownership": "SOE"
+        },
+        {
+          "name_zh": "中国建设银行",
+          "name_en": "China Construction Bank",
+          "ticker": "601939.SH",
+          "ownership": "SOE"
+        },
+        {
+          "name_zh": "中国农业银行",
+          "name_en": "Agricultural Bank of China",
+          "ticker": "601288.SH",
+          "ownership": "SOE"
+        }
+      ],
+      "region": "national"
+    },
+    "manufacturing": {
+      "hs_codes": [
+        "84",
+        "85",
+        "62",
+        "61",
+        "72",
+        "73",
+        "76",
+        "39",
+        "90",
+        "29",
+        "94",
+        "95"
+      ],
+      "keywords": {
+        "zh": [
+          "制造业",
+          "出口",
+          "订单",
+          "工厂",
+          "生产",
+          "PMI",
+          "工业",
+          "机械",
+          "电子",
+          "纺织",
+          "钢铁",
+          "汽车",
+          "家电",
+          "供应链",
+          "外贸"
+        ],
+        "en": [
+          "manufacturing",
+          "exports",
+          "orders",
+          "factory",
+          "production",
+          "PMI",
+          "industrial",
+          "machinery",
+          "electronics",
+          "textiles",
+          "steel",
+          "automotive",
+          "home appliances",
+          "supply chain",
+          "foreign trade"
+        ]
+      },
+      "cn_hf_sources": [
+        "steel_mysteel",
+        "bdi",
+        "ccfi",
+        "scfi",
+        "yiwu_index",
+        "cement_digital",
+        "coal_cctd",
+        "autos_cpca_retail",
+        "macro_customs"
+      ],
+      "provinces": [
+        {
+          "name_zh": "广东",
+          "name_en": "Guangdong",
+          "role": "export manufacturing hub"
+        },
+        {
+          "name_zh": "江苏",
+          "name_en": "Jiangsu",
+          "role": "electronics and machinery hub"
+        },
+        {
+          "name_zh": "浙江",
+          "name_en": "Zhejiang",
+          "role": "private manufacturing and textiles hub"
+        },
+        {
+          "name_zh": "山东",
+          "name_en": "Shandong",
+          "role": "heavy industry and equipment hub"
+        },
+        {
+          "name_zh": "上海",
+          "name_en": "Shanghai",
+          "role": "advanced manufacturing and trade gateway"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "美的集团",
+          "name_en": "Midea Group",
+          "ticker": "000333.SZ",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "格力电器",
+          "name_en": "Gree Electric",
+          "ticker": "000651.SZ",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "比亚迪",
+          "name_en": "BYD",
+          "ticker": "1211.HK",
+          "ownership": "private"
+        }
+      ],
+      "region": "coastal_export"
+    },
+    "mining_commodities": {
+      "hs_codes": [
+        "25",
+        "26",
+        "27",
+        "71",
+        "72",
+        "74",
+        "75",
+        "76",
+        "78",
+        "79",
+        "80",
+        "81"
+      ],
+      "keywords": {
+        "zh": [
+          "矿业",
+          "矿产",
+          "铁矿石",
+          "铜",
+          "铝",
+          "镍",
+          "锌",
+          "锡",
+          "铅",
+          "煤炭",
+          "原油",
+          "大宗商品",
+          "金属",
+          "贵金属",
+          "能源",
+          "矿产进口",
+          "矿产出口",
+          "资源",
+          "稀土"
+        ],
+        "en": [
+          "mining",
+          "minerals",
+          "iron ore",
+          "copper",
+          "aluminum",
+          "nickel",
+          "zinc",
+          "tin",
+          "lead",
+          "coal",
+          "crude oil",
+          "commodities",
+          "metals",
+          "precious metals",
+          "energy",
+          "mineral imports",
+          "mineral exports",
+          "resources",
+          "rare earth"
+        ]
+      },
+      "cn_hf_sources": [
+        "coal_cctd",
+        "coal_power_consumption",
+        "steel_mysteel",
+        "bdi"
+      ],
+      "provinces": [
+        {
+          "name_zh": "山西",
+          "name_en": "Shanxi",
+          "role": "coal mining hub"
+        },
+        {
+          "name_zh": "内蒙古",
+          "name_en": "Inner Mongolia",
+          "role": "coal and rare earth mining hub"
+        },
+        {
+          "name_zh": "河北",
+          "name_en": "Hebei",
+          "role": "steel production base"
+        },
+        {
+          "name_zh": "江西",
+          "name_en": "Jiangxi",
+          "role": "copper and rare earth processing hub"
+        },
+        {
+          "name_zh": "新疆",
+          "name_en": "Xinjiang",
+          "role": "oil and coal frontier region"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "中国神华能源",
+          "name_en": "China Shenhua Energy",
+          "ticker": "601088.SS",
+          "ownership": "SOE"
+        },
+        {
+          "name_zh": "宝钢股份",
+          "name_en": "Baoshan Iron & Steel",
+          "ticker": "600019.SS",
+          "ownership": "SOE"
+        },
+        {
+          "name_zh": "中国铝业",
+          "name_en": "Aluminum Corporation of China",
+          "ticker": "601600.SS",
+          "ownership": "SOE"
+        }
+      ],
+      "region": "national"
+    },
+    "property_construction": {
+      "hs_codes": [
+        "25",
+        "26",
+        "68",
+        "69",
+        "70",
+        "72",
+        "73",
+        "74",
+        "76"
+      ],
+      "keywords": {
+        "zh": [
+          "房地产",
+          "楼市",
+          "房价",
+          "商品房",
+          "住宅",
+          "新房",
+          "二手房",
+          "土地出让",
+          "土地成交",
+          "房地产投资",
+          "房地产开发",
+          "新开工",
+          "施工面积",
+          "竣工面积",
+          "水泥",
+          "螺纹钢",
+          "钢材",
+          "钢铁",
+          "建材",
+          "建筑",
+          "基建",
+          "保障房",
+          "烂尾楼",
+          "恒大",
+          "万科",
+          "碧桂园",
+          "保利"
+        ],
+        "en": [
+          "real estate",
+          "property market",
+          "housing market",
+          "home prices",
+          "residential property",
+          "commercial property",
+          "construction",
+          "cement",
+          "steel rebar",
+          "iron ore",
+          "copper",
+          "building materials",
+          "infrastructure",
+          "land sales",
+          "property investment",
+          "housing starts",
+          "floor space",
+          "Evergrande",
+          "Vanke",
+          "Country Garden"
+        ]
+      },
+      "cn_hf_sources": [
+        "property_cric",
+        "property_zhongzhi_land",
+        "cement_digital",
+        "steel_mysteel",
+        "steel_100njz_construction"
+      ],
+      "provinces": [
+        {
+          "name_zh": "广东",
+          "name_en": "Guangdong",
+          "role": "major property market and construction demand hub"
+        },
+        {
+          "name_zh": "江苏",
+          "name_en": "Jiangsu",
+          "role": "residential and infrastructure demand hub"
+        },
+        {
+          "name_zh": "浙江",
+          "name_en": "Zhejiang",
+          "role": "coastal property market and private developer hub"
+        },
+        {
+          "name_zh": "北京",
+          "name_en": "Beijing",
+          "role": "policy and regulatory centre, tier-1 benchmark market"
+        },
+        {
+          "name_zh": "上海",
+          "name_en": "Shanghai",
+          "role": "tier-1 commercial and residential benchmark"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "万科企业股份有限公司",
+          "name_en": "China Vanke Co., Ltd.",
+          "ticker": "000002.SZ",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "保利发展控股集团股份有限公司",
+          "name_en": "Poly Developments and Holdings Group Co., Ltd.",
+          "ticker": "600048.SH",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "中国建筑股份有限公司",
+          "name_en": "China State Construction Engineering Corporation Ltd.",
+          "ticker": "601668.SH",
+          "ownership": "private"
+        }
+      ],
+      "region": "national"
+    },
+    "retail_consumer": {
+      "hs_codes": [
+        "30",
+        "33",
+        "34",
+        "42",
+        "43",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "87",
+        "91",
+        "92",
+        "96"
+      ],
+      "keywords": {
+        "zh": [
+          "零售",
+          "消费",
+          "社会消费品零售总额",
+          "消费升级",
+          "消费降级",
+          "消费品",
+          "耐用消费品",
+          "快速消费品",
+          "食品饮料",
+          "化妆品",
+          "个人护理",
+          "服装",
+          "鞋帽",
+          "箱包",
+          "家具",
+          "家电",
+          "汽车",
+          "电商",
+          "线上零售",
+          "双十一",
+          "618",
+          "CPI",
+          "消费者信心",
+          "可支配收入",
+          "客流量",
+          "商场"
+        ],
+        "en": [
+          "retail",
+          "consumer",
+          "consumption",
+          "retail sales",
+          "consumer spending",
+          "consumer goods",
+          "durables",
+          "FMCG",
+          "food and beverage",
+          "cosmetics",
+          "personal care",
+          "apparel",
+          "footwear",
+          "headgear",
+          "leather goods",
+          "furniture",
+          "home appliances",
+          "automobiles",
+          "e-commerce",
+          "online retail",
+          "Singles' Day",
+          "618 shopping festival",
+          "CPI",
+          "consumer confidence",
+          "disposable income",
+          "foot traffic",
+          "shopping mall"
+        ]
+      },
+      "cn_hf_sources": [
+        "yiwu_index",
+        "autos_cpca_retail",
+        "mobility_box_office"
+      ],
+      "provinces": [
+        {
+          "name_zh": "广东",
+          "name_en": "Guangdong",
+          "role": "largest consumer market and e-commerce hub"
+        },
+        {
+          "name_zh": "江苏",
+          "name_en": "Jiangsu",
+          "role": "high-income consumption and retail hub"
+        },
+        {
+          "name_zh": "山东",
+          "name_en": "Shandong",
+          "role": "large population consumer market"
+        },
+        {
+          "name_zh": "浙江",
+          "name_en": "Zhejiang",
+          "role": "private consumption and live-commerce hub"
+        },
+        {
+          "name_zh": "上海",
+          "name_en": "Shanghai",
+          "role": "tier-1 retail and luxury consumption benchmark"
+        },
+        {
+          "name_zh": "四川",
+          "name_en": "Sichuan",
+          "role": "inland consumption hub"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "阿里巴巴集团",
+          "name_en": "Alibaba Group",
+          "ticker": "9988.HK",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "京东集团股份有限公司",
+          "name_en": "JD.com",
+          "ticker": "9618.HK",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "农夫山泉股份有限公司",
+          "name_en": "Nongfu Spring",
+          "ticker": "9633.HK",
+          "ownership": "private"
+        }
+      ],
+      "region": "national"
+    },
+    "services": {
+      "hs_codes": [],
+      "keywords": {
+        "zh": [
+          "服务业",
+          "第三产业",
+          "消费服务",
+          "餐饮",
+          "旅游",
+          "酒店",
+          "电影票房",
+          "航空客运",
+          "铁路客运",
+          "出行",
+          "生活服务",
+          "休闲娱乐",
+          "客流量",
+          "服务消费"
+        ],
+        "en": [
+          "services",
+          "tertiary sector",
+          "consumer services",
+          "catering",
+          "tourism",
+          "hotel",
+          "box office",
+          "aviation passenger",
+          "railway passenger",
+          "mobility",
+          "local services",
+          "leisure",
+          "foot traffic",
+          "service consumption"
+        ]
+      },
+      "cn_hf_sources": [
+        "mobility_box_office",
+        "mobility_civil_aviation",
+        "mobility_12306",
+        "mobility_baidu_migration",
+        "mobility_baidu_congestion",
+        "mobility_gaode"
+      ],
+      "provinces": [
+        {
+          "name_zh": "北京",
+          "name_en": "Beijing",
+          "role": "financial, tech and business-services hub"
+        },
+        {
+          "name_zh": "上海",
+          "name_en": "Shanghai",
+          "role": "finance, trade and hospitality hub"
+        },
+        {
+          "name_zh": "广东",
+          "name_en": "Guangdong",
+          "role": "population, tourism and transport services hub"
+        },
+        {
+          "name_zh": "浙江",
+          "name_en": "Zhejiang",
+          "role": "e-commerce and digital services hub"
+        },
+        {
+          "name_zh": "四川",
+          "name_en": "Sichuan",
+          "role": "inland consumption and tourism hub"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "美团",
+          "name_en": "Meituan",
+          "ticker": "3690.HK",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "携程集团",
+          "name_en": "Trip.com Group",
+          "ticker": "9961.HK",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "中国中免",
+          "name_en": "China Tourism Group Duty Free",
+          "ticker": "601888.SS",
+          "ownership": "private"
+        }
+      ],
+      "region": "national"
+    },
+    "technology": {
+      "hs_codes": [
+        "84",
+        "85",
+        "90",
+        "91",
+        "92",
+        "37",
+        "70"
+      ],
+      "keywords": {
+        "zh": [
+          "科技",
+          "技术",
+          "电子",
+          "半导体",
+          "芯片",
+          "集成电路",
+          "人工智能",
+          "AI",
+          "5G",
+          "通信",
+          "互联网",
+          "软件",
+          "硬件",
+          "智能手机",
+          "手机",
+          "电脑",
+          "笔记本",
+          "数据中心",
+          "云计算",
+          "物联网",
+          "智能制造",
+          "高端制造",
+          "出口",
+          "订单",
+          "生产"
+        ],
+        "en": [
+          "technology",
+          "tech",
+          "electronics",
+          "semiconductors",
+          "chips",
+          "integrated circuits",
+          "artificial intelligence",
+          "AI",
+          "5G",
+          "telecommunications",
+          "telecom",
+          "internet",
+          "software",
+          "hardware",
+          "smartphone",
+          "mobile phone",
+          "computer",
+          "laptop",
+          "data center",
+          "cloud computing",
+          "IoT",
+          "smart manufacturing",
+          "advanced manufacturing",
+          "exports",
+          "orders",
+          "production"
+        ]
+      },
+      "cn_hf_sources": [
+        "ccfi",
+        "scfi",
+        "yiwu_index",
+        "autos_cpca_retail"
+      ],
+      "provinces": [
+        {
+          "name_zh": "广东",
+          "name_en": "Guangdong",
+          "role": "electronics manufacturing and export hub"
+        },
+        {
+          "name_zh": "江苏",
+          "name_en": "Jiangsu",
+          "role": "semiconductor and ICT manufacturing hub"
+        },
+        {
+          "name_zh": "上海",
+          "name_en": "Shanghai",
+          "role": "semiconductor R&D and fintech hub"
+        },
+        {
+          "name_zh": "北京",
+          "name_en": "Beijing",
+          "role": "internet, AI and software hub"
+        },
+        {
+          "name_zh": "浙江",
+          "name_en": "Zhejiang",
+          "role": "e-commerce and digital economy hub"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "腾讯控股",
+          "name_en": "Tencent Holdings",
+          "ticker": "0700.HK",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "阿里巴巴集团",
+          "name_en": "Alibaba Group",
+          "ticker": "9988.HK",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "中芯国际集成电路制造",
+          "name_en": "SMIC",
+          "ticker": "688981.SS",
+          "ownership": "SOE"
+        }
+      ],
+      "region": "coastal_export"
+    },
+    "transport_logistics": {
+      "hs_codes": [
+        "86",
+        "87",
+        "88",
+        "89"
+      ],
+      "keywords": {
+        "zh": [
+          "物流",
+          "运输",
+          "货运",
+          "港口",
+          "集装箱",
+          "航运",
+          "海运",
+          "公路",
+          "铁路",
+          "航空",
+          "快递",
+          "运价",
+          "运价指数",
+          "BDI",
+          "CCFI",
+          "SCFI",
+          "供应链",
+          "吞吐量",
+          "外贸",
+          "出口",
+          "多式联运",
+          "物流园",
+          "中欧班列",
+          "快递业务量"
+        ],
+        "en": [
+          "logistics",
+          "transport",
+          "freight",
+          "shipping",
+          "ports",
+          "containers",
+          "maritime",
+          "railway",
+          "highway",
+          "aviation",
+          "express delivery",
+          "cargo",
+          "freight rates",
+          "BDI",
+          "CCFI",
+          "SCFI",
+          "supply chain",
+          "throughput",
+          "exports",
+          "trade corridor",
+          "multimodal transport",
+          "logistics park",
+          "China-Europe Railway Express",
+          "parcel volume"
+        ]
+      },
+      "cn_hf_sources": [
+        "bdi",
+        "ccfi",
+        "scfi",
+        "freight_road_logistics",
+        "mobility_12306",
+        "mobility_civil_aviation",
+        "macro_customs"
+      ],
+      "provinces": [
+        {
+          "name_zh": "上海",
+          "name_en": "Shanghai",
+          "role": "world’s largest container port and international shipping hub"
+        },
+        {
+          "name_zh": "广东",
+          "name_en": "Guangdong",
+          "role": "Pearl River Delta export logistics and aviation gateway"
+        },
+        {
+          "name_zh": "浙江",
+          "name_en": "Zhejiang",
+          "role": "Ningbo-Zhoushan port and e-commerce logistics hub"
+        },
+        {
+          "name_zh": "江苏",
+          "name_en": "Jiangsu",
+          "role": "manufacturing-export logistics and Yangtze River port cluster"
+        },
+        {
+          "name_zh": "北京",
+          "name_en": "Beijing",
+          "role": "national railway and aviation network hub"
+        }
+      ],
+      "firms": [
+        {
+          "name_zh": "中远海运控股股份有限公司",
+          "name_en": "COSCO SHIPPING Holdings",
+          "ticker": "601919.SS",
+          "ownership": "SOE"
+        },
+        {
+          "name_zh": "顺丰控股股份有限公司",
+          "name_en": "SF Holding",
+          "ticker": "002352.SZ",
+          "ownership": "private"
+        },
+        {
+          "name_zh": "中国铁路工程集团有限公司",
+          "name_en": "China Railway Engineering Group",
+          "ticker": "601390.SS",
+          "ownership": "SOE"
+        }
+      ],
+      "region": "national"
+    }
+  }
+}

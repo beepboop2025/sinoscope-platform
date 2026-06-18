@@ -1,0 +1,12 @@
+# Minimal image for the nightly backup service.
+# Based on the pg16 client (matches the TimescaleDB pg16 server) so pg_dump
+# versions line up; adds rclone for Google Drive push.
+FROM postgres:16-alpine
+
+RUN apk add --no-cache bash rclone tzdata coreutils findutils tar gzip
+
+COPY scripts/backup.sh        /usr/local/bin/backup.sh
+COPY deploy/backup-entrypoint.sh /usr/local/bin/backup-entrypoint.sh
+RUN chmod +x /usr/local/bin/backup.sh /usr/local/bin/backup-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/backup-entrypoint.sh"]

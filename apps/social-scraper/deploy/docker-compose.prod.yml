@@ -1,0 +1,115 @@
+# Production overlay for 24/7 VPS operation.
+#
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+#
+# What this overlay changes vs. the base compose:
+#   1. restart: unless-stopped on EVERY service (survives crashes + host reboot
+#      once Docker itself is enabled: `systemctl enable docker`).
+#   2. The three data volumes (pgdata / redisdata / miniodata) are bind-mounted
+#      onto a single attached disk at ${DATA_DRIVE} so all live data physically
+#      lives on the drive you choose, not Docker's default location.
+#   3. Published ports are bound to 127.0.0.1 only — nothing is exposed to the
+#      public internet. Reach the API/Flower over an SSH tunnel or a reverse
+#      proxy (see deploy/DEPLOY.md).
+#   4. A `backup` service runs pg_dump + a tar of data/ nightly and pushes the
+#      archives to Google Drive via rclone (${RCLONE_REMOTE}).
+#
+# Required host prep (see DEPLOY.md): the bind-mount source dirs must exist:
+#   sudo mkdir -p ${DATA_DRIVE}/{postgres,redis,minio,backups}
+
+services:
+  postgres:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  minio:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+
+  zookeeper:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2181:2181"
+
+  kafka:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9092:9092"
+
+  tor:
+    restart: unless-stopped
+
+  api:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  worker:
+    restart: unless-stopped
+
+  beat:
+    restart: unless-stopped
+
+  nlp-worker:
+    restart: unless-stopped
+
+  flower:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5555:5555"
+
+  # ── Nightly backup → Google Drive (rclone) ───────────────────
+  backup:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backup
+    environment:
+      # pg_dump connects to the postgres service over the compose network
+      DATABASE_URL: postgresql://${POSTGRES_USER:-scraper}:${POSTGRES_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-econscraper}
+      BACKUP_DIR: /backups
+      BACKUP_HOUR: ${BACKUP_HOUR:-2}          # local hour (0-23) to run daily
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-}        # e.g. gdrive:PALIMPSEST/backups
+      LOCAL_RETENTION_DAYS: ${LOCAL_RETENTION_DAYS:-7}
+      REMOTE_RETENTION_DAYS: ${REMOTE_RETENTION_DAYS:-30}
+      BACKUP_INCLUDE_MINIO: ${BACKUP_INCLUDE_MINIO:-0}
+      TZ: ${TZ:-Asia/Kolkata}
+    volumes:
+      - ${DATA_DRIVE:-/mnt/data}/backups:/backups
+      - ${DATA_DRIVE:-/mnt/data}/minio:/minio-data:ro   # for optional raw sync
+      - ./data:/app/data:ro                             # app snapshots (cbb/ddti)
+      - ${RCLONE_CONFIG_DIR:-~/.config/rclone}:/root/.config/rclone:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Re-point the named volumes onto the attached disk. The service definitions in
+# the base compose still reference pgdata/redisdata/miniodata by name; here we
+# bind those names to real directories on ${DATA_DRIVE}.
+volumes:
+  pgdata:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DRIVE:-/mnt/data}/postgres
+  redisdata:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DRIVE:-/mnt/data}/redis
+  miniodata:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DRIVE:-/mnt/data}/minio

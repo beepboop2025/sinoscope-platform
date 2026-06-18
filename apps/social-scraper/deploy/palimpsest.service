@@ -1,0 +1,28 @@
+# systemd unit to bring the full stack up on boot and keep it up.
+# Install:
+#   sudo cp deploy/palimpsest.service /etc/systemd/system/palimpsest.service
+#   # edit WorkingDirectory + User below to match your checkout
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now palimpsest.service
+#
+# With `restart: unless-stopped` on the containers this is partly redundant,
+# but the unit guarantees `up -d` runs after reboot with the latest compose
+# config (e.g. after a `git pull`).
+[Unit]
+Description=PALIMPSEST / Social Scraper intelligence stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=palimpsest
+WorkingDirectory=/opt/social-scraper
+# Compose reads ./.env automatically for variable substitution.
+ExecStart=/usr/bin/docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d --build
+ExecStop=/usr/bin/docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

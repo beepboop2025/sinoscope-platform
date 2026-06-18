@@ -1,0 +1,81 @@
+# Core
+pydantic>=2.0.0
+python-dotenv>=1.2.2
+aiofiles>=23.0.0
+pyyaml>=6.0.0
+
+# HTTP clients
+httpx[socks]>=0.25.0
+requests>=2.33.0
+
+# Twitter scraping
+twikit>=1.0.0
+
+# Telegram scraping
+python-telegram-bot>=20.0
+telethon>=1.28.0
+
+# Web scraping & article extraction
+beautifulsoup4>=4.12.0
+lxml>=6.1.0
+trafilatura>=1.6.0
+pdfplumber>=0.10.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# NLP / ML
+vaderSentiment>=3.3.2
+spacy>=3.7.0
+scikit-learn>=1.3.0
+sentence-transformers>=2.2.0
+transformers>=4.35.0
+torch>=2.1.0
+
+# API framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+sqlalchemy>=2.0.0
+
+# Task queue
+celery[redis]>=5.3.0
+redis>=5.0.0
+
+# Message queue
+kafka-python>=2.0.0
+
+# Database
+psycopg2-binary>=2.9.0
+alembic>=1.12.0
+pgvector>=0.2.0
+
+# Object storage
+minio>=7.1.0
+
+# LLM clients
+anthropic>=0.34.0
+
+# API key vault encryption
+cryptography>=46.0.7
+
+# Monitoring
+flower>=2.0.0
+
+# RSS parsing
+defusedxml>=0.7.1
+
+# Date parsing (health checker)
+python-dateutil>=2.8.0
+
+# PDF report generation
+reportlab>=4.1.0
+matplotlib>=3.8.0
+
+# Language detection (multi-language NLP)
+langdetect>=1.0.9
+
+# Development
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
