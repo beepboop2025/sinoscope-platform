@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ddti", tags=["ddti"])
 
 _DASHBOARD = Path(__file__).resolve().parent.parent.parent / "dashboards" / "ddti_dashboard.html"
+_APP = Path(__file__).resolve().parent.parent.parent / "dashboards" / "palimpsest_dashboard.html"
 
 
 def _redis():
@@ -65,3 +66,16 @@ async def ddti_dashboard():
         return HTMLResponse(_DASHBOARD.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return HTMLResponse("<h1>ddti_dashboard.html not found</h1>", status_code=404)
+
+
+@router.get("/app", response_class=HTMLResponse)
+async def palimpsest_app():
+    """Unified PALIMPSEST app — censorship (DDTI) + economy (CBB) in one view.
+
+    Same-origin, so its per-panel live fetches (/api/v4/ddti/index and
+    /api/v4/conditions/index) work without CORS.
+    """
+    try:
+        return HTMLResponse(_APP.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return HTMLResponse("<h1>palimpsest_dashboard.html not found</h1>", status_code=404)
