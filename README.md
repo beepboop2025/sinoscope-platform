@@ -50,6 +50,11 @@ the same machinery.
 single official figure is trusted; signal comes from *triangulation*. Two engines feed one
 dark "intelligence terminal" dashboard:
 
+![PALIMPSEST China State Monitor — the unified intelligence terminal: censor-attention threats (left) and sector economic-diffusion indices (right), with live/snapshot data badges](docs/palimpsest-dashboard.png)
+
+<p align="center"><em>The PALIMPSEST terminal — Overview synthesis: censorship signal (DDTI) and economic conditions (CBB) side by side, every panel badged LIVE / SNAPSHOT.</em></p>
+
+
 | Engine | What it measures | Method |
 |---|---|---|
 | **DDTI** — Deletion-Differential Threat Index | *Treats the censor as a sensor.* What the regime deletes, how fast, and how selectively reveals what it fears. | Ranks censored topics by **threat = attention (time-decayed frequency) × novelty (burst / first-appearance)** from China Digital Times deletion data. |
