@@ -1,0 +1,12 @@
+{
+  "name": "sinoscope-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A family of open-source tools for making China-linked data legible.",
+  "scripts": {
+    "dev:observatory": "npm --prefix apps/drug-observatory run dev",
+    "dev:dragonscope": "npm --prefix apps/dragonscope run dev",
+    "build:observatory": "npm --prefix apps/drug-observatory run build",
+    "build:dragonscope": "npm --prefix apps/dragonscope run build"
+  }
+}

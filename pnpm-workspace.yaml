@@ -1,0 +1,6 @@
+# Opt-in workspace for the JS/TS apps. Python apps (no package.json) are ignored.
+# Each app also works standalone via its own npm install; adopt pnpm when you
+# want shared dependency hoisting and a single lockfile.
+packages:
+  - 'apps/*'
+  - 'packages/*'
