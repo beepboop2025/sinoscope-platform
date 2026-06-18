@@ -1,3 +1,32 @@
+# PALIMPSEST — China Latent-State Intelligence
+
+**An independent, OSINT-driven read on what's happening inside China — built on the Social Scraper platform.** Two engines feed one unified dashboard:
+
+| Engine | What it measures | Status |
+|---|---|---|
+| **DDTI** — Deletion-Differential Threat Index | *Treats the censor as a sensor.* Ranks censored topics by attention × novelty from China Digital Times deletion data. | ✅ live data + dashboard |
+| **CBB** — China Beige-Book-style conditions engine | Sector × region economic **diffusion indices** (`D = 0.4·SD + 0.6·AS`) from UN Comtrade mirror-trade + Chinese high-frequency indicators + sentiment. | ✅ engine + 3 live sources; 22 sources stubbed |
+| **Unified app** | `dashboards/palimpsest_dashboard.html` — Overview (cross-domain synthesis) · Censorship · Economy, dark "intelligence terminal" UI, XSS-hardened. | ✅ |
+
+### View it
+- **Offline:** open `dashboards/palimpsest_dashboard.html` (real data embedded, badged ● SNAPSHOT).
+- **Served:** run the API → `GET /api/v4/ddti/app` (panels fetch live, badge ● LIVE).
+- **Refresh data:** `python -m scripts.ddti_live_pull` (censorship) · `python scripts/conditions_pull.py` (economy).
+
+### Key components
+- Collectors: `collectors/{ddti_probe,weibo_hotsearch,comtrade_mirror,cn_indicators}.py`
+- Processors: `processors/{ddti_index,conditions_index,conditions_report,zh_finance}.py`
+- Configs: `config/{cbb_taxonomy,cn_hf_sources,zh_finance_lexicon,zh_censorship_gazetteer,ddti_threat_categories}.json`
+- Dashboards: `dashboards/{palimpsest,ddti,conditions}_dashboard.html` · Deploy: `vercel-app/`
+- Plans & agent prompts: `PALIMPSEST_CBB_PLAN.md`, `PALIMPSEST_BRIEF.md`, `KIMI_CBB_PROMPT.md`, `KIMI_PROMPTS.md`
+
+### Design notes
+- **Independent of official stats:** physical anchors (mirror-trade) + cross-source triangulation, not NBS figures.
+- **Honest data states:** every view badges LIVE / SNAPSHOT / SAMPLE — never fakes signal.
+- **Egress reality:** richer Chinese deletion/Weibo feeds need an in-China residential proxy; current data is what's reachable openly.
+
+---
+
 # Social Scraper Intelligence Platform v3.0
 
 **Real-time financial intelligence aggregation across 15 data sources with NLP analysis, threat detection, and automated routing to downstream analytics dashboards.**
