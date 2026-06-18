@@ -207,6 +207,22 @@ make logs      # tail logs across services make migrate  # run Alembic migration
 make health    # system health check       make backfill # backfill 30 days of history
 ```
 
+### Run it 24/7 (VPS + Google Drive backups)
+
+For continuous operation, a production overlay runs the full stack on an
+always-on Linux VPS with `restart: unless-stopped` on every service, all live
+data bind-mounted onto an attached disk, and **nightly backups pushed to Google
+Drive** via rclone:
+
+```bash
+docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d --build
+```
+
+The `beat` service drives 24/7 collection from `config/sources.yaml`; an in-stack
+`backup` service dumps Postgres + `data/` snapshots nightly and syncs them to
+Drive. Full runbook (disk mount, rclone auth, systemd boot, reverse proxy):
+**[`deploy/DEPLOY.md`](deploy/DEPLOY.md)**.
+
 ---
 
 ## Project structure
