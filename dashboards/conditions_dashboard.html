@@ -243,7 +243,8 @@ const SAMPLE={
 
 function setFeed(state){
   const tag=$("feedTag"), note=$("feedNote");
-  tag.className="feed-tag "+esc(state);
+  const feedClass={live:"live",snapshot:"snapshot",err:"err",sample:"sample"}[state]||"sample";
+  tag.className="feed-tag "+feedClass;
   if(state==="live"){tag.textContent="● LIVE"; note.textContent="streaming from cbb:latest";}
   else if(state==="snapshot"){tag.textContent="● SNAPSHOT"; note.textContent="real conditions pull "+(window.__CBB_EMBED_AT__||"")+" — start the API for live updates";}
   else if(state==="err"){tag.textContent="API UNREACHABLE"; note.textContent="showing last snapshot — start the backend for live signal";}
@@ -262,11 +263,14 @@ function renderStats(rows){
     {k:"Deteriorating", v:deteriorating, cls:"danger"},
     {k:"High confidence", v:highConf, cls:"accent"},
   ];
-  $("stats").innerHTML=cells.map(c=>`
-    <div class="stat ${esc(c.cls)}">
+  $("stats").innerHTML=cells.map(c=>{
+    const cls=({accent:"accent",warn:"warn",danger:"danger","":""})[c.cls]||"";
+    return `
+    <div class="stat ${cls}">
       <div class="k">${esc(c.k)}</div>
       <div class="v">${esc(c.v)}</div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 function renderHeatmap(rows){
@@ -283,7 +287,7 @@ function renderHeatmap(rows){
       <td class="sector">${esc(r.sector)}</td>
       <td class="region">${esc(r.region)}</td>
       <td>${esc(r.period)}</td>
-      <td class="num diff"><span class="diffbox ${esc(cls)}">${num(r.D)}</span></td>
+      <td class="num diff"><span class="diffbox ${cls}">${num(r.D)}</span></td>
       <td class="num">${num(r.SD)}</td>
       <td class="num">${num(r.AS)}</td>
       <td class="num" style="text-align:center">${momentumArrow(r.momentum)}</td>

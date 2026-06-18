@@ -63,7 +63,7 @@ async def conditions_index():
         return data
     except Exception as e:
         logger.warning(f"[Conditions-API] index read failed: {e}")
-        return JSONResponse({"status": "error", "error": str(e), "sectors": []})
+        return JSONResponse({"status": "error", "error": "Internal server error", "sectors": []})
 
 
 @router.get("/report")

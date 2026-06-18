@@ -6,10 +6,11 @@
       "name_en": "CPCA China Passenger Vehicle Retail Sales",
       "url": "https://www.cpcaauto.com/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "monthly",
       "sector": "autos",
       "difficulty": "hard",
-      "note": "Monthly passenger-vehicle retail sales for China published by the China Passenger Car Association (CPCA / 乘联会). The association releases the figures via website articles, PDF reports and its WeChat public account; there is no stable open JSON or CSV endpoint. Extracting a clean monthly time-series requires scraping or parsing the published reports. Marked todo until a scraper is implemented."
+      "note": "Monthly passenger-vehicle retail sales for China published by the China Passenger Car Association (CPCA / 乘联会). The association releases the figures via website articles, PDF reports and its WeChat public account; there is no stable open JSON or CSV endpoint. Extracting a clean monthly time-series requires scraping or parsing the published reports."
     },
     {
       "key": "autos_cpca_wholesale",
@@ -17,10 +18,11 @@
       "name_en": "CPCA China Passenger Vehicle Wholesale Sales",
       "url": "https://www.cpcaauto.com/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "monthly",
       "sector": "autos",
       "difficulty": "hard",
-      "note": "Monthly passenger-vehicle wholesale sales for China published by the China Passenger Car Association (CPCA / 乘联会). The association releases the figures via website articles, PDF reports and its WeChat public account; there is no stable open JSON or CSV endpoint. Extracting a clean monthly time-series requires scraping or parsing the published reports. Marked todo until a scraper is implemented."
+      "note": "Monthly passenger-vehicle wholesale sales for China published by the China Passenger Car Association (CPCA / 乘联会). The association releases the figures via website articles, PDF reports and its WeChat public account; there is no stable open JSON or CSV endpoint. Extracting a clean monthly time-series requires scraping or parsing the published reports."
     },
     {
       "key": "cement_digital",
@@ -50,6 +52,7 @@
       "name_en": "Thermal coal consumption",
       "url": "https://www.cctd.com.cn/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "coal",
       "difficulty": "hard",
@@ -58,13 +61,15 @@
     {
       "key": "bdi",
       "name_zh": "波罗的海干散货指数",
-      "name_en": "Baltic Dry Index",
-      "url": "https://www.balticexchange.com/en/data-services/market-information0/dry-services.html",
-      "access_method": "todo",
+      "name_en": "Baltic Dry Index (BDI)",
+      "url": "https://www.investing.com/indices/baltic-dry-historical-data",
+      "access_method": "scrape",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "transport_logistics",
-      "difficulty": "hard",
-      "note": "Daily composite dry-bulk freight index published by the Baltic Exchange in London. The authoritative time-series is subscription-only; public aggregator pages (e.g. Trading Economics, investing.com, Macrotrends) expose current and historical values but require scraping and are subject to anti-bot/ToS limits. Marked todo until a stable open endpoint or scraper is implemented."
+      "difficulty": "medium",
+      "unit": "index",
+      "note": "Daily composite dry-bulk freight index published by the Baltic Exchange. The official feed is subscription-only; this parser scrapes the public Investing.com historical table as a best-effort open proxy. It is subject to anti-bot/ToS limits and may return partial history."
     },
     {
       "key": "ccfi",
@@ -72,21 +77,25 @@
       "name_en": "China Containerized Freight Index (CCFI)",
       "url": "https://en.sse.net.cn/currentIndex?indexName=ccfi",
       "access_method": "open_json",
+      "parser": "cn_hf",
       "frequency": "weekly",
       "sector": "transport_logistics",
       "difficulty": "easy",
-      "note": "Published weekly (Fridays) by the Shanghai Shipping Exchange. The public endpoint returns the current CCFI composite index and route sub-indices as JSON without authentication. Historical single-date queries via /singleIndex/ccfi require login, but the latest/current release is openly available."
+      "unit": "index",
+      "note": "Published weekly (Fridays) by the Shanghai Shipping Exchange. The public /currentIndex endpoint returns the latest CCFI composite index and per-route sub-indices as JSON without authentication."
     },
     {
       "key": "freight_road_logistics",
       "name_zh": "中国公路物流运价指数",
       "name_en": "China Road Logistics Price Index",
-      "url": "http://www.chinawuliu.com.cn/",
-      "access_method": "todo",
+      "url": "http://www.chinawuliu.com.cn/xsyj/tjsj/",
+      "access_method": "scrape",
+      "parser": "cn_hf",
       "frequency": "weekly",
       "sector": "transport_logistics",
-      "difficulty": "hard",
-      "note": "Published jointly by the China Federation of Logistics and Purchasing (CFLP) and Guangdong Lin'an Logistics Group. The weekly/monthly road-freight price index is released as HTML press releases on chinawuliu.com.cn and WeChat; no open JSON/CSV endpoint was found. Requires HTML scraping or manual extraction."
+      "difficulty": "medium",
+      "unit": "index",
+      "note": "Weekly road-freight price index published by CFLP and Lin'an Logistics. Scraped from public HTML report pages on chinawuliu.com.cn."
     },
     {
       "key": "scfi",
@@ -94,10 +103,12 @@
       "name_en": "Shanghai Containerized Freight Index (SCFI)",
       "url": "https://en.sse.net.cn/currentIndex?indexName=scfi",
       "access_method": "open_json",
+      "parser": "cn_hf",
       "frequency": "weekly",
       "sector": "transport_logistics",
       "difficulty": "easy",
-      "note": "Published weekly (Fridays) by the Shanghai Shipping Exchange. The public /currentIndex endpoint returns the latest SCFI composite index and per-route sub-indices as JSON without authentication. Historical multi-date queries via /index/mutipleIndex require login, but the current release is openly available."
+      "unit": "index",
+      "note": "Published weekly (Fridays) by the Shanghai Shipping Exchange. The public /currentIndex endpoint returns the latest SCFI composite index and per-route sub-indices as JSON without authentication."
     },
     {
       "key": "macro_caixin_pmi",
@@ -127,6 +138,7 @@
       "name_en": "China Monthly Import and Export Trade (GACC)",
       "url": "https://chinadata.live/api/v2/data/china-trade-monthly",
       "access_method": "open_json",
+      "parser": "cn_hf",
       "frequency": "monthly",
       "sector": "macro",
       "difficulty": "easy",
@@ -138,10 +150,11 @@
       "name_en": "NBS China Macroeconomic Data",
       "url": "https://data.stats.gov.cn/easyquery.htm?cn=A01",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "monthly",
       "sector": "macro",
       "difficulty": "hard",
-      "note": "Monthly macroeconomic releases from the National Bureau of Statistics of China (NBS / 国家统计局), including CPI, PPI, industrial production, retail sales, fixed-asset investment and surveyed urban unemployment. The NBS National Data (EasyQuery) portal can be queried via parameterized endpoints such as https://data.stats.gov.cn/easyquery.htm?m=QueryData&dbcode=hgyd&rowcode=zb&colcode=sj, but responses are JSONP/HTML, require constructing wd/dfwds parameters, and are protected by anti-bot measures with no documented open API key. Marked todo until a stable scraper or API client is implemented."
+      "note": "Monthly macroeconomic releases from the National Bureau of Statistics of China. The EasyQuery portal can be queried via parameterized endpoints, but responses are JSONP/HTML, require undocumented wd/dfwds parameters, and are protected by anti-bot measures with no documented open API key. Marked todo until a stable scraper or API client is implemented."
     },
     {
       "key": "macro_pboc_credit",
@@ -149,10 +162,11 @@
       "name_en": "PBOC Credit, Money Supply and Aggregate Financing",
       "url": "http://www.pbc.gov.cn/en/3688240/index.html",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "monthly",
       "sector": "macro",
       "difficulty": "hard",
-      "note": "Monthly money supply, sources/uses of credit funds and aggregate financing data from the People’s Bank of China (Monetary Statistics pages). No stable open JSON or CSV endpoint is available; figures are published as HTML/Excel tables that require scraping and Chinese date parsing. Marked todo until a parser is implemented."
+      "note": "Monthly money supply, sources/uses of credit funds and aggregate financing data from the People’s Bank of China. No stable open JSON or CSV endpoint is currently available; figures are published as HTML/Excel tables that require scraping and Chinese date parsing. Marked todo until a reliable public access path is confirmed."
     },
     {
       "key": "mobility_12306",
@@ -160,6 +174,7 @@
       "name_en": "12306 Railway Passenger Traffic",
       "url": "https://www.12306.cn",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "transport_logistics",
       "difficulty": "hard",
@@ -171,10 +186,11 @@
       "name_en": "Baidu Maps City Congestion Index",
       "url": "https://jiaotong.baidu.com/reports/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "mobility",
       "difficulty": "hard",
-      "note": "Baidu Maps publishes city congestion rankings and reports on jiaotong.baidu.com, but no open bulk JSON/Csv endpoint exists. Real-time road traffic requires a Baidu Maps API key (ak) and is restricted by platform terms; implementation needs a scraper or authenticated API integration."
+      "note": "Baidu Maps publishes city congestion rankings and reports on jiaotong.baidu.com, but no open bulk JSON/CSV endpoint exists. Real-time road traffic requires a Baidu Maps API key (ak) and is restricted by platform terms; implementation needs a scraper or authenticated API integration."
     },
     {
       "key": "mobility_baidu_migration",
@@ -182,6 +198,7 @@
       "name_en": "Baidu Migration Index (Qianxi)",
       "url": "http://huiyan.baidu.com/migration/cityrank.jsonp",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "mobility",
       "difficulty": "hard",
@@ -193,6 +210,7 @@
       "name_en": "Mobility & Box Office",
       "url": "https://piaofang.maoyan.com/dashboard",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "mobility",
       "difficulty": "hard",
@@ -204,6 +222,7 @@
       "name_en": "CAAC Monthly Civil Aviation KPIs",
       "url": "https://www.caac.gov.cn/XXGK/XXGK/TJSJ/TJSJ_1/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "monthly",
       "sector": "mobility",
       "difficulty": "hard",
@@ -213,12 +232,14 @@
       "key": "mobility_gaode",
       "name_zh": "高德地图城市拥堵延时指数",
       "name_en": "Amap City Congestion Delay Index",
-      "url": "https://report.amap.com/",
-      "access_method": "todo",
+      "url": "https://report.amap.com/diagnosis/ajax/countryindicators.do",
+      "access_method": "open_json",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "mobility",
-      "difficulty": "hard",
-      "note": "Amap (Gaode) publishes city congestion-delay and traffic-health dashboards at report.amap.com, updated daily/real-time. No open bulk JSON/CSV endpoint was found; Amap's LBS Traffic Status API requires an authenticated key and is governed by platform terms. Implementation needs a scraper or approved API integration."
+      "difficulty": "medium",
+      "unit": "index",
+      "note": "Amap's public traffic-report dashboard exposes an open JSON endpoint (report.amap.com/diagnosis/ajax/countryindicators.do) returning the current national average of the road-network trip delay index and related traffic-health indicators. No authentication is required."
     },
     {
       "key": "property_cric",
@@ -226,10 +247,11 @@
       "name_en": "CRIC China Real Estate Data",
       "url": "https://www.cricbigdata.com/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "monthly",
       "sector": "property",
       "difficulty": "hard",
-      "note": "Commercial/proprietary real-estate data from CRIC (克尔瑞), a leading China property data and consulting provider. No public open API; indicators such as sales volume, inventory, prices, land auctions and developer rankings are behind a subscription/paywall and would require authenticated scraping or a commercial license. Marked todo until a scraper or API agreement is implemented."
+      "note": "Commercial/proprietary real-estate data from CRIC (克尔瑞). No public open API; indicators are behind a subscription/paywall. Stubbed until a lawful public endpoint or scraper is available."
     },
     {
       "key": "property_zhongzhi_land",
@@ -237,10 +259,11 @@
       "name_en": "CREIS / Zhongzhi China Land Auction and Transaction Data",
       "url": "https://www.cih-index.com/landlist/land/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "property",
       "difficulty": "hard",
-      "note": "Daily land auction, supply-plan and transaction listings published by China Index Academy (CREIS / 中指云 / 中指研究院) at cih-index.com. The public portal shows search/filter pages and limited preview records, but full parcel details, historical time-series and ranked city aggregates are gated behind login/subscription or delivered through the commercial API at https://api.cih-index.com/. No stable open JSON/CSV endpoint is available, so this source is marked todo until an authenticated scraper or commercial API agreement is implemented."
+      "note": "Daily land auction, supply-plan and transaction listings published by China Index Academy (CREIS / 中指云 / 中指研究院). The public portal shows search/filter pages and limited preview records, but full parcel details, historical time-series and ranked city aggregates are gated behind login/subscription or delivered through the commercial API at https://api.cih-index.com/. No stable open JSON/CSV endpoint is available, so this source is a TODO stub."
     },
     {
       "key": "steel_100njz_construction",
@@ -248,10 +271,11 @@
       "name_en": "100njz Construction Steel Price",
       "url": "https://jiancai.mysteel.com/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "steel",
       "difficulty": "hard",
-      "note": "百年建筑网（100njz.com）建筑钢材行情由上海钢联（Mysteel）建筑钢材频道（jiancai.mysteel.com）提供，日度更新。价格数据以HTML/动态渲染为主，需登录或商业数据接口，反爬机制强。TODO：实现专用scraper或接入Mysteel商业API。"
+      "note": "百年建筑网（100njz.com）建筑钢材行情由上海钢联（Mysteel）建筑钢材频道（jiancai.mysteel.com）提供，日度更新。公开页面仅展示'电议'报价，具体日度价格数据需登录或商业数据接口。TODO：接入Mysteel/100njz商业API或确认可公开访问的价格指数页面。"
     },
     {
       "key": "steel_mysteel",
@@ -259,10 +283,11 @@
       "name_en": "Mysteel China Steel Prices",
       "url": "https://news.mysteel.com/",
       "access_method": "todo",
+      "parser": "cn_hf",
       "frequency": "daily",
       "sector": "steel",
       "difficulty": "hard",
-      "note": "Daily spot steel and raw-materials prices for China published by Mysteel (我的钢铁网), including rebar, hot-rolled coil, cold-rolled coil, iron ore and coke. The public news page shows latest prices but there is no stable open JSON/API endpoint; the full historical time-series and detailed indices are behind a subscription/anti-bot wall. Marked todo until a scraper or commercial API agreement is implemented."
+      "note": "Daily spot steel and raw-materials prices for China published by Mysteel. No stable open JSON/API endpoint is available; the full time-series is behind a subscription/anti-bot wall. TODO: implement a scraper or commercial API integration."
     },
     {
       "key": "yiwu_index",

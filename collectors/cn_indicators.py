@@ -13,6 +13,7 @@ The collector can be driven three ways:
    back to a small built-in set of open World Bank China proxies.
 """
 
+import importlib
 import io
 import json
 import logging
@@ -25,11 +26,11 @@ import pandas as pd
 
 from core.base_collector import BaseCollector
 
-
 # ── Per-source bespoke parsers ───────────────────────────────────────
 # Some open sources return idiosyncratic JSON the generic json_path/date/value
 # mapping can't reach. Each parser takes the decoded response and returns a flat
 # list of {"date": str, "value": number, **extra} observations.
+
 
 def _parse_sse_freight(data: Any) -> list:
     """Shanghai Shipping Exchange CCFI/SCFI composite index.
@@ -48,7 +49,7 @@ def _parse_sse_freight(data: Any) -> list:
         return out
 
     for item in lines:
-        dit = (item.get("dataItemTypeName") or "")
+        dit = item.get("dataItemTypeName") or ""
         en = ((item.get("properties") or {}).get("lineName_EN") or "").strip().upper()
         if dit.endswith("_T") or en == "COMPOSITE INDEX":
             return emit(item, "COMPOSITE")
@@ -64,11 +65,17 @@ def _parse_chinadata_series(data: Any, value_key: str = "export") -> list:
     for r in rows:
         if not isinstance(r, dict):
             continue
-        out.append({
-            "date": r.get("date"),
-            "value": r.get(value_key),
-            **{k: r.get(k) for k in ("total", "export", "import", "balance") if k in r},
-        })
+        out.append(
+            {
+                "date": r.get("date"),
+                "value": r.get(value_key),
+                **{
+                    k: r.get(k)
+                    for k in ("total", "export", "import", "balance")
+                    if k in r
+                },
+            }
+        )
     return out
 
 
@@ -77,6 +84,52 @@ _CUSTOM_PARSERS = {
     "scfi": _parse_sse_freight,
     "macro_customs": _parse_chinadata_series,
 }
+
+
+# ── CN-HF parser-module registry ─────────────────────────────────────
+# Each module under collectors/cn_hf/parsers/ that exposes a SOURCE dict with
+# a ``key`` and an async ``collect(http, src)`` function is registered here.
+# Sources whose ``parser`` field is set to "cn_hf" are routed through this
+# registry instead of the generic JSON/CSV path.
+
+
+def _load_cn_hf_parser_registry() -> dict[str, Any]:
+    """Discover and import parser modules in collectors/cn_hf/parsers/."""
+    registry: dict[str, Any] = {}
+    parsers_dir = Path(__file__).resolve().parent / "cn_hf" / "parsers"
+    if not parsers_dir.exists():
+        return registry
+
+    for path in sorted(parsers_dir.glob("*.py")):
+        if path.name.startswith("_"):
+            continue
+        module_name = f"collectors.cn_hf.parsers.{path.stem}"
+        try:
+            module = importlib.import_module(module_name)
+        except Exception as e:
+            logging.warning(
+                "[CNIndicators] Failed to import CN-HF parser %s: %s",
+                module_name,
+                e,
+            )
+            continue
+
+        source = getattr(module, "SOURCE", None)
+        collect_fn = getattr(module, "collect", None)
+        if (
+            source
+            and isinstance(source, dict)
+            and source.get("key")
+            and collect_fn
+            and callable(collect_fn)
+        ):
+            registry[source["key"]] = module
+
+    return registry
+
+
+_CN_HF_PARSER_REGISTRY = _load_cn_hf_parser_registry()
+
 from core.exceptions import SchemaChangedError
 
 logger = logging.getLogger(__name__)
@@ -249,7 +302,11 @@ class CNIndicatorsCollector(BaseCollector):
                 if raw_sources and isinstance(raw_sources[0], str):
                     catalog = self._load_catalog()
                     key_set = set(raw_sources)
-                    return [self._normalize_source(s) for s in catalog if s.get("key") in key_set]
+                    return [
+                        self._normalize_source(s)
+                        for s in catalog
+                        if s.get("key") in key_set
+                    ]
                 return []
             return []
 
@@ -265,11 +322,15 @@ class CNIndicatorsCollector(BaseCollector):
             if _CATALOG_PATH.exists():
                 data = json.loads(_CATALOG_PATH.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
-                    return data.get("sources", []) or data.get("enabled_sources", []) or []
+                    return (
+                        data.get("sources", []) or data.get("enabled_sources", []) or []
+                    )
                 if isinstance(data, list):
                     return data
         except Exception as e:
-            logger.warning(f"[CNIndicators] Failed to load catalog {_CATALOG_PATH}: {e}")
+            logger.warning(
+                f"[CNIndicators] Failed to load catalog {_CATALOG_PATH}: {e}"
+            )
         return []
 
     @staticmethod
@@ -338,22 +399,25 @@ class CNIndicatorsCollector(BaseCollector):
                 if date is None or value is None:
                     continue
 
-                records.append({
-                    "key": key,
-                    "date": date,
-                    "value": value,
-                    "unit": src.get("unit", ""),
-                    "sector": src.get("sector", "macro"),
-                    "frequency": src.get("frequency", "unknown"),
-                    "source_name_zh": src.get("name_zh", key),
-                    "source_name_en": src.get("name_en", key),
-                    "url": url,
-                    "access": access,
-                    "metadata_extra": {
-                        k: v for k, v in item.items()
-                        if k not in (date_field, value_field)
-                    },
-                })
+                records.append(
+                    {
+                        "key": key,
+                        "date": date,
+                        "value": value,
+                        "unit": src.get("unit", ""),
+                        "sector": src.get("sector", "macro"),
+                        "frequency": src.get("frequency", "unknown"),
+                        "source_name_zh": src.get("name_zh", key),
+                        "source_name_en": src.get("name_en", key),
+                        "url": url,
+                        "access": access,
+                        "metadata_extra": {
+                            k: v
+                            for k, v in item.items()
+                            if k not in (date_field, value_field)
+                        },
+                    }
+                )
                 count += 1
 
             logger.info(f"[CNIndicators] {key}: collected {count} records")
@@ -363,6 +427,28 @@ class CNIndicatorsCollector(BaseCollector):
 
     async def _fetch_source(self, src: dict) -> Any:
         """Fetch one source and return the list of observations."""
+        parser = src.get("parser", "json")
+
+        # Route to a CN-HF parser module if requested. Parser modules handle their
+        # own HTTP/HTML logic and return observations directly.
+        if parser == "cn_hf":
+            module = _CN_HF_PARSER_REGISTRY.get(src["key"])
+            if module is None:
+                logger.warning(
+                    "[CNIndicators] %s: parser 'cn_hf' requested but no module registered",
+                    src["key"],
+                )
+                return []
+            try:
+                return await module.collect(self._http, src)
+            except Exception as e:
+                logger.warning(
+                    "[CNIndicators] %s: cn_hf parser failed: %s",
+                    src["key"],
+                    e,
+                )
+                return []
+
         url = src["url"]
         method = src.get("method", "GET").upper()
 
@@ -379,7 +465,6 @@ class CNIndicatorsCollector(BaseCollector):
             )
             return []
 
-        parser = src.get("parser", "json")
         if parser == "csv":
             df = pd.read_csv(io.StringIO(resp.text))
             return df.to_dict("records")
@@ -478,22 +563,24 @@ class CNIndicatorsCollector(BaseCollector):
         """Transform raw records into the EconomicData schema."""
         rows = []
         for r in raw_data:
-            rows.append({
-                "indicator": r["key"],
-                "date": r["date"],
-                "value": r["value"],
-                "unit": r["unit"],
-                "metadata": {
-                    "category": r["sector"],
-                    "frequency": r["frequency"],
-                    "source_name_zh": r["source_name_zh"],
-                    "source_name_en": r["source_name_en"],
-                    "url": r["url"],
-                    "access": r["access"],
-                    "sector": r["sector"],
-                    "raw": r.get("metadata_extra", {}),
-                },
-            })
+            rows.append(
+                {
+                    "indicator": r["key"],
+                    "date": r["date"],
+                    "value": r["value"],
+                    "unit": r["unit"],
+                    "metadata": {
+                        "category": r["sector"],
+                        "frequency": r["frequency"],
+                        "source_name_zh": r["source_name_zh"],
+                        "source_name_en": r["source_name_en"],
+                        "url": r["url"],
+                        "access": r["access"],
+                        "sector": r["sector"],
+                        "raw": r.get("metadata_extra", {}),
+                    },
+                }
+            )
         return pd.DataFrame(rows)
 
     def validate(self, df: pd.DataFrame) -> bool:

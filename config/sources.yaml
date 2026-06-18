@@ -280,141 +280,56 @@ sources:
     schedule: "0 7 * * *"              # 7 AM UTC daily
     collector_class: "collectors.cn_indicators.CNIndicatorsCollector"
     config:
-      enabled_sources:
-        # ── Freight / logistics ─────────────────────────────────
-        - key: bdi
-          name_zh: 波罗的海干散货指数
-          name_en: Baltic Dry Index
-          url: "https://tradingeconomics.com/commodity/baltic"
-          method: GET
-          parser: json
-          unit: index
-          sector: transport_logistics
-          access: todo
-          note: "Daily bulk-shipping proxy. Public page; requires scraper or FRED API key."
-        - key: ccfi
-          name_zh: 中国出口集装箱运价指数
-          name_en: China Containerized Freight Index
-          url: "http://www.sse.net.cn/index/singleIndex?indexType=ccfi"
-          method: GET
-          parser: json
-          unit: index
-          sector: transport_logistics
-          access: scrape
-          note: "Shanghai Shipping Exchange; HTML table scrape."
-        - key: scfi
-          name_zh: 上海出口集装箱运价指数
-          name_en: Shanghai Containerized Freight Index
-          url: "http://www.sse.net.cn/index/singleIndex?indexType=scfi"
-          method: GET
-          parser: json
-          unit: index
-          sector: transport_logistics
-          access: scrape
-          note: "Shanghai Shipping Exchange; HTML table scrape."
+      # enabled_sources is intentionally omitted so the collector loads the full
+      # source catalog from config/cn_hf_sources.json at runtime.
 
-        # ── Trade hubs ──────────────────────────────────────────
-        - key: yiwu_index
-          name_zh: 义乌中国小商品指数
-          name_en: Yiwu China Commodity Index
-          url: "http://www.ywindex.com/"
-          method: GET
-          parser: json
-          unit: index
-          sector: trade
-          access: todo
-          note: "Yiwu small-commodity wholesale benchmark; scrape or partner feed required."
 
-        # ── Autos ───────────────────────────────────────────────
-        - key: cpca_retail_pv
-          name_zh: 乘联会乘用车零售销量
-          name_en: CPCA Passenger Vehicle Retail Sales
-          url: "https://www.cpauto.com.cn/"
-          method: GET
-          parser: json
-          unit: units
-          sector: automotive
-          access: todo
-          note: "CPCA publishes via WeChat/website; requires scrape or data partner."
-        - key: cpca_wholesale_pv
-          name_zh: 乘联会乘用车批发销量
-          name_en: CPCA Passenger Vehicle Wholesale Sales
-          url: "https://www.cpauto.com.cn/"
-          method: GET
-          parser: json
-          unit: units
-          sector: automotive
-          access: todo
-          note: "CPCA publishes via WeChat/website; requires scrape or data partner."
+  # ── China Physical Anchors ───────────────────────────────────
+  electricity_proxy:
+    enabled: false
+    schedule: "0 0 * * 0"              # Weekly — OWID/Ember annual data, low churn
+    collector_class: "collectors.physical_electricity_proxy.ElectricityProxyCollector"
+    config:
+      # Public OWID energy dataset; no API key required.
+      indicator: "electricity_proxy_china"
+      unit: "TWh"
 
-        # ── Steel ───────────────────────────────────────────────
-        - key: steel_price_index
-          name_zh: 中国钢材价格指数
-          name_en: China Steel Price Index
-          url: "https://www.mysteel.com/"
-          method: GET
-          parser: json
-          unit: CNY/t
-          sector: steel
-          access: todo
-          note: "Mysteel/Myspic index is commercial; public alternative under review."
+  sentinel2:
+    enabled: false
+    schedule: "0 0 * * 0"              # Weekly — Copernicus catalogue scene-count proxy
+    collector_class: "collectors.physical_sentinel2.Sentinel2Collector"
+    config:
+      months_back: 3
+      catalog_url: "https://catalogue.dataspace.copernicus.eu/odata/v1/Products"
 
-        # ── Cement ──────────────────────────────────────────────
-        - key: cement_price_index
-          name_zh: 中国水泥价格指数
-          name_en: China Cement Price Index
-          url: "https://www.ccement.com/"
-          method: GET
-          parser: json
-          unit: CNY/t
-          sector: construction_materials
-          access: todo
-          note: "Cement price regional averages; requires scrape."
+  hk_property:
+    enabled: false
+    schedule: "0 0 5 * *"              # Monthly (5th) — HK RVD private domestic price index
+    collector_class: "collectors.elite_hk_property.HKPropertyCollector"
+    config: {}
 
-        # ── Coal / energy ───────────────────────────────────────
-        - key: coal_price_index
-          name_zh: 中国煤炭价格指数
-          name_en: China Coal Price Index
-          url: "https://www.cctd.com.cn/"
-          method: GET
-          parser: json
-          unit: CNY/t
-          sector: energy
-          access: todo
-          note: "Coal price benchmarks (e.g., CCI, CCTD); commercial/scrape."
+  safe_net_errors:
+    enabled: false
+    schedule: "0 0 1 * *"              # Monthly (1st) — World Bank BOP net errors/omissions
+    collector_class: "collectors.elite_safe_net_errors.SAFENetErrorsCollector"
+    config:
+      indicator: "BN.KAC.EOMS.CD"
+      country: "CHN"
+      start_year: 2015
+      end_year: 2026
 
-        # ── Property ────────────────────────────────────────────
-        - key: property_price_index
-          name_zh: 商品住宅销售价格指数
-          name_en: China Property Price Index
-          url: "https://www.stats.gov.cn/tjsj/"
-          method: GET
-          parser: json
-          unit: index
-          sector: property
-          access: todo
-          note: "NBS monthly property price data; PDF/HTML tables."
+  # ── China Elite Signals ──────────────────────────────────────
+  peoples_daily_byline:
+    enabled: false
+    schedule: "0 4 * * *"              # Daily — People's Daily print-edition article-count proxy
+    collector_class: "collectors.elite_peoples_daily_byline.PeoplesDailyCollector"
+    config:
+      lookback_days: 7
+      timeout: 30
 
-        # ── Mobility ────────────────────────────────────────────
-        - key: baidu_mobility
-          name_zh: 百度迁徙/出行指数
-          name_en: Baidu Migration/Mobility Index
-          url: "https://qianxi.baidu.com/"
-          method: GET
-          parser: json
-          unit: index
-          sector: consumer_mobility
-          access: todo
-          note: "Public dashboards but no stable open API; scrape or API partnership."
-
-        # ── Macro ───────────────────────────────────────────────
-        - key: pboc_lpr
-          name_zh: 贷款市场报价利率
-          name_en: PBOC Loan Prime Rate
-          url: "http://www.pbc.gov.cn/zhengcehuobisi/11111/index.html"
-          method: GET
-          parser: json
-          unit: pct
-          sector: macro
-          access: todo
-          note: "Monthly 1Y/5Y LPR; official PBOC site, HTML tables."
+  politburo_readouts:
+    enabled: false
+    schedule: "0 0 * * 0"              # Weekly — Wikipedia-sourced Politburo meeting metadata
+    collector_class: "collectors.elite_politburo_readouts.PolitburoReadoutsCollector"
+    config:
+      url: "https://en.wikipedia.org/wiki/20th_Politburo_of_the_Chinese_Communist_Party"
