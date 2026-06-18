@@ -220,8 +220,16 @@ docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d --b
 
 The `beat` service drives 24/7 collection from `config/sources.yaml`; an in-stack
 `backup` service dumps Postgres + `data/` snapshots nightly and syncs them to
-Drive. Full runbook (disk mount, rclone auth, systemd boot, reverse proxy):
-**[`deploy/DEPLOY.md`](deploy/DEPLOY.md)**.
+Drive.
+
+**Two deployment paths:**
+
+- **Fully cloud, zero local** → [`deploy/railway/DEPLOY_RAILWAY.md`](deploy/railway/DEPLOY_RAILWAY.md).
+  Deploy every service from GitHub via the Railway dashboard — managed Postgres +
+  Redis, nightly Google Drive backups, nothing installed on your machine.
+- **Self-managed VPS** → [`deploy/DEPLOY.md`](deploy/DEPLOY.md). Run the full
+  compose stack on your own box with data on an attached disk (disk mount, rclone
+  auth, systemd boot, reverse proxy).
 
 ---
 
