@@ -2,17 +2,17 @@
 // EXPLAIN — the legibility / democratization layer
 // =============================================================================
 // Pure functions that turn raw records into ONE plain-English sentence a
-// non-expert can understand. The whole product thesis lives here: official data
-// is published in institutional units (USD/g, kg seized, hectares); people
-// understand it in human units (hours of wages, tonnes, "the biggest route").
+// non-expert can understand. Official data is published in institutional units
+// (USD/g, kg, hectares); people understand human units (hours of wages, tonnes).
 // Keep these pure + string-returning so they can be tested and, later, localised.
 
-import { affordabilityDays } from './metrics.js'
+import { affordabilityDays } from './metrics'
+import type { PriceRecord, FlowRecord, MmRegionRecord, MmFlowRecord } from '../types'
 
-const fmtUsd = (v) => (v == null ? 'n/a' : `$${Math.round(v).toLocaleString()}`)
+const fmtUsd = (v: number | null): string => (v == null ? 'n/a' : `$${Math.round(v).toLocaleString()}`)
 
 /** kg → a human mass phrase (tonnes once it's big enough to deserve them). */
-export function humanizeMass(kg) {
+export function humanizeMass(kg: number | null): string {
   if (kg == null) return 'n/a'
   if (kg >= 1000) {
     const t = kg / 1000
@@ -22,7 +22,7 @@ export function humanizeMass(kg) {
 }
 
 /** "days of income" → a wage phrase ("~15 hours of an average local wage"). */
-export function humanizeAffordability(days) {
+export function humanizeAffordability(days: number | null): string | null {
   if (days == null) return null
   if (days < 1) {
     const hours = Math.max(1, Math.round(days * 24))
@@ -33,7 +33,7 @@ export function humanizeAffordability(days) {
 }
 
 /** Street prices: contrast cheapest vs dearest, anchored in wages. */
-export function explainPrices(rows, drugLabel) {
+export function explainPrices(rows: PriceRecord[] | null | undefined, drugLabel: string): string | null {
   if (!rows || rows.length === 0) return null
   const latestYear = Math.max(...rows.map((r) => r.year))
   let scope = rows.filter((r) => r.year === latestYear)
@@ -53,7 +53,10 @@ export function explainPrices(rows, drugLabel) {
 }
 
 /** Precursor flows: total seized, China's share, biggest single corridor. */
-export function explainFlows(flows, scopeLabel = 'the records shown') {
+export function explainFlows(
+  flows: FlowRecord[] | null | undefined,
+  scopeLabel = 'the records shown',
+): string | null {
   if (!flows || flows.length === 0) return `No trafficking corridors are recorded for ${scopeLabel}.`
   const total = flows.reduce((s, r) => s + r.quantityKg, 0)
   const chinaTotal = flows.filter((r) => r.origin === 'China').reduce((s, r) => s + r.quantityKg, 0)
@@ -67,8 +70,13 @@ export function explainFlows(flows, scopeLabel = 'the records shown') {
 }
 
 /** Myanmar focus: where activity/cultivation peaks + the busiest exit route. */
-export function explainMyanmar(regionRows, flows, year, labelOf) {
-  const parts = []
+export function explainMyanmar(
+  regionRows: MmRegionRecord[] | null | undefined,
+  flows: MmFlowRecord[] | null | undefined,
+  year: number | undefined,
+  labelOf: (id: string) => string,
+): string | null {
+  const parts: string[] = []
   if (regionRows && regionRows.length) {
     const topMeth = [...regionRows].sort((a, b) => b.methIndex - a.methIndex)[0]
     const topOpium = [...regionRows].sort((a, b) => b.opiumHa - a.opiumHa)[0]

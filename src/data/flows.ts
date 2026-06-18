@@ -1,57 +1,44 @@
 // =============================================================================
-// PRECURSOR CHEMICAL FLOWS & SEIZURES  (the "upstream" awareness layer)
+// PRECURSOR CHEMICAL FLOWS, PRICES & SEIZURES  (the "upstream" awareness layer)
 // =============================================================================
 //
-// ⚠️ DATA PROVENANCE: ILLUSTRATIVE samples shaped to the structure of public
-// enforcement reporting. Replace with official, citable, aggregate data from:
+// ⚠️ DATA PROVENANCE: ILLUSTRATIVE samples shaped to public enforcement reporting.
+// Replace with official, citable, aggregate data from:
 //   • INCB — Precursors annual report & PICS  → https://www.incb.org/incb/en/precursors/
 //   • UNODC — World Drug Report (precursor chapter) & Synthetic Drugs Strategy
 //   • UNODC dataUNODC — seizures           → https://dataunodc.un.org
 //
-// ETHICAL GRAIN (hard rule): this layer stores LOGISTICS ONLY —
-//   what chemical, the end-drug it serves, its INCB scheduling, how much was
-//   seized, and the country-to-country corridor. There are deliberately NO
-//   chemistry fields: no synthesis routes, no conversion ratios, no yields.
-//   Awareness of the supply chain — not a manual for it.
+// ETHICAL GRAIN (hard rule): LOGISTICS ONLY — what chemical, end-drug, INCB
+// scheduling, how much seized, and the country-to-country corridor. NO chemistry
+// fields: no synthesis routes, no conversion ratios, no yields.
 // =============================================================================
 
-// Precursors tracked by INCB, identified by the finished drug they enable and
-// their international control status. (Category labels only — no how-to.)
-export const PRECURSORS = [
+import type {
+  PrecursorMeta, FlowRecord, PrecursorPriceRecord, Centroid,
+} from '../types'
+
+export const PRECURSORS: PrecursorMeta[] = [
   { id: 'fentanyl_precursors', label: 'Fentanyl-class precursors', endDrug: 'Fentanyl & analogues', incbScheduled: true },
   { id: 'meth_precursors', label: 'Methamphetamine precursors', endDrug: 'Methamphetamine', incbScheduled: true },
   { id: 'meth_pre_precursors', label: 'Meth "designer" pre-precursors', endDrug: 'Methamphetamine', incbScheduled: false },
   { id: 'heroin_precursors', label: 'Heroin precursors (acetylating agents)', endDrug: 'Heroin', incbScheduled: true },
 ]
 
-// Aggregate corridor records. quantityKg = total seized along the corridor for
-// the year (kilograms). A corridor is origin → transit (optional) → destination,
-// all at COUNTRY grain.
-// { precursor, origin, transit, destination, year, quantityKg }
-export const FLOW_RECORDS = [
-  // China as a source hub — the emerging-problem thesis you flagged.
+// Aggregate corridor records. quantityKg = total seized along the corridor/year.
+export const FLOW_RECORDS: FlowRecord[] = [
   { precursor: 'fentanyl_precursors', origin: 'China', transit: 'Mexico', destination: 'United States', year: 2020, quantityKg: 1800 },
   { precursor: 'fentanyl_precursors', origin: 'China', transit: 'Mexico', destination: 'United States', year: 2022, quantityKg: 3100 },
   { precursor: 'meth_pre_precursors', origin: 'China', transit: 'Myanmar', destination: 'Australia', year: 2022, quantityKg: 5400 },
   { precursor: 'meth_precursors', origin: 'China', transit: null, destination: 'Mexico', year: 2021, quantityKg: 12000 },
-
-  // India as a secondary source the reports increasingly flag.
   { precursor: 'fentanyl_precursors', origin: 'India', transit: null, destination: 'Mexico', year: 2022, quantityKg: 900 },
   { precursor: 'heroin_precursors', origin: 'India', transit: null, destination: 'Afghanistan', year: 2021, quantityKg: 4200 },
-
-  // The "Golden Triangle" meth surge.
   { precursor: 'meth_pre_precursors', origin: 'China', transit: 'Thailand', destination: 'Myanmar', year: 2021, quantityKg: 7600 },
-
-  // European nexus.
   { precursor: 'meth_precursors', origin: 'China', transit: 'Netherlands', destination: 'Germany', year: 2022, quantityKg: 2100 },
 ]
 
-// Precursor PRICES — aggregate, country + year, in USD per kilogram.
-// Same provenance + grain rules as everything else. A spiking precursor price
-// is a leading indicator of enforcement pressure on the supply chain, which is
-// exactly the kind of signal an awareness tool should surface.
-// { precursor, country, iso3, region, year, priceUsdPerKg }
-export const PRECURSOR_PRICE_RECORDS = [
+// Precursor PRICES — aggregate, country + year, USD per kilogram. A spiking
+// precursor price is a leading indicator of enforcement pressure on the chain.
+export const PRECURSOR_PRICE_RECORDS: PrecursorPriceRecord[] = [
   { precursor: 'fentanyl_precursors', country: 'China', iso3: 'CHN', region: 'Asia', year: 2020, priceUsdPerKg: 2500 },
   { precursor: 'fentanyl_precursors', country: 'China', iso3: 'CHN', region: 'Asia', year: 2022, priceUsdPerKg: 4200 },
   { precursor: 'fentanyl_precursors', country: 'Mexico', iso3: 'MEX', region: 'Americas', year: 2022, priceUsdPerKg: 9000 },
@@ -64,7 +51,7 @@ export const PRECURSOR_PRICE_RECORDS = [
 
 // Approximate lat/lng centroids for the map view. Replace with a proper
 // country-centroid table when wiring real data.
-export const COUNTRY_CENTROIDS = {
+export const COUNTRY_CENTROIDS: Record<string, Centroid> = {
   'China': { lat: 35.9, lng: 104.2 },
   'India': { lat: 22.0, lng: 79.0 },
   'Mexico': { lat: 23.6, lng: -102.5 },

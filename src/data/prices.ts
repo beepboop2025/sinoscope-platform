@@ -14,13 +14,13 @@
 //   • UNODC World Drug Report (annual)  → https://www.unodc.org/unodc/en/data-and-analysis/world-drug-report.html
 //
 // GRAIN (deliberate guardrail): country + year + annual average ONLY.
-// No sub-national, no real-time, no point-of-sale data. Awareness, not a guide.
-//
 // Units: priceUsdPerGram = retail price per gram in nominal USD (year-of-record).
 //        purityPct       = typical retail purity %, where reported (null if N/A).
 // =============================================================================
 
-export const DRUGS = [
+import type { DrugMeta, PriceRecord, Source } from '../types'
+
+export const DRUGS: DrugMeta[] = [
   { id: 'cocaine', label: 'Cocaine', unit: 'gram' },
   { id: 'heroin', label: 'Heroin', unit: 'gram' },
   { id: 'cannabis', label: 'Cannabis (herbal)', unit: 'gram' },
@@ -28,8 +28,7 @@ export const DRUGS = [
 ]
 
 // Flat, tidy records — easy to swap for a CSV → JSON import later.
-// { drug, country, iso3, region, year, priceUsdPerGram, purityPct }
-export const PRICE_RECORDS = [
+export const PRICE_RECORDS: PriceRecord[] = [
   // --- Cocaine ---
   { drug: 'cocaine', country: 'United States', iso3: 'USA', region: 'Americas', year: 2018, priceUsdPerGram: 112, purityPct: 61 },
   { drug: 'cocaine', country: 'United States', iso3: 'USA', region: 'Americas', year: 2021, priceUsdPerGram: 120, purityPct: 65 },
@@ -57,10 +56,9 @@ export const PRICE_RECORDS = [
   { drug: 'methamphetamine', country: 'Thailand', iso3: 'THA', region: 'Asia', year: 2021, priceUsdPerGram: 25, purityPct: 85 },
 ]
 
-// Context data for the "affordability" lens — approximate nominal GDP per capita
-// (USD), used to express price as a share of average daily income. Replace with
-// World Bank figures (NY.GDP.PCAP.CD) for accuracy.
-export const GDP_PER_CAPITA_USD = {
+// Context for the "affordability" lens — approximate nominal GDP per capita (USD).
+// Replace with World Bank figures (NY.GDP.PCAP.CD) for accuracy.
+export const GDP_PER_CAPITA_USD: Record<string, number> = {
   USA: 70000,
   DEU: 51000,
   COL: 6600,
@@ -70,7 +68,7 @@ export const GDP_PER_CAPITA_USD = {
   THA: 7200,
 }
 
-export const SOURCES = [
+export const SOURCES: Source[] = [
   { name: 'UNODC — Drugs: prices', url: 'https://dataunodc.un.org' },
   { name: 'EUDA (EMCDDA) — price & purity data', url: 'https://www.euda.europa.eu/data' },
   { name: 'UNODC World Drug Report', url: 'https://www.unodc.org/unodc/en/data-and-analysis/world-drug-report.html' },

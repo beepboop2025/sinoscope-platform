@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { ComposableMap, Geographies, Geography, Line, Marker } from 'react-simple-maps'
 import topology from 'world-atlas/countries-110m.json'
-import { useData } from '../lib/dataStore.js'
-import { explainMyanmar } from '../lib/explain.js'
-import Explainer from './Explainer.jsx'
+import { useData } from '../lib/dataStore'
+import { explainMyanmar } from '../lib/explain'
+import Explainer from './Explainer'
 
-const widthScale = (qty, max) => (max ? 1 + (qty / max) * 5 : 1)
+const widthScale = (qty: number, max: number): number => (max ? 1 + (qty / max) * 5 : 1)
 
 export default function MyanmarFocus() {
   const { mmRegions, mmBorderNodes, mmRegionRecords, mmFlowRecords } = useData()
@@ -15,16 +15,18 @@ export default function MyanmarFocus() {
   // Resolve any region/border id -> [lng, lat] from the (possibly swapped-in)
   // node tables. Rebuilds only when the node tables change.
   const coordOf = useMemo(() => {
-    const idx = Object.fromEntries(
-      [...mmRegions, ...mmBorderNodes].map((n) => [n.id, [n.lng, n.lat]]),
+    const idx: Record<string, [number, number]> = Object.fromEntries(
+      [...mmRegions, ...mmBorderNodes].map((n) => [n.id, [n.lng, n.lat]] as [string, [number, number]]),
     )
-    return (id) => idx[id] ?? null
+    return (id: string): [number, number] | null => idx[id] ?? null
   }, [mmRegions, mmBorderNodes])
 
   // Resolve any id -> human label (for the plain-English explainer).
   const labelOf = useMemo(() => {
-    const idx = Object.fromEntries([...mmRegions, ...mmBorderNodes].map((n) => [n.id, n.label]))
-    return (id) => idx[id] ?? id
+    const idx: Record<string, string> = Object.fromEntries(
+      [...mmRegions, ...mmBorderNodes].map((n) => [n.id, n.label]),
+    )
+    return (id: string): string => idx[id] ?? id
   }, [mmRegions, mmBorderNodes])
 
   const years = useMemo(
@@ -52,8 +54,8 @@ export default function MyanmarFocus() {
   const maxHa = useMemo(() => Math.max(0, ...mmRegionRecords.map((r) => r.opiumHa)), [mmRegionRecords])
   const maxQty = useMemo(() => Math.max(0, ...mmFlowRecords.map((r) => r.quantityKg)), [mmFlowRecords])
 
-  const haFor = (id) => regionRows.find((r) => r.region === id)?.opiumHa ?? 0
-  const methFor = (id) => regionRows.find((r) => r.region === id)?.methIndex ?? 0
+  const haFor = (id: string): number => regionRows.find((r) => r.region === id)?.opiumHa ?? 0
+  const methFor = (id: string): number => regionRows.find((r) => r.region === id)?.methIndex ?? 0
 
   return (
     <section>
@@ -71,7 +73,7 @@ export default function MyanmarFocus() {
         <input
           type="range" min={0} max={Math.max(0, years.length - 1)} step={1}
           value={Math.min(yearIdx, years.length - 1)}
-          onChange={(e) => { setPlaying(false); setYearIdx(Number(e.target.value)) }}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => { setPlaying(false); setYearIdx(Number(e.target.value)) }}
           disabled={years.length < 2}
         />
         <span className="year-label">{currentYear ?? '—'}</span>
@@ -87,7 +89,7 @@ export default function MyanmarFocus() {
           style={{ width: '100%', height: 'auto' }}
         >
           <Geographies geography={topology}>
-            {({ geographies }) =>
+            {({ geographies }: { geographies: any[] }) =>
               geographies.map((geo) => (
                 <Geography
                   key={geo.rsmKey}
@@ -113,7 +115,7 @@ export default function MyanmarFocus() {
                 stroke={rec.drug === 'Heroin' ? '#e0d36e' : '#ff7a59'}
                 strokeWidth={widthScale(rec.quantityKg, maxQty)}
                 strokeLinecap="round" opacity={0.8}
-                style={{ default: { transition: 'stroke-width 0.6s ease' } }}
+                style={{ transition: 'stroke-width 0.6s ease' }}
               />
             )
           })}

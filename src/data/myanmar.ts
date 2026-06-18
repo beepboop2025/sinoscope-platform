@@ -5,20 +5,15 @@
 // ⚠️ DATA PROVENANCE: ILLUSTRATIVE samples in the SHAPE of public data.
 // Replace with official, citable sources:
 //   • UNODC — Myanmar Opium Survey (cultivation by region, hectares)
-//       https://www.unodc.org/unodc/en/crop-monitoring/index.html
 //   • UNODC — Synthetic Drugs in East & Southeast Asia (annual)
-//   • UNODC — Mekong / Golden Triangle seizure reporting
 //
-// ETHICAL GRAIN (the one rule that makes this safe):
-//   Region = administrative unit (state / self-administered division) and
-//   border = named corridor TOWN that appears in published reports. That is the
-//   resolution UNODC publishes. We do NOT store lab sites, GPS points, routes a
-//   person could follow, or any chemistry. Province-level awareness, nothing
-//   navigable.
+// ETHICAL GRAIN: Region = administrative unit; border = named corridor TOWN that
+// appears in published reports. NO lab sites, GPS points, routes, or chemistry.
 // =============================================================================
 
-// Production / source regions inside Myanmar (administrative grain).
-export const MM_REGIONS = [
+import type { MmNode, MmRegionRecord, MmFlowRecord } from '../types'
+
+export const MM_REGIONS: MmNode[] = [
   { id: 'shan_north', label: 'Shan State (North)', lat: 23.2, lng: 98.0 },
   { id: 'shan_east',  label: 'Shan State (East)',  lat: 21.2, lng: 99.6 },
   { id: 'shan_south', label: 'Shan State (South)', lat: 20.5, lng: 97.6 },
@@ -27,27 +22,25 @@ export const MM_REGIONS = [
   { id: 'kayah',      label: 'Kayah State',  lat: 19.3, lng: 97.2 },
 ]
 
-// Named cross-border corridor towns (all appear by name in UNODC reporting).
-export const MM_BORDER_NODES = [
+export const MM_BORDER_NODES: MmNode[] = [
   { id: 'muse',      label: 'Muse (→ China / Yunnan)',     lat: 23.98, lng: 97.90 },
   { id: 'tachileik', label: 'Tachileik (→ Thailand)',      lat: 20.45, lng: 99.88 },
   { id: 'mekong',    label: 'Mekong / Golden Triangle SEZ', lat: 20.35, lng: 100.08 },
   { id: 'kachin_in', label: 'Kachin border (→ NE India)',  lat: 25.6, lng: 95.3 },
 ]
 
-const NODE = Object.fromEntries(
+const NODE: Record<string, MmNode> = Object.fromEntries(
   [...MM_REGIONS, ...MM_BORDER_NODES].map((n) => [n.id, n]),
 )
-export const mmCoord = (id) => {
+export const mmCoord = (id: string): [number, number] | null => {
   const n = NODE[id]
   return n ? [n.lng, n.lat] : null
 }
-export const mmLabel = (id) => NODE[id]?.label ?? id
+export const mmLabel = (id: string): string => NODE[id]?.label ?? id
 
-// Region activity by year. opiumHa = opium poppy cultivation (hectares);
+// opiumHa = opium poppy cultivation (hectares);
 // methIndex = relative synthetic-drug activity indicator (0–100, not a volume).
-// { region, year, opiumHa, methIndex }
-export const MM_REGION_RECORDS = [
+export const MM_REGION_RECORDS: MmRegionRecord[] = [
   { region: 'shan_north', year: 2020, opiumHa: 11000, methIndex: 70 },
   { region: 'shan_north', year: 2022, opiumHa: 16000, methIndex: 85 },
   { region: 'shan_east',  year: 2020, opiumHa: 9000,  methIndex: 80 },
@@ -63,9 +56,7 @@ export const MM_REGION_RECORDS = [
 ]
 
 // Cross-border corridors: source region → border town → out of country.
-// quantityKg = aggregate seized along the corridor for the year.
-// { from, to, year, quantityKg, drug }
-export const MM_FLOW_RECORDS = [
+export const MM_FLOW_RECORDS: MmFlowRecord[] = [
   { from: 'shan_north', to: 'muse',      year: 2020, quantityKg: 2400, drug: 'Methamphetamine' },
   { from: 'shan_north', to: 'muse',      year: 2022, quantityKg: 4100, drug: 'Methamphetamine' },
   { from: 'wa',         to: 'mekong',    year: 2022, quantityKg: 6800, drug: 'Methamphetamine' },

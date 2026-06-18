@@ -1,12 +1,11 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, assert } from 'vitest'
 import {
   humanizeMass,
   humanizeAffordability,
   explainPrices,
   explainFlows,
   explainMyanmar,
-} from './explain.js'
+} from './explain'
 
 describe('humanizeMass', () => {
   it('formats small masses in kg', () => {

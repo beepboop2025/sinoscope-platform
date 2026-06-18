@@ -1,26 +1,27 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { ComposableMap, Geographies, Geography, Graticule, Line, Marker } from 'react-simple-maps'
 import topology from 'world-atlas/countries-110m.json'
-import { PRECURSORS, COUNTRY_CENTROIDS } from '../data/flows.js'
-import { useData } from '../lib/dataStore.js'
-import { explainFlows } from '../lib/explain.js'
-import Explainer from './Explainer.jsx'
+import { PRECURSORS, COUNTRY_CENTROIDS } from '../data/flows'
+import { useData } from '../lib/dataStore'
+import { explainFlows } from '../lib/explain'
+import Explainer from './Explainer'
+import type { FlowRecord } from '../types'
 
 // Map a seized quantity to a stroke width so the eye reads volume directly.
-function widthScale(qty, max) {
+function widthScale(qty: number, max: number): number {
   if (!max) return 1
   return 1 + (qty / max) * 5 // 1px (small) → 6px (largest corridor)
 }
 
 // Break a corridor into legs: origin → transit → destination (or a direct hop).
-function legsOf(rec) {
-  const stops = [rec.origin, rec.transit, rec.destination].filter(Boolean)
-  const legs = []
+function legsOf(rec: FlowRecord): [string, string][] {
+  const stops = [rec.origin, rec.transit, rec.destination].filter((s): s is string => Boolean(s))
+  const legs: [string, string][] = []
   for (let i = 0; i < stops.length - 1; i++) legs.push([stops[i], stops[i + 1]])
   return legs
 }
 
-const coord = (name) => {
+const coord = (name: string): [number, number] | null => {
   const c = COUNTRY_CENTROIDS[name]
   return c ? [c.lng, c.lat] : null
 }
@@ -31,10 +32,9 @@ export default function WorldMap() {
   const [yearIdx, setYearIdx] = useState(0)
   const [playing, setPlaying] = useState(false)
 
-  // All corridors for the chosen precursor, across every year. This is the
-  // STABLE reference set: the arc-thickness scale is computed from it once, so
-  // a corridor that doubles year-over-year actually looks twice as thick during
-  // playback instead of being silently re-normalised each frame.
+  // All corridors for the chosen precursor, across every year. STABLE reference
+  // set: the arc-thickness scale is computed from it once, so a corridor that
+  // doubles year-over-year actually looks twice as thick during playback.
   const allFlows = useMemo(
     () => flowRecords.filter((r) => precursor === 'all' || r.precursor === precursor),
     [flowRecords, precursor],
@@ -45,10 +45,8 @@ export default function WorldMap() {
     [allFlows],
   )
 
-  // Keep the slider in range whenever the precursor (and thus year list) changes.
   useEffect(() => { setYearIdx((i) => Math.min(i, Math.max(0, years.length - 1))) }, [years.length])
 
-  // Playback: advance one year per tick, looping back to the start.
   useEffect(() => {
     if (!playing || years.length < 2) return
     const id = setInterval(() => setYearIdx((i) => (i + 1) % years.length), 1200)
@@ -57,13 +55,12 @@ export default function WorldMap() {
 
   const currentYear = years[Math.min(yearIdx, years.length - 1)]
 
-  // Only the corridors active in the current year are drawn...
   const flows = useMemo(
     () => allFlows.filter((r) => r.year === currentYear),
     [allFlows, currentYear],
   )
 
-  // ...but the scale is fixed across all years for honest comparison.
+  // Scale fixed across all years for honest comparison.
   const maxQty = useMemo(
     () => allFlows.reduce((m, r) => Math.max(m, r.quantityKg), 0),
     [allFlows],
@@ -71,11 +68,11 @@ export default function WorldMap() {
 
   // Throughput per country (sum of every corridor it touches) → marker size.
   const nodes = useMemo(() => {
-    const totals = {}
+    const totals: Record<string, number> = {}
     flows.forEach((r) => {
-      [r.origin, r.transit, r.destination].filter(Boolean).forEach((n) => {
-        totals[n] = (totals[n] || 0) + r.quantityKg
-      })
+      [r.origin, r.transit, r.destination]
+        .filter((s): s is string => Boolean(s))
+        .forEach((n) => { totals[n] = (totals[n] || 0) + r.quantityKg })
     })
     return Object.entries(totals)
       .filter(([name]) => coord(name))
@@ -87,7 +84,7 @@ export default function WorldMap() {
       <div className="controls">
         <label>
           Precursor class&nbsp;
-          <select value={precursor} onChange={(e) => setPrecursor(e.target.value)}>
+          <select value={precursor} onChange={(e: ChangeEvent<HTMLSelectElement>) => setPrecursor(e.target.value)}>
             <option value="all">All precursors</option>
             {PRECURSORS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
@@ -114,7 +111,7 @@ export default function WorldMap() {
           max={Math.max(0, years.length - 1)}
           step={1}
           value={Math.min(yearIdx, years.length - 1)}
-          onChange={(e) => { setPlaying(false); setYearIdx(Number(e.target.value)) }}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => { setPlaying(false); setYearIdx(Number(e.target.value)) }}
           disabled={years.length < 2}
         />
         <span className="year-label">{currentYear ?? '—'}</span>
@@ -131,7 +128,7 @@ export default function WorldMap() {
         >
           <Graticule stroke="#1b2540" strokeWidth={0.4} />
           <Geographies geography={topology}>
-            {({ geographies }) =>
+            {({ geographies }: { geographies: any[] }) =>
               geographies.map((geo) => (
                 <Geography
                   key={geo.rsmKey}
@@ -169,7 +166,7 @@ export default function WorldMap() {
                   strokeWidth={widthScale(rec.quantityKg, maxQty)}
                   strokeLinecap="round"
                   opacity={0.7}
-                  style={{ default: { transition: 'stroke-width 0.6s ease' } }}
+                  style={{ transition: 'stroke-width 0.6s ease' }}
                 />
               )
             }),
@@ -177,7 +174,9 @@ export default function WorldMap() {
 
           {/* Country nodes */}
           {nodes.map((n) => {
-            const [lng, lat] = coord(n.name)
+            const c = coord(n.name)
+            if (!c) return null
+            const [lng, lat] = c
             const r = 3 + (maxQty ? (n.qty / maxQty) * 7 : 0)
             return (
               <Marker key={n.name} coordinates={[lng, lat]}>

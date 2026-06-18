@@ -1,6 +1,10 @@
+interface ExplainerProps {
+  text: string | null
+}
+
 // A soft "plain English" callout that translates the chart/map above it into
 // one human sentence. Renders nothing if there's no sentence to show.
-export default function Explainer({ text }) {
+export default function Explainer({ text }: ExplainerProps) {
   if (!text) return null
   return (
     <p className="explainer">

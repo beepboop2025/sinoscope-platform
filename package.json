@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -16,7 +19,12 @@
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@types/react-simple-maps": "^3.0.6",
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.0"
+    "typescript": "^6.0.3",
+    "vite": "^5.4.0",
+    "vitest": "^4.1.9"
   }
 }

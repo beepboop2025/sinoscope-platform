@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
-import { PRECURSORS } from '../data/flows.js'
-import { useData } from '../lib/dataStore.js'
-import { explainFlows } from '../lib/explain.js'
-import Explainer from './Explainer.jsx'
+import { useMemo, useState, type ChangeEvent } from 'react'
+import { PRECURSORS } from '../data/flows'
+import { useData } from '../lib/dataStore'
+import { explainFlows } from '../lib/explain'
+import Explainer from './Explainer'
 
-const fmtKg = (v) => `${Number(v).toLocaleString()} kg`
-const fmtUsd = (v) => `$${Number(v).toLocaleString()}`
+const fmtKg = (v: number): string => `${Number(v).toLocaleString()} kg`
+const fmtUsd = (v: number): string => `$${Number(v).toLocaleString()}`
 
 export default function Flows() {
   const { flowRecords, precursorPriceRecords } = useData()
@@ -20,14 +20,14 @@ export default function Flows() {
     [precursorPriceRecords, precursor],
   )
 
-  const labelFor = (id) => PRECURSORS.find((p) => p.id === id)?.label ?? id
+  const labelFor = (id: string): string => PRECURSORS.find((p) => p.id === id)?.label ?? id
 
   return (
     <section>
       <div className="controls">
         <label>
           Precursor class&nbsp;
-          <select value={precursor} onChange={(e) => setPrecursor(e.target.value)}>
+          <select value={precursor} onChange={(e: ChangeEvent<HTMLSelectElement>) => setPrecursor(e.target.value)}>
             <option value="all">All precursors</option>
             {PRECURSORS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
@@ -75,9 +75,8 @@ export default function Flows() {
 
       <p className="note">
         Highlighted rows mark <strong>China</strong> as origin/source — the
-        upstream supply hub this tool is built to keep visible. Map view (corridor
-        arcs over a world map) is the next build step once real INCB/UNODC data is
-        loaded via <code>src/lib/ingest.js</code>.
+        upstream supply hub this tool is built to keep visible. See the Flow Map
+        tab for corridor arcs over a world map.
       </p>
     </section>
   )

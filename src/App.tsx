@@ -1,23 +1,23 @@
 import { useState, lazy, Suspense } from 'react'
-import Explorer from './components/Explorer.jsx'
-import Flows from './components/Flows.jsx'
+import Explorer from './components/Explorer'
+import Flows from './components/Flows'
+import DataLoader from './components/DataLoader'
+import { useData } from './lib/dataStore'
+import { SOURCES } from './data/prices'
 
-const WorldMap = lazy(() => import('./components/WorldMap.jsx'))
-const MyanmarFocus = lazy(() => import('./components/MyanmarFocus.jsx'))
-import DataLoader from './components/DataLoader.jsx'
-import { useData } from './lib/dataStore.js'
-import { SOURCES } from './data/prices.js'
+const WorldMap = lazy(() => import('./components/WorldMap'))
+const MyanmarFocus = lazy(() => import('./components/MyanmarFocus'))
 
 const TABS = [
   { id: 'prices', label: 'Street Prices' },
   { id: 'flows', label: 'Precursor Flows & Prices' },
   { id: 'map', label: 'Flow Map' },
   { id: 'myanmar', label: 'Myanmar Focus' },
-]
+] as const
 
 export default function App() {
   const { isSample } = useData()
-  const [tab, setTab] = useState('prices')
+  const [tab, setTab] = useState<string>('prices')
 
   return (
     <div className="app">

@@ -1,14 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ChangeEvent } from 'react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from 'recharts'
-import { DRUGS } from '../data/prices.js'
-import { useData } from '../lib/dataStore.js'
-import { affordabilityDays, purityAdjustedPrice, latestYoYChange } from '../lib/metrics.js'
-import { explainPrices } from '../lib/explain.js'
-import Explainer from './Explainer.jsx'
+import { DRUGS } from '../data/prices'
+import { useData } from '../lib/dataStore'
+import { affordabilityDays, purityAdjustedPrice } from '../lib/metrics'
+import { explainPrices } from '../lib/explain'
+import Explainer from './Explainer'
 
-const fmtUsd = (v) => (v == null ? 'n/a' : `$${Number(v).toFixed(2)}`)
+const fmtUsd = (v: number | string | null | undefined): string =>
+  (v == null ? 'n/a' : `$${Number(v).toFixed(2)}`)
 
 export default function Explorer() {
   const { priceRecords } = useData()
@@ -24,7 +25,7 @@ export default function Explorer() {
   const chartData = useMemo(() => {
     const years = [...new Set(rows.map((r) => r.year))].sort()
     return years.map((year) => {
-      const point = { year }
+      const point: Record<string, number> = { year }
       rows.filter((r) => r.year === year).forEach((r) => {
         const value = purityAdjusted
           ? purityAdjustedPrice(r.priceUsdPerGram, r.purityPct)
@@ -44,7 +45,7 @@ export default function Explorer() {
       <div className="controls">
         <label>
           Drug&nbsp;
-          <select value={drug} onChange={(e) => setDrug(e.target.value)}>
+          <select value={drug} onChange={(e: ChangeEvent<HTMLSelectElement>) => setDrug(e.target.value)}>
             {DRUGS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
           </select>
         </label>
@@ -52,7 +53,7 @@ export default function Explorer() {
           <input
             type="checkbox"
             checked={purityAdjusted}
-            onChange={(e) => setPurityAdjusted(e.target.checked)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setPurityAdjusted(e.target.checked)}
           />
           &nbsp;Price per <em>pure</em> gram (purity-adjusted)
         </label>
@@ -69,7 +70,7 @@ export default function Explorer() {
             <YAxis stroke="#8aa0c6" tickFormatter={(v) => `$${v}`} />
             <Tooltip
               contentStyle={{ background: '#0e1626', border: '1px solid #26314a' }}
-              formatter={(v) => fmtUsd(v)}
+              formatter={(v) => fmtUsd(v as number)}
             />
             <Legend />
             {countries.map((c, i) => (
@@ -77,12 +78,6 @@ export default function Explorer() {
             ))}
           </LineChart>
         </ResponsiveContainer>
-        {purityAdjusted && (
-          <p className="note">
-            Purity-adjusted view depends on <code>purityAdjustedPrice()</code> in
-            <code> src/lib/metrics.js</code> — implement it to populate this chart.
-          </p>
-        )}
       </div>
 
       <table className="data-table">

@@ -55,10 +55,11 @@ Runtime data store (`src/lib/dataStore.js`) swaps sample → real data on load.
 
 ```bash
 npm install
-npm run dev      # local dev server
-npm run build    # production build → dist/
-npm run preview  # preview the build
-node --test src/lib/*.test.js   # run unit tests
+npm run dev        # local dev server
+npm run build      # type-check (tsc) + production build → dist/
+npm run preview    # preview the build
+npm run typecheck  # tsc --noEmit
+npm test           # run unit tests (Vitest)
 ```
 
 ## Deploy (Vercel)

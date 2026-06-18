@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
+import { describe, it, assert } from 'vitest';
 import {
   parsePrices,
   parsePrecursorPrices,
@@ -8,7 +7,7 @@ import {
   parseMyanmarBorderNodes,
   parseMyanmarRegionRecords,
   parseMyanmarFlows,
-} from './ingest.js';
+} from './ingest';
 
 describe('parsePrices', () => {
   it('parses a clean retail-price row', () => {

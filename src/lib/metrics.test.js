@@ -1,11 +1,10 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, assert } from 'vitest'
 import {
   dailyIncomeUsd,
   affordabilityDays,
   latestYoYChange,
   purityAdjustedPrice,
-} from './metrics.js'
+} from './metrics'
 
 describe('dailyIncomeUsd(iso3)', () => {
   it('returns annual GDP per capita divided by 365 for a known country', () => {
@@ -65,10 +64,23 @@ describe('latestYoYChange(series)', () => {
 })
 
 describe('purityAdjustedPrice(priceUsd, purityPct)', () => {
-  it('returns null for now (stub)', () => {
-    // TODO: tighten once implemented
-    assert.equal(purityAdjustedPrice(100, 50), null)
+  it('divides price by the purity fraction to get price per pure gram', () => {
+    assert.equal(purityAdjustedPrice(100, 50), 200)
+    assert.equal(purityAdjustedPrice(100, 100), 100)
+    assert.equal(purityAdjustedPrice(60, 30), 200)
+  })
+
+  it('returns null when purity is unknown (policy: refuse to adjust)', () => {
     assert.equal(purityAdjustedPrice(100, null), null)
+  })
+
+  it('returns null when the price is null', () => {
+    assert.equal(purityAdjustedPrice(null, 50), null)
+  })
+
+  it('returns null for nonsensical / out-of-range purity', () => {
     assert.equal(purityAdjustedPrice(100, 0), null)
+    assert.equal(purityAdjustedPrice(100, -5), null)
+    assert.equal(purityAdjustedPrice(100, 150), null)
   })
 })

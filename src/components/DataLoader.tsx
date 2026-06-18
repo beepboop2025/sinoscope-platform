@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { loadData, useData } from '../lib/dataStore.js'
+import { useState, type ChangeEvent } from 'react'
+import { loadData, useData } from '../lib/dataStore'
+import type { LoadBundle, LoadReport } from '../types'
 
 // Each picker maps to one parser/dataset in loadData(). Omit a file → that
 // dataset keeps its current data, so you can load one CSV at a time.
-const FIELDS = [
+const FIELDS: { key: keyof LoadBundle; label: string }[] = [
   { key: 'prices', label: 'Street prices' },
   { key: 'precursorPrices', label: 'Precursor prices' },
   { key: 'flows', label: 'Precursor flows' },
@@ -16,18 +17,20 @@ const FIELDS = [
 export default function DataLoader() {
   const { isSample } = useData()
   const [open, setOpen] = useState(false)
-  const [files, setFiles] = useState({})
-  const [report, setReport] = useState(null)
+  const [files, setFiles] = useState<Partial<Record<keyof LoadBundle, File>>>({})
+  const [report, setReport] = useState<LoadReport | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const pick = (key, file) => setFiles((f) => ({ ...f, [key]: file }))
+  const pick = (key: keyof LoadBundle, file: File | null) =>
+    setFiles((f) => ({ ...f, [key]: file ?? undefined }))
 
   const run = async () => {
     setBusy(true)
     try {
-      const bundle = {}
+      const bundle: LoadBundle = {}
       for (const { key } of FIELDS) {
-        if (files[key]) bundle[key] = await files[key].text()
+        const file = files[key]
+        if (file) bundle[key] = await file.text()
       }
       setReport(loadData(bundle))
     } finally {
@@ -58,7 +61,7 @@ export default function DataLoader() {
                 <input
                   type="file"
                   accept=".csv,text/csv"
-                  onChange={(e) => pick(key, e.target.files[0] ?? null)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => pick(key, e.target.files?.[0] ?? null)}
                 />
               </label>
             ))}
