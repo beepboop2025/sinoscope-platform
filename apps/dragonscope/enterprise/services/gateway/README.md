@@ -35,7 +35,7 @@ A high-performance WebSocket gateway designed for financial data streaming, supp
 ### Installation
 
 ```bash
-cd /Users/mrinal/dev/DragonScope/enterprise/services/gateway
+cd apps/dragonscope/enterprise/services/gateway
 pip install -r requirements.txt
 ```
 

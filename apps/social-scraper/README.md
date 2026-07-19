@@ -182,8 +182,8 @@ router scores each record and forwards it to DragonScope, LiquiFi, or both.
 ### Setup
 
 ```bash
-git clone https://github.com/beepboop2025/social-scraper.git
-cd social-scraper
+git clone https://github.com/beepboop2025/sinoscope-platform.git
+cd sinoscope-platform/apps/social-scraper
 cp .env.example .env    # add your API keys and database password
 docker compose up -d    # starts all services
 ```

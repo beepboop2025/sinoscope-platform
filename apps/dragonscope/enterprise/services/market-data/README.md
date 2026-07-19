@@ -272,7 +272,7 @@ Service works without these for testing (data only kept in memory).
 Run the example:
 
 ```bash
-cd /Users/mrinal/dev/DragonScope/enterprise/services/market-data
+cd apps/dragonscope/enterprise/services/market-data
 python service.py
 ```
 

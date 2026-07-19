@@ -134,7 +134,7 @@ DragonScope has been transformed from a financial dashboard into a **world-class
 ## 📁 Directory Structure
 
 ```
-/Users/mrinal/dev/DragonScope/
+apps/dragonscope/
 ├── enterprise/
 │   ├── docs/                      # Documentation hub
 │   │   ├── ARCHITECTURE.md        # System architecture
@@ -264,19 +264,6 @@ ds monitor --watch
 | SSO | SAML 2.0, OIDC, LDAP |
 | MFA | TOTP, SMS, WebAuthn |
 | Penetration Testing | Quarterly |
-
----
-
-## 💰 Cost Comparison (50 users, 3 years)
-
-| Platform | License Cost | Infrastructure | Total (3yr) |
-|----------|--------------|----------------|-------------|
-| Bloomberg Terminal | $1,200,000 | $0 | $1,200,000 |
-| Refinitiv Eikon | $900,000 | $0 | $900,000 |
-| TradingView Pro+ | $108,000 | $50,000 | $158,000 |
-| **DragonScope Enterprise** | **$0 (self-hosted)** | **$180,000** | **$180,000** |
-
-**Savings vs Bloomberg**: 85% cost reduction
 
 ---
 

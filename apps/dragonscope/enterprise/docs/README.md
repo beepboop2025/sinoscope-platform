@@ -17,7 +17,6 @@ docs/
 ├── API_REFERENCE.md       # Complete API documentation
 ├── ADMIN_GUIDE.md         # System administration
 ├── DEVELOPMENT.md         # Developer contribution guide
-├── COMPARISON.md          # Competitive analysis
 ├── assets/                # Images and diagrams
 └── examples/              # Code samples and templates
 ```

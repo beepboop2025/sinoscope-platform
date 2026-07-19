@@ -57,8 +57,8 @@ sudo systemctl enable --now docker        # <-- enables containers to come back 
 
 ```bash
 sudo mkdir -p /opt/social-scraper && sudo chown "$USER":"$USER" /opt/social-scraper
-git clone https://github.com/beepboop2025/social-scraper.git /opt/social-scraper
-cd /opt/social-scraper
+git clone https://github.com/beepboop2025/sinoscope-platform.git /opt/social-scraper
+cd /opt/social-scraper/apps/social-scraper
 cp .env.example .env
 ```
 

@@ -58,9 +58,12 @@ Shell** (free, no install):
 ## Step 2 — Create the Railway project
 
 1. Sign in at **https://railway.app** with GitHub.
-2. **New Project → Deploy from GitHub repo →** pick `beepboop2025/social-scraper`.
+2. **New Project → Deploy from GitHub repo →** pick `beepboop2025/sinoscope-platform`.
    Railway creates a first service from the repo — rename it **api** (Settings →
-   Service name).
+   Service name). This app lives in a subdirectory of the monorepo, so set
+   **Settings → Root Directory** to `apps/social-scraper` (do this for every
+   repo-based service below, so the `Dockerfile` and `deploy/railway/*.json`
+   paths resolve).
 
 ## Step 3 — Add the databases (managed)
 
