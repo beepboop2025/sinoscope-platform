@@ -1,9 +1,8 @@
-# 🛰️ Sinoscope Platform
+# SinoScope Platform
 
-A family of open-source tools for making **China-linked data legible** — markets,
-information flows, and the illicit drug-trade supply chain. Each app is built on
-shared principles (public data, transparent methods, plain-language output) and
-lives in this monorepo so they evolve as one platform rather than scattered repos.
+SinoScope is a monorepo of open-source tools for analyzing China-linked public data
+across financial markets, information flows, and illicit-drug supply chains. The apps
+share an emphasis on public sources, documented methods, and plain-language output.
 
 > Aggregate, public-data tools for awareness, education, and research only.
 
@@ -13,7 +12,7 @@ lives in this monorepo so they evolve as one platform rather than scattered repo
 |---|---|---|
 | [`apps/dragonscope`](apps/dragonscope) | China financial-market analytics dashboard (35 panels, in-browser SQL, ML signals) | React · Vite |
 | [`apps/drug-observatory`](apps/drug-observatory) | Illicit-drug street prices + precursor flows, China/Myanmar focus, plain-English explainers | React · Vite · TypeScript |
-| [`apps/social-scraper`](apps/social-scraper) | Multi-source intelligence platform incl. the China latent-state intel engine | Python |
+| [`apps/social-scraper`](apps/social-scraper) | Multi-source public-data collection and analysis | Python |
 
 ## Layout
 
@@ -27,7 +26,7 @@ sinoscope-platform/
   pnpm-workspace.yaml
 ```
 
-Each app is **self-contained** — it keeps its own `package.json` / build, so you
+Each app is self-contained. It keeps its own `package.json` and build, so you
 can work on one without installing the others. The workspace config is opt-in for
 when you want shared tooling.
 
