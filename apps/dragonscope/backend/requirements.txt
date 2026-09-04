@@ -18,7 +18,7 @@ celery[redis]==5.4.0
 
 # Auth
 PyJWT[crypto]==2.10.1
-cryptography==44.0.0
+cryptography==50.0.0
 
 # HTTP client (for collector)
 httpx==0.28.1
