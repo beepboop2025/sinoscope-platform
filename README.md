@@ -1,5 +1,8 @@
 # 🛰️ Sinoscope Platform
 
+![tests](https://github.com/beepboop2025/sinoscope-platform/actions/workflows/tests.yml/badge.svg)
+![coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)
+
 A family of open-source tools for making **China-linked data legible** — markets,
 information flows, and the illicit drug-trade supply chain. Each app is built on
 shared principles (public data, transparent methods, plain-language output) and

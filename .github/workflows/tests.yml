@@ -1,0 +1,39 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  free-llm-router:
+    name: free_llm_router core unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/dragonscope/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal test deps
+        # Only what the free_llm_router package + tests need — NOT the full app.
+        run: pip install httpx pytest pytest-asyncio pytest-cov
+
+      - name: Run pure-logic test suite with coverage
+        # --noconftest skips the app-level conftest (which needs sqlalchemy/redis);
+        # these tests are self-contained pure logic and need no DB/network/keys.
+        run: |
+          python -m pytest tests/test_free_llm_router.py \
+            --noconftest -p no:cacheprovider -o asyncio_mode=auto \
+            --cov=free_llm_router --cov-report=term-missing --cov-report=xml
+
+      - name: Print coverage summary
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          rate = float(ET.parse("coverage.xml").getroot().get("line-rate"))
+          print(f"free_llm_router line coverage: {rate*100:.0f}%")
+          PY
