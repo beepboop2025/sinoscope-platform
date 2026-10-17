@@ -19,7 +19,7 @@
   "dependencies": {
     "@clerk/express": "^1.7.69",
     "@prisma/client": "^5.22.0",
-    "compression": "^1.8.1",
+    "compression": "^1.8.2",
     "cors": "^2.8.6",
     "dotenv": "^16.4.7",
     "express": "^5.2.1",
