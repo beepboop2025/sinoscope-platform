@@ -33,7 +33,7 @@
     "d3-hierarchy": "^3.1.2",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.3.0",
+    "express-rate-limit": "^8.7.2",
     "framer-motion": "^11.0.0",
     "helmet": "^8.1.0",
     "lightweight-charts": "^5.1.0",
